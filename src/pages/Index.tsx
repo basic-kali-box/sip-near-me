@@ -4,10 +4,15 @@ import { BottomNavigation } from "@/components/BottomNavigation";
 import { ListView } from "@/components/ListView";
 import { MapView } from "@/components/MapView";
 import { AddListingView } from "@/components/AddListingView";
+import { LandingPage } from "@/components/LandingPage";
+import { OrderWorkflow } from "@/components/OrderWorkflow";
 import { Button } from "@/components/ui/button";
+import { Seller } from "@/data/mockSellers";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<"map" | "list" | "add">("list");
+  const [showLanding, setShowLanding] = useState(true);
+  const [selectedSellerForOrder, setSelectedSellerForOrder] = useState<Seller | null>(null);
   const [userLocation, setUserLocation] = useState<string>("New York, NY");
 
   // Mock location detection
@@ -23,6 +28,10 @@ const Index = () => {
     );
   }, []);
 
+  if (showLanding) {
+    return <LandingPage onGetStarted={() => setShowLanding(false)} />;
+  }
+
   const renderActiveView = () => {
     switch (activeTab) {
       case "map":
@@ -30,7 +39,7 @@ const Index = () => {
       case "add":
         return <AddListingView className="flex-1" />;
       default:
-        return <ListView className="flex-1" />;
+        return <ListView onStartOrder={setSelectedSellerForOrder} className="flex-1" />;
     }
   };
 
@@ -42,11 +51,11 @@ const Index = () => {
       }`}>
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-sunrise rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-matcha rounded-lg flex items-center justify-center">
               <Droplets className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground">Drinks Next To Me</h1>
+              <h1 className="text-xl font-bold text-foreground">BrewNear</h1>
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
                 <MapPin className="w-3 h-3" />
                 <span>{userLocation}</span>
@@ -59,21 +68,21 @@ const Index = () => {
             <Button
               variant={activeTab === "list" ? "default" : "ghost"}
               onClick={() => setActiveTab("list")}
-              className={activeTab === "list" ? "bg-gradient-sunrise" : ""}
+              className={activeTab === "list" ? "bg-gradient-matcha" : ""}
             >
               List View
             </Button>
             <Button
               variant={activeTab === "map" ? "default" : "ghost"}
               onClick={() => setActiveTab("map")}
-              className={activeTab === "map" ? "bg-gradient-sunrise" : ""}
+              className={activeTab === "map" ? "bg-gradient-matcha" : ""}
             >
               Map View
             </Button>
             <Button
               variant={activeTab === "add" ? "default" : "ghost"}
               onClick={() => setActiveTab("add")}
-              className={activeTab === "add" ? "bg-gradient-sunrise" : ""}
+              className={activeTab === "add" ? "bg-gradient-matcha" : ""}
             >
               Add Listing
             </Button>
@@ -90,6 +99,13 @@ const Index = () => {
       <BottomNavigation
         activeTab={activeTab}
         onTabChange={setActiveTab}
+      />
+
+      {/* Order workflow modal */}
+      <OrderWorkflow
+        seller={selectedSellerForOrder}
+        isOpen={!!selectedSellerForOrder}
+        onClose={() => setSelectedSellerForOrder(null)}
       />
     </div>
   );

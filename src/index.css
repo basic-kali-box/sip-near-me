@@ -6,61 +6,64 @@
 
 @layer base {
   :root {
-    /* Main background - clean white */
-    --background: 0 0% 98%;
-    --foreground: 210 12% 16%;
+    /* Professional coffee & matcha theme */
+    --background: 30 25% 97%;  /* Warm cream */
+    --foreground: 25 25% 15%;  /* Rich coffee brown */
 
-    /* Card backgrounds with subtle warmth */
+    /* Card backgrounds with warm tones */
     --card: 0 0% 100%;
-    --card-foreground: 210 12% 16%;
+    --card-foreground: 25 25% 15%;
 
-    /* Fresh fruit-inspired primary colors */
-    --primary: 25 95% 55%;  /* Vibrant orange like fresh orange juice */
+    /* Matcha green primary - professional and elegant */
+    --primary: 85 25% 35%;  /* Deep matcha green */
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 25 85% 65%;
+    --primary-glow: 85 35% 45%;
 
-    /* Tropical secondary - like coconut water */
-    --secondary: 180 25% 94%;
-    --secondary-foreground: 210 12% 16%;
+    /* Coffee brown secondary */
+    --secondary: 25 20% 88%;  /* Light coffee cream */
+    --secondary-foreground: 25 25% 15%;
 
-    /* Subtle mint green accents */
-    --accent: 150 30% 85%;
-    --accent-foreground: 150 40% 25%;
+    /* Warm latte accent */
+    --accent: 35 30% 85%;
+    --accent-foreground: 25 25% 25%;
 
-    /* Muted berry tones */
-    --muted: 210 20% 95%;
-    --muted-foreground: 210 12% 45%;
+    /* Subtle warm tones */
+    --muted: 30 15% 92%;
+    --muted-foreground: 25 15% 45%;
 
-    /* Fresh berry destructive */
-    --destructive: 0 70% 58%;
+    /* Professional destructive */
+    --destructive: 0 65% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Soft borders */
-    --border: 210 15% 90%;
-    --input: 210 15% 92%;
-    --ring: 25 95% 55%;
+    /* Elegant borders */
+    --border: 25 20% 88%;
+    --input: 25 20% 90%;
+    --ring: 85 25% 35%;
 
     /* Popover */
     --popover: 0 0% 100%;
-    --popover-foreground: 210 12% 16%;
+    --popover-foreground: 25 25% 15%;
 
-    /* Design tokens */
-    --radius: 1rem;
+    /* Design tokens for coffee & matcha theme */
+    --radius: 1.2rem;
     
-    /* Gradients for drinks theme */
-    --gradient-sunrise: linear-gradient(135deg, hsl(25 95% 55%), hsl(45 95% 60%));
-    --gradient-tropical: linear-gradient(135deg, hsl(180 60% 70%), hsl(150 50% 75%));
-    --gradient-berry: linear-gradient(135deg, hsl(320 60% 70%), hsl(280 50% 75%));
-    --gradient-fresh: linear-gradient(180deg, hsl(var(--background)), hsl(150 20% 96%));
+    /* Elegant gradients */
+    --gradient-matcha: linear-gradient(135deg, hsl(85 25% 35%), hsl(95 30% 40%));
+    --gradient-coffee: linear-gradient(135deg, hsl(25 50% 25%), hsl(35 40% 35%));
+    --gradient-latte: linear-gradient(135deg, hsl(35 30% 85%), hsl(25 20% 88%));
+    --gradient-hero: linear-gradient(135deg, hsl(85 25% 35%), hsl(25 50% 25%));
+    --gradient-warm: linear-gradient(180deg, hsl(var(--background)), hsl(35 20% 94%));
     
-    /* Shadows */
-    --shadow-card: 0 4px 20px -4px hsl(25 95% 55% / 0.15);
-    --shadow-floating: 0 8px 30px -8px hsl(25 95% 55% / 0.25);
-    --shadow-glow: 0 0 30px hsl(25 95% 55% / 0.3);
+    /* Professional shadows */
+    --shadow-soft: 0 2px 20px -2px hsl(25 25% 15% / 0.08);
+    --shadow-elegant: 0 8px 40px -8px hsl(25 25% 15% / 0.12);
+    --shadow-floating: 0 12px 50px -12px hsl(25 25% 15% / 0.15);
+    --shadow-glow: 0 0 40px hsl(85 25% 35% / 0.2);
     
-    /* Animations */
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    /* Smooth animations */
+    --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --transition-elegant: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 
     --sidebar-background: 0 0% 98%;
 

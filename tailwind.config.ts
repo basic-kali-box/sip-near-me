@@ -70,19 +70,22 @@ export default {
 				sm: 'calc(var(--radius) - 4px)'
 			},
 			backgroundImage: {
-				'gradient-sunrise': 'var(--gradient-sunrise)',
-				'gradient-tropical': 'var(--gradient-tropical)',
-				'gradient-berry': 'var(--gradient-berry)',
-				'gradient-fresh': 'var(--gradient-fresh)'
+				'gradient-matcha': 'var(--gradient-matcha)',
+				'gradient-coffee': 'var(--gradient-coffee)', 
+				'gradient-latte': 'var(--gradient-latte)',
+				'gradient-hero': 'var(--gradient-hero)',
+				'gradient-warm': 'var(--gradient-warm)'
 			},
 			boxShadow: {
-				'card': 'var(--shadow-card)',
+				'soft': 'var(--shadow-soft)',
+				'elegant': 'var(--shadow-elegant)',
 				'floating': 'var(--shadow-floating)',
 				'glow': 'var(--shadow-glow)'
 			},
 			transitionTimingFunction: {
 				'smooth': 'var(--transition-smooth)',
-				'bounce': 'var(--transition-bounce)'
+				'bounce': 'var(--transition-bounce)',
+				'elegant': 'var(--transition-elegant)'
 			},
 			keyframes: {
 				'accordion-down': {

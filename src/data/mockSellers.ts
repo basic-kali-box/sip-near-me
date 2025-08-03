@@ -3,6 +3,7 @@ export interface Drink {
   description: string;
   price: string;
   image?: string;
+  category: "coffee" | "matcha" | "specialty" | "pastry";
 }
 
 export interface Seller {
@@ -21,92 +22,115 @@ export interface Seller {
   reviewCount: number;
   distance?: string;
   specialty?: string;
+  isVerified?: boolean;
+  deliveryTime?: string;
+  minimumOrder?: string;
 }
 
 export const mockSellers: Seller[] = [
   {
     id: 1,
-    name: "Sarah's Fresh Juices",
-    location: { lat: 40.7128, lng: -74.0060, address: "123 Main St, New York" },
+    name: "Zen Matcha Studio",
+    location: { lat: 40.7128, lng: -74.0060, address: "123 Greene St, SoHo" },
     drinks: [
-      { name: "Green Smoothie", description: "Spinach, apple, banana blend", price: "$5" },
-      { name: "Orange Carrot Ginger", description: "Fresh pressed immunity boost", price: "$6" },
-      { name: "Tropical Paradise", description: "Mango, pineapple, coconut", price: "$7" }
+      { name: "Ceremonial Matcha Latte", description: "Premium ceremonial grade matcha with oat milk", price: "$7.50", category: "matcha" },
+      { name: "Iced Matcha Cloud", description: "Cold brew matcha with vanilla foam", price: "$8.00", category: "matcha" },
+      { name: "Matcha Tiramisu", description: "Traditional tiramisu with matcha twist", price: "$9.50", category: "pastry" },
+      { name: "Hojicha Latte", description: "Roasted green tea with steamed milk", price: "$6.50", category: "specialty" }
     ],
-    phone: "+1234567890",
-    hours: "9AM-6PM",
+    phone: "+1 (555) 123-4567",
+    hours: "7AM - 8PM",
     photo_url: "/placeholder.svg",
-    rating: 4.5,
-    reviewCount: 23,
+    rating: 4.8,
+    reviewCount: 127,
     distance: "0.3 mi",
-    specialty: "Cold-pressed juices"
+    specialty: "Authentic Japanese Matcha",
+    isVerified: true,
+    deliveryTime: "15-25 min",
+    minimumOrder: "$12"
   },
   {
     id: 2,
-    name: "Mike's Kombucha Corner",
-    location: { lat: 40.7589, lng: -73.9851, address: "456 Park Ave, New York" },
+    name: "Artisan Coffee Collective",
+    location: { lat: 40.7589, lng: -73.9851, address: "456 West Village, NYC" },
     drinks: [
-      { name: "Ginger Lemon Kombucha", description: "Probiotic powerhouse", price: "$4" },
-      { name: "Berry Hibiscus", description: "Antioxidant-rich fermented tea", price: "$5" },
-      { name: "Cucumber Mint", description: "Refreshing and cooling", price: "$4" }
+      { name: "Single Origin Pour Over", description: "Ethiopian Yirgacheffe, light roast", price: "$6.00", category: "coffee" },
+      { name: "Maple Cortado", description: "Double shot with maple syrup and steamed milk", price: "$5.50", category: "coffee" },
+      { name: "Cold Brew Concentrate", description: "24-hour slow extraction", price: "$4.50", category: "coffee" },
+      { name: "Affogato", description: "Vanilla gelato drowned in espresso", price: "$8.00", category: "specialty" }
     ],
-    phone: "+1234567891",
-    hours: "8AM-8PM",
+    phone: "+1 (555) 234-5678",
+    hours: "6AM - 6PM",
     photo_url: "/placeholder.svg",
-    rating: 4.8,
-    reviewCount: 47,
+    rating: 4.6,
+    reviewCount: 89,
     distance: "0.7 mi",
-    specialty: "Artisan kombucha"
+    specialty: "Third Wave Coffee",
+    isVerified: true,
+    deliveryTime: "10-20 min",
+    minimumOrder: "$10"
   },
   {
     id: 3,
-    name: "Luna's Smoothie Bowls",
-    location: { lat: 40.7505, lng: -73.9934, address: "789 Broadway, New York" },
+    name: "Green & Bean Fusion",
+    location: { lat: 40.7505, lng: -73.9934, address: "789 Broadway, Union Sq" },
     drinks: [
-      { name: "Acai Power Bowl", description: "Acai, granola, fresh berries", price: "$8" },
-      { name: "Chocolate Peanut Butter", description: "Protein-packed indulgence", price: "$7" },
-      { name: "Dragon Fruit Special", description: "Pink pitaya superfood blend", price: "$9" }
+      { name: "Matcha Cappuccino", description: "Espresso and matcha blend with microfoam", price: "$7.00", category: "specialty" },
+      { name: "Dalgona Matcha", description: "Whipped matcha over iced oat milk", price: "$6.50", category: "matcha" },
+      { name: "Coffee Matcha Swirl", description: "Half coffee, half matcha latte", price: "$7.50", category: "specialty" },
+      { name: "Matcha Croissant", description: "Buttery croissant with matcha cream", price: "$5.00", category: "pastry" }
     ],
-    phone: "+1234567892",
-    hours: "7AM-3PM",
+    phone: "+1 (555) 345-6789",
+    hours: "7AM - 7PM",
     photo_url: "/placeholder.svg",
-    rating: 4.3,
-    reviewCount: 31,
+    rating: 4.4,
+    reviewCount: 156,
     distance: "1.2 mi",
-    specialty: "Smoothie bowls"
+    specialty: "Coffee & Matcha Fusion",
+    isVerified: true,
+    deliveryTime: "20-30 min",
+    minimumOrder: "$15"
   },
   {
     id: 4,
-    name: "Carlos' Coffee & Shakes",
-    location: { lat: 40.7282, lng: -74.0776, address: "321 West St, New York" },
+    name: "Nordic Coffee Roasters",
+    location: { lat: 40.7282, lng: -74.0776, address: "321 Tribeca, NYC" },
     drinks: [
-      { name: "Iced Vanilla Latte", description: "Cold brew with vanilla syrup", price: "$4" },
-      { name: "Protein Shake", description: "Banana, peanut butter, protein", price: "$6" },
-      { name: "Matcha Frappé", description: "Japanese green tea blend", price: "$5" }
+      { name: "Scandinavian Light Roast", description: "Bright, acidic notes with floral finish", price: "$5.50", category: "coffee" },
+      { name: "Cardamom Latte", description: "Nordic spice blend with espresso", price: "$6.00", category: "coffee" },
+      { name: "Flat White", description: "Double ristretto with microfoam", price: "$5.00", category: "coffee" },
+      { name: "Cinnamon Bun", description: "Traditional Swedish kanelbulle", price: "$4.50", category: "pastry" }
     ],
-    phone: "+1234567893",
-    hours: "6AM-9PM",
+    phone: "+1 (555) 456-7890",
+    hours: "6:30AM - 5PM",
     photo_url: "/placeholder.svg",
-    rating: 4.1,
-    reviewCount: 18,
+    rating: 4.7,
+    reviewCount: 203,
     distance: "1.8 mi",
-    specialty: "Coffee & protein shakes"
+    specialty: "Nordic Coffee Culture",
+    isVerified: true,
+    deliveryTime: "15-25 min",
+    minimumOrder: "$8"
   },
   {
     id: 5,
-    name: "Emma's Herbal Teas",
-    location: { lat: 40.7614, lng: -73.9776, address: "555 5th Ave, New York" },
+    name: "Matcha Moon Café",
+    location: { lat: 40.7614, lng: -73.9776, address: "555 Upper East Side, NYC" },
     drinks: [
-      { name: "Chamomile Honey", description: "Soothing evening blend", price: "$3" },
-      { name: "Turmeric Ginger", description: "Anti-inflammatory wellness tea", price: "$4" },
-      { name: "Peppermint Fresh", description: "Cooling digestive aid", price: "$3" }
+      { name: "Moon Dust Matcha", description: "Ceremonial matcha with coconut cloud foam", price: "$8.50", category: "matcha" },
+      { name: "Strawberry Matcha", description: "Seasonal strawberry and matcha blend", price: "$9.00", category: "matcha" },
+      { name: "White Chocolate Matcha", description: "Creamy white chocolate matcha latte", price: "$8.00", category: "matcha" },
+      { name: "Matcha Mochi", description: "Traditional Japanese sweet treat", price: "$3.50", category: "pastry" }
     ],
-    phone: "+1234567894",
-    hours: "10AM-7PM",
+    phone: "+1 (555) 567-8901",
+    hours: "8AM - 9PM",
     photo_url: "/placeholder.svg",
-    rating: 4.6,
-    reviewCount: 52,
+    rating: 4.9,
+    reviewCount: 94,
     distance: "2.1 mi",
-    specialty: "Herbal wellness teas"
+    specialty: "Premium Matcha Experience",
+    isVerified: true,
+    deliveryTime: "25-35 min",
+    minimumOrder: "$12"
   }
 ];

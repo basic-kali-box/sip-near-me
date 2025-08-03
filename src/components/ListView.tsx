@@ -7,10 +7,11 @@ import { SellerProfile } from "./SellerProfile";
 import { mockSellers, Seller } from "@/data/mockSellers";
 
 interface ListViewProps {
+  onStartOrder: (seller: Seller) => void;
   className?: string;
 }
 
-export const ListView = ({ className }: ListViewProps) => {
+export const ListView = ({ onStartOrder, className }: ListViewProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSeller, setSelectedSeller] = useState<Seller | null>(null);
   const [sellers] = useState(mockSellers);
@@ -57,6 +58,7 @@ export const ListView = ({ className }: ListViewProps) => {
                 key={seller.id}
                 seller={seller}
                 onViewProfile={setSelectedSeller}
+                onStartOrder={onStartOrder}
                 className="w-full"
               />
             ))
