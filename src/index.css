@@ -2,41 +2,65 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Drinks Next To Me - Mobile-first design system for drink marketplace */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Main background - clean white */
+    --background: 0 0% 98%;
+    --foreground: 210 12% 16%;
 
+    /* Card backgrounds with subtle warmth */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 210 12% 16%;
 
+    /* Fresh fruit-inspired primary colors */
+    --primary: 25 95% 55%;  /* Vibrant orange like fresh orange juice */
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 25 85% 65%;
+
+    /* Tropical secondary - like coconut water */
+    --secondary: 180 25% 94%;
+    --secondary-foreground: 210 12% 16%;
+
+    /* Subtle mint green accents */
+    --accent: 150 30% 85%;
+    --accent-foreground: 150 40% 25%;
+
+    /* Muted berry tones */
+    --muted: 210 20% 95%;
+    --muted-foreground: 210 12% 45%;
+
+    /* Fresh berry destructive */
+    --destructive: 0 70% 58%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Soft borders */
+    --border: 210 15% 90%;
+    --input: 210 15% 92%;
+    --ring: 25 95% 55%;
+
+    /* Popover */
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 210 12% 16%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
+    /* Design tokens */
+    --radius: 1rem;
+    
+    /* Gradients for drinks theme */
+    --gradient-sunrise: linear-gradient(135deg, hsl(25 95% 55%), hsl(45 95% 60%));
+    --gradient-tropical: linear-gradient(135deg, hsl(180 60% 70%), hsl(150 50% 75%));
+    --gradient-berry: linear-gradient(135deg, hsl(320 60% 70%), hsl(280 50% 75%));
+    --gradient-fresh: linear-gradient(180deg, hsl(var(--background)), hsl(150 20% 96%));
+    
+    /* Shadows */
+    --shadow-card: 0 4px 20px -4px hsl(25 95% 55% / 0.15);
+    --shadow-floating: 0 8px 30px -8px hsl(25 95% 55% / 0.25);
+    --shadow-glow: 0 0 30px hsl(25 95% 55% / 0.3);
+    
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
     --sidebar-background: 0 0% 98%;
 
