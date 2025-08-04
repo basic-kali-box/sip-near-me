@@ -1,17 +1,25 @@
-import { MapPin, List, Plus } from "lucide-react";
+import { MapPin, List, Plus, User, LogIn } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 
 interface BottomNavigationProps {
-  activeTab: "map" | "list" | "add";
-  onTabChange: (tab: "map" | "list" | "add") => void;
+  activeTab: "map" | "list";
+  onTabChange: (tab: "map" | "list") => void;
   className?: string;
+  isAuthenticated?: boolean; // Optional prop for future authentication state
 }
 
-export const BottomNavigation = ({ activeTab, onTabChange, className }: BottomNavigationProps) => {
+export const BottomNavigation = ({ activeTab, onTabChange, className, isAuthenticated = false }: BottomNavigationProps) => {
+  const navigate = useNavigate();
+
   const tabs = [
-    { id: "map" as const, label: "Map", icon: MapPin },
-    { id: "list" as const, label: "List", icon: List },
-    { id: "add" as const, label: "Add Listing", icon: Plus },
+    { id: "map" as const, label: "Map", icon: MapPin, isTab: true },
+    { id: "list" as const, label: "List", icon: List, isTab: true },
+    { id: "add" as const, label: "Add Listing", icon: Plus, isTab: false },
+    // Show different options based on authentication state
+    isAuthenticated
+      ? { id: "profile" as const, label: "Profile", icon: User, isTab: false }
+      : { id: "signin" as const, label: "Sign In", icon: LogIn, isTab: false },
   ];
 
   return (
@@ -23,17 +31,29 @@ export const BottomNavigation = ({ activeTab, onTabChange, className }: BottomNa
       <nav className="flex">
         {tabs.map((tab) => {
           const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          
+          const isActive = tab.isTab && activeTab === tab.id;
+
+          const handleClick = () => {
+            if (tab.isTab) {
+              onTabChange(tab.id as "map" | "list");
+            } else if (tab.id === "add") {
+              navigate("/add-listing");
+            } else if (tab.id === "profile") {
+              navigate("/profile");
+            } else if (tab.id === "signin") {
+              navigate("/auth");
+            }
+          };
+
           return (
             <button
               key={tab.id}
-              onClick={() => onTabChange(tab.id)}
+              onClick={handleClick}
               className={cn(
                 "flex-1 flex flex-col items-center gap-1 py-3 px-2 transition-all duration-200",
                 "min-h-[60px] touch-manipulation", // Minimum touch target
-                isActive 
-                  ? "text-primary bg-primary/5" 
+                isActive
+                  ? "text-primary bg-primary/5"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >

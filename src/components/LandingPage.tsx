@@ -1,6 +1,7 @@
-import { ArrowRight, Coffee, Leaf, Star, Clock, MapPin, ShoppingBag } from "lucide-react";
+import { ArrowRight, Coffee, Leaf, Star, Clock, MapPin, ShoppingBag, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/hero-matcha-coffee.jpg";
 import matchaBarista from "@/assets/matcha-barista.jpg";
 import coffeeBrewing from "@/assets/coffee-brewing.jpg";
@@ -11,6 +12,7 @@ interface LandingPageProps {
 }
 
 export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
+  const navigate = useNavigate();
   const features = [
     {
       icon: Coffee,
@@ -58,8 +60,19 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
             </div>
             
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="sm">Sign In</Button>
-              <Button size="sm" className="bg-gradient-matcha hover:shadow-glow transition-all duration-300">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate("/auth")}
+                className="hover:text-primary transition-colors duration-200"
+              >
+                Sign In
+              </Button>
+              <Button
+                size="sm"
+                className="bg-gradient-matcha hover:shadow-glow transition-all duration-300"
+                onClick={() => navigate("/auth")}
+              >
                 Join Now
               </Button>
             </div>
@@ -80,7 +93,7 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
                 <h1 className="text-4xl lg:text-6xl font-bold text-foreground leading-tight">
                   Find Amazing
                   <br />
-                  <span className="bg-gradient-matcha bg-clip-text text-transparent">
+                  <span className="text-primary font-bold">
                     Coffee & Matcha
                   </span>
                   <br />
@@ -93,17 +106,35 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button 
-                  size="lg" 
+                <Button
+                  size="lg"
                   onClick={onGetStarted}
                   className="bg-gradient-matcha hover:shadow-glow transition-all duration-300 text-lg px-8"
                 >
                   Explore Nearby
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
-                <Button variant="outline" size="lg" className="text-lg px-8">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="text-lg px-8"
+                  onClick={() => navigate("/auth")}
+                >
                   <ShoppingBag className="w-5 h-5 mr-2" />
                   Become a Seller
+                </Button>
+              </div>
+
+              {/* Authentication Options */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate("/auth")}
+                  className="text-muted-foreground hover:text-foreground transition-colors duration-200"
+                >
+                  <LogIn className="w-4 h-4 mr-2" />
+                  Already have an account? Sign In
                 </Button>
               </div>
 
@@ -264,10 +295,11 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
                 <MapPin className="w-5 h-5 mr-2" />
                 Find Nearby Sellers
               </Button>
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 variant="outline"
                 className="text-lg px-8 border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-foreground"
+                onClick={() => navigate("/auth")}
               >
                 Start Selling
               </Button>

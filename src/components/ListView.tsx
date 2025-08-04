@@ -3,7 +3,6 @@ import { Search, Filter, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SellerCard } from "./SellerCard";
-import { SellerProfile } from "./SellerProfile";
 import { mockSellers, Seller } from "@/data/mockSellers";
 
 interface ListViewProps {
@@ -13,7 +12,6 @@ interface ListViewProps {
 
 export const ListView = ({ onStartOrder, className }: ListViewProps) => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedSeller, setSelectedSeller] = useState<Seller | null>(null);
   const [sellers] = useState(mockSellers);
 
   const filteredSellers = sellers.filter(seller =>
@@ -51,17 +49,18 @@ export const ListView = ({ onStartOrder, className }: ListViewProps) => {
 
       {/* Sellers list */}
       <div className="flex-1 overflow-y-auto">
-        <div className="p-4 space-y-4">
+        <div className="p-4">
           {filteredSellers.length > 0 ? (
-            filteredSellers.map((seller) => (
-              <SellerCard
-                key={seller.id}
-                seller={seller}
-                onViewProfile={setSelectedSeller}
-                onStartOrder={onStartOrder}
-                className="w-full"
-              />
-            ))
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredSellers.map((seller) => (
+                <SellerCard
+                  key={seller.id}
+                  seller={seller}
+                  onStartOrder={onStartOrder}
+                  className="w-full"
+                />
+              ))}
+            </div>
           ) : (
             <div className="text-center py-12 px-4">
               <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
@@ -81,12 +80,6 @@ export const ListView = ({ onStartOrder, className }: ListViewProps) => {
         <div className="h-20 md:h-4" />
       </div>
 
-      {/* Seller profile modal */}
-      <SellerProfile
-        seller={selectedSeller}
-        isOpen={!!selectedSeller}
-        onClose={() => setSelectedSeller(null)}
-      />
     </div>
   );
 };
