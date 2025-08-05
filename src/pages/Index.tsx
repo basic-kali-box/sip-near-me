@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MapPin, Droplets, User, Plus, Menu, X } from "lucide-react";
+import { MapPin, Droplets, User, Plus, Menu, X, Leaf } from "lucide-react";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { ListView } from "@/components/ListView";
 import { MapView } from "@/components/MapView";
@@ -183,7 +183,7 @@ const Index = () => {
                   <Button
                     variant="outline"
                     onClick={() => {
-                      navigate("/auth");
+                      navigate("/signin");
                       closeMenu();
                     }}
                     className="justify-center py-3 font-semibold hover:bg-primary/10 hover:border-primary/50 transition-all duration-300"
@@ -192,7 +192,7 @@ const Index = () => {
                   </Button>
                   <Button
                     onClick={() => {
-                      navigate("/auth");
+                      navigate("/signup");
                       closeMenu();
                     }}
                     className="bg-gradient-matcha hover:shadow-glow hover:scale-105 transition-all duration-300 justify-center py-3 font-semibold"
@@ -257,13 +257,21 @@ const Index = () => {
             </Button>
             <Button
               variant="outline"
-              onClick={() => navigate("/auth")}
+              onClick={() => navigate("/signin")}
               className="flex items-center gap-2"
             >
               Sign In
             </Button>
             <Button
-              onClick={() => navigate("/auth")}
+              variant="outline"
+              onClick={() => navigate("/add-listing")}
+              className="border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50 transition-all duration-300 flex items-center gap-2"
+            >
+              <Leaf className="w-4 h-4" />
+              Become a Seller
+            </Button>
+            <Button
+              onClick={() => navigate("/signup")}
               className="bg-gradient-sunrise hover:shadow-glow transition-all duration-300 flex items-center gap-2"
             >
               Sign Up

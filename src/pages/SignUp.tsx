@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Eye, EyeOff, Mail, Lock, User, Coffee } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Mail, Lock, User, Coffee, Leaf, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,10 +7,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@/contexts/UserContext";
 
 const SignUp = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { register } = useUser();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -19,6 +21,7 @@ const SignUp = () => {
     email: "",
     password: "",
     confirmPassword: "",
+    userType: "buyer" as "buyer" | "seller",
     acceptTerms: false
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -81,21 +84,30 @@ const SignUp = () => {
 
     setIsLoading(true);
     
-    // Mock registration - replace with actual API call
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      toast({
-        title: "Account created successfully!",
-        description: "Welcome to Sip Near Me. You can now start exploring.",
-      });
-      
-      // Navigate to main app or sign in
-      navigate("/");
+      const success = await register({
+        name: formData.name,
+        email: formData.email,
+        userType: formData.userType
+      }, formData.password);
+
+      if (success) {
+        toast({
+          title: "Welcome to BrewNear!",
+          description: `Account created successfully as ${formData.userType}.`,
+        });
+        navigate(formData.userType === 'seller' ? '/add-listing' : '/');
+      } else {
+        toast({
+          title: "Registration failed",
+          description: "Please try again later.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       toast({
         title: "Registration failed",
-        description: "Something went wrong. Please try again.",
+        description: "Please try again later.",
         variant: "destructive",
       });
     } finally {
@@ -170,6 +182,41 @@ const SignUp = () => {
                 {errors.name && (
                   <p className="text-sm text-destructive">{errors.name}</p>
                 )}
+              </div>
+
+              {/* User Type Selection */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">I want to</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    type="button"
+                    variant={formData.userType === 'buyer' ? 'default' : 'outline'}
+                    onClick={() => handleInputChange('userType', 'buyer')}
+                    className={`justify-start h-12 transition-all duration-300 ${
+                      formData.userType === 'buyer'
+                        ? 'bg-gradient-coffee shadow-glow hover:scale-105'
+                        : 'hover:bg-primary/10 hover:border-primary/50 hover:scale-105'
+                    }`}
+                    disabled={isLoading}
+                  >
+                    <Coffee className="w-4 h-4 mr-2" />
+                    Buy Drinks
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={formData.userType === 'seller' ? 'default' : 'outline'}
+                    onClick={() => handleInputChange('userType', 'seller')}
+                    className={`justify-start h-12 transition-all duration-300 ${
+                      formData.userType === 'seller'
+                        ? 'bg-gradient-matcha shadow-glow hover:scale-105'
+                        : 'hover:bg-primary/10 hover:border-primary/50 hover:scale-105'
+                    }`}
+                    disabled={isLoading}
+                  >
+                    <Leaf className="w-4 h-4 mr-2" />
+                    Sell Drinks
+                  </Button>
+                </div>
               </div>
 
               {/* Email Field */}

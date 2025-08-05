@@ -1,4 +1,4 @@
-import { Phone, ShieldCheck, Clock, MapPin, Heart, Share2, Coffee, Leaf } from "lucide-react";
+import { Phone, ShieldCheck, Clock, MapPin, Heart, Share2, Coffee, Leaf, MessageCircle, Star } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +6,8 @@ import { StarRating } from "./StarRating";
 import { Seller } from "@/data/mockSellers";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { sendWhatsAppMessage, createQuickContactMessage, trackContactAttempt } from "@/utils/whatsapp";
+import { useToast } from "@/hooks/use-toast";
 
 interface SellerCardProps {
   seller: Seller;
@@ -15,6 +17,7 @@ interface SellerCardProps {
 
 export const SellerCard = ({ seller, onStartOrder, className = "" }: SellerCardProps) => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [isFavorited, setIsFavorited] = useState(false);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
 
@@ -37,6 +40,17 @@ export const SellerCard = ({ seller, onStartOrder, className = "" }: SellerCardP
         url: window.location.origin + `/seller/${seller.id}`,
       });
     }
+  };
+
+  const handleWhatsAppContact = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const message = createQuickContactMessage(seller);
+    sendWhatsAppMessage(seller.phone, message);
+    trackContactAttempt(seller.id, 'whatsapp');
+    toast({
+      title: "Opening WhatsApp",
+      description: `Contacting ${seller.name} via WhatsApp`,
+    });
   };
 
   const getSpecialtyIcon = (specialty: string) => {
@@ -223,19 +237,28 @@ export const SellerCard = ({ seller, onStartOrder, className = "" }: SellerCardP
         )}
 
         {/* Enhanced action buttons */}
-        <div className="flex gap-3 pt-2">
+        <div className="flex gap-2 pt-2">
           <Button
             variant="outline"
             size="sm"
             onClick={handleCall}
-            className="flex items-center gap-2 px-4 py-2 glass-card border-border/50 hover:border-primary/50 hover:bg-primary/5 hover:scale-105 transition-all duration-300 group/btn"
+            className="flex items-center gap-2 px-3 py-2 glass-card border-border/50 hover:border-primary/50 hover:bg-primary/5 hover:scale-105 transition-all duration-300 group/btn"
           >
             <Phone className="w-4 h-4 group-hover/btn:scale-110 transition-transform duration-200" />
-            <span className="font-medium">Call</span>
+            <span className="font-medium hidden sm:inline">Call</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleWhatsAppContact}
+            className="flex items-center gap-2 px-3 py-2 glass-card border-green-500/50 text-green-600 hover:border-green-500 hover:bg-green-500/10 hover:scale-105 transition-all duration-300 group/whatsapp"
+          >
+            <MessageCircle className="w-4 h-4 group-hover/whatsapp:scale-110 transition-transform duration-200" />
+            <span className="font-medium hidden sm:inline">WhatsApp</span>
           </Button>
           <Button
             size="sm"
-            className="flex-1 px-4 py-2 bg-gradient-matcha hover:shadow-glow hover:scale-105 transition-all duration-300 font-semibold relative overflow-hidden group/order"
+            className="flex-1 px-3 py-2 bg-gradient-matcha hover:shadow-glow hover:scale-105 transition-all duration-300 font-semibold relative overflow-hidden group/order"
             onClick={(e) => {
               e.stopPropagation();
               onStartOrder(seller);
@@ -244,7 +267,7 @@ export const SellerCard = ({ seller, onStartOrder, className = "" }: SellerCardP
             {/* Shimmer effect */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/order:translate-x-full transition-transform duration-700"></div>
             <Coffee className="w-4 h-4 mr-2 group-hover/order:scale-110 transition-transform duration-200" />
-            <span>Order Now</span>
+            <span>Order</span>
           </Button>
         </div>
 

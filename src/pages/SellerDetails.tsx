@@ -1,16 +1,23 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Phone, MapPin, Clock, MessageCircle, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Phone, MapPin, Clock, MessageCircle, ShoppingCart, Star, Heart, Share2, Coffee, Leaf, ShieldCheck, User } from "lucide-react";
+import { ReviewSystem } from "@/components/ReviewSystem";
+import { sendWhatsAppMessage, createQuickContactMessage, trackContactAttempt } from "@/utils/whatsapp";
+import { useUser } from "@/contexts/UserContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { StarRating } from "@/components/StarRating";
+import { useToast } from "@/hooks/use-toast";
 import { mockSellers, Seller } from "@/data/mockSellers";
 
 const SellerDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const { user } = useUser();
   const [seller, setSeller] = useState<Seller | null>(null);
+  const [isFavorited, setIsFavorited] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -18,6 +25,35 @@ const SellerDetails = () => {
       setSeller(foundSeller || null);
     }
   }, [id]);
+
+  const handleWhatsAppContact = () => {
+    if (!seller) return;
+    const message = createQuickContactMessage(seller, user?.name);
+    sendWhatsAppMessage(seller.phone, message);
+    trackContactAttempt(seller.id.toString(), 'whatsapp');
+    toast({
+      title: "Opening WhatsApp",
+      description: `Contacting ${seller.name} via WhatsApp`,
+    });
+  };
+
+  const handleFavorite = () => {
+    setIsFavorited(!isFavorited);
+    toast({
+      title: isFavorited ? "Removed from favorites" : "Added to favorites",
+      description: isFavorited ? `${seller?.name} removed from your favorites` : `${seller?.name} added to your favorites`,
+    });
+  };
+
+  const handleShare = () => {
+    if (navigator.share && seller) {
+      navigator.share({
+        title: seller.name,
+        text: `Check out ${seller.name} on BrewNear!`,
+        url: window.location.href,
+      });
+    }
+  };
 
   if (!seller) {
     return (
@@ -120,33 +156,53 @@ const SellerDetails = () => {
           </div>
         </Card>
 
-        {/* Action buttons */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Enhanced Action buttons */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Button
             onClick={handleStartOrder}
-            className="bg-gradient-sunrise hover:shadow-glow transition-all duration-300"
+            className="bg-gradient-matcha hover:shadow-glow transition-all duration-300"
             size="lg"
           >
             <ShoppingCart className="w-4 h-4 mr-2" />
-            Start Order
+            Order Now
+          </Button>
+          <Button
+            onClick={handleWhatsAppContact}
+            className="bg-green-600 hover:bg-green-700 hover:shadow-glow transition-all duration-300"
+            size="lg"
+          >
+            <MessageCircle className="w-4 h-4 mr-2" />
+            WhatsApp
           </Button>
           <Button
             onClick={handleCall}
             variant="outline"
             size="lg"
+            className="hover:bg-primary/10 hover:border-primary/50 transition-all duration-300"
           >
             <Phone className="w-4 h-4 mr-2" />
             Call
           </Button>
           <Button
-            onClick={handleMessage}
+            onClick={handleFavorite}
             variant="outline"
             size="lg"
+            className={`hover:bg-primary/10 hover:border-primary/50 transition-all duration-300 ${
+              isFavorited ? 'text-red-500 border-red-500' : ''
+            }`}
           >
-            <MessageCircle className="w-4 h-4 mr-2" />
-            Message
+            <Heart className={`w-4 h-4 mr-2 ${isFavorited ? 'fill-red-500' : ''}`} />
+            {isFavorited ? 'Favorited' : 'Favorite'}
           </Button>
         </div>
+
+        {/* Reviews Section */}
+        <ReviewSystem
+          sellerId={seller.id.toString()}
+          sellerName={seller.name}
+          averageRating={seller.rating}
+          totalReviews={seller.reviewCount}
+        />
       </div>
     </div>
   );

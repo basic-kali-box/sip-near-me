@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Eye, EyeOff, Mail, Lock, Coffee, Leaf, Shield } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Mail, Lock, Coffee, Leaf, Shield, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,15 +7,18 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@/contexts/UserContext";
 
 const SignIn = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { login } = useUser();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
+    userType: "buyer" as "buyer" | "seller",
     rememberMe: false
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -60,17 +63,21 @@ const SignIn = () => {
 
     setIsLoading(true);
     
-    // Mock authentication - replace with actual API call
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      toast({
-        title: "Welcome back!",
-        description: "You have been successfully signed in.",
-      });
-      
-      // Navigate to main app
-      navigate("/");
+      const success = await login(formData.email, formData.password, formData.userType);
+      if (success) {
+        toast({
+          title: "Welcome back!",
+          description: `Signed in as ${formData.userType === 'seller' ? 'seller' : 'buyer'}.`,
+        });
+        navigate(formData.userType === 'seller' ? '/seller-dashboard' : '/');
+      } else {
+        toast({
+          title: "Sign in failed",
+          description: "Please check your credentials and try again.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       toast({
         title: "Sign in failed",
@@ -144,7 +151,7 @@ const SignIn = () => {
                   </div>
                 </div>
                 <div className="space-y-2 group">
-                  <h2 className="text-3xl font-bold bg-gradient-matcha bg-clip-text text-transparent hover:scale-105 transition-transform duration-300 cursor-default">
+                  <h2 className="text-3xl font-bold text-foreground hover:scale-105 transition-transform duration-300 cursor-default">
                     Welcome Back
                   </h2>
                   <p className="text-muted-foreground text-lg group-hover:text-foreground transition-colors duration-300">
@@ -159,6 +166,44 @@ const SignIn = () => {
 
               {/* Enhanced Form */}
               <form onSubmit={handleSubmit} className="space-y-6">
+                {/* User Type Selection */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <User className="w-4 h-4 text-primary" />
+                    I am a
+                  </Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button
+                      type="button"
+                      variant={formData.userType === 'buyer' ? 'default' : 'outline'}
+                      onClick={() => handleInputChange('userType', 'buyer')}
+                      className={`justify-start h-12 transition-all duration-300 ${
+                        formData.userType === 'buyer'
+                          ? 'bg-gradient-coffee shadow-glow hover:scale-105'
+                          : 'hover:bg-primary/10 hover:border-primary/50 hover:scale-105'
+                      }`}
+                      disabled={isLoading}
+                    >
+                      <Coffee className="w-4 h-4 mr-2" />
+                      Buyer
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={formData.userType === 'seller' ? 'default' : 'outline'}
+                      onClick={() => handleInputChange('userType', 'seller')}
+                      className={`justify-start h-12 transition-all duration-300 ${
+                        formData.userType === 'seller'
+                          ? 'bg-gradient-matcha shadow-glow hover:scale-105'
+                          : 'hover:bg-primary/10 hover:border-primary/50 hover:scale-105'
+                      }`}
+                      disabled={isLoading}
+                    >
+                      <Leaf className="w-4 h-4 mr-2" />
+                      Seller
+                    </Button>
+                  </div>
+                </div>
+
                 {/* Email Field */}
                 <div className="space-y-3">
                   <Label htmlFor="email" className="text-sm font-semibold text-foreground flex items-center gap-2">

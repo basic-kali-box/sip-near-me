@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Minus, ShoppingCart, Clock, MapPin, Star, Truck } from "lucide-react";
+import { ArrowLeft, Plus, Minus, ShoppingCart, Clock, MapPin, Star, Truck, Phone, MessageCircle, User } from "lucide-react";
+import { sendWhatsAppMessage, formatOrderMessage, trackContactAttempt, OrderItem, OrderDetails } from "@/utils/whatsapp";
+import { useUser } from "@/contexts/UserContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -15,9 +17,17 @@ interface CartItem extends Drink {
 const OrderFlow = () => {
   const { sellerId } = useParams<{ sellerId: string }>();
   const navigate = useNavigate();
+  const { user } = useUser();
+  const { toast } = useToast();
   const [seller, setSeller] = useState<Seller | null>(null);
   const [step, setStep] = useState<"menu" | "cart" | "confirmed">("menu");
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [customerInfo, setCustomerInfo] = useState({
+    name: user?.name || '',
+    phone: user?.phone || '',
+    pickupTime: '',
+    specialInstructions: ''
+  });
 
   useEffect(() => {
     if (sellerId) {
@@ -67,6 +77,37 @@ const OrderFlow = () => {
 
   const getTotalItems = () => {
     return cart.reduce((total, item) => total + item.quantity, 0);
+  };
+
+  const handleWhatsAppOrder = () => {
+    if (!seller) return;
+
+    const orderItems: OrderItem[] = cart.map(item => ({
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+      notes: item.description
+    }));
+
+    const orderDetails: OrderDetails = {
+      items: orderItems,
+      total: getTotalPrice(),
+      customerName: customerInfo.name,
+      customerPhone: customerInfo.phone,
+      pickupTime: customerInfo.pickupTime,
+      specialInstructions: customerInfo.specialInstructions
+    };
+
+    const message = formatOrderMessage(seller, orderDetails);
+    sendWhatsAppMessage(seller.phone, message);
+    trackContactAttempt(seller.id.toString(), 'whatsapp');
+
+    toast({
+      title: "Order sent via WhatsApp!",
+      description: `Your order has been sent to ${seller.name}`,
+    });
+
+    setStep("confirmed");
   };
 
   const handleCheckout = () => {
@@ -235,13 +276,25 @@ const OrderFlow = () => {
               </div>
             </Card>
 
-            <Button
-              onClick={handleCheckout}
-              className="w-full bg-gradient-sunrise hover:shadow-glow transition-all duration-300"
-              size="lg"
-            >
-              Place Order - ${getTotalPrice().toFixed(2)}
-            </Button>
+            <div className="space-y-3">
+              <Button
+                onClick={handleWhatsAppOrder}
+                className="w-full bg-green-600 hover:bg-green-700 hover:shadow-glow transition-all duration-300 flex items-center gap-2"
+                size="lg"
+              >
+                <MessageCircle className="w-5 h-5" />
+                Order via WhatsApp - ${getTotalPrice().toFixed(2)}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => window.open(`tel:${seller?.phone}`, '_self')}
+                className="w-full flex items-center gap-2"
+                size="lg"
+              >
+                <Phone className="w-5 h-5" />
+                Call to Order
+              </Button>
+            </div>
           </div>
         )}
 
