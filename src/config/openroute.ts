@@ -3,11 +3,11 @@
 
 export const ORS_CONFIG = {
   // Replace with your actual OpenRouteService API key
-  API_KEY: process.env.REACT_APP_ORS_API_KEY || '5b3ce3597851110001cf6248a1b2c8b8b8b84b8b8b8b8b8b8b8b8b8b8b8b8b8b8',
+  API_KEY: import.meta.env.VITE_ORS_API_KEY || '5b3ce3597851110001cf6248dba73aa64857430d8526ddb29467f688',
   BASE_URL: 'https://api.openrouteservice.org/v2',
-  
+
   // Default routing profile
-  PROFILE: 'driving-car', // Options: driving-car, foot-walking, cycling-regular
+  PROFILE: 'foot-walking', // Options: driving-car, foot-walking, cycling-regular
   
   // Request timeout in milliseconds
   TIMEOUT: 10000,

@@ -24,8 +24,8 @@ export const ListView = ({ onStartOrder, className }: ListViewProps) => {
 
   return (
     <div className={`h-full flex flex-col ${className}`}>
-      {/* Search and filters */}
-      <div className="sticky top-0 bg-background/95 backdrop-blur-md border-b border-border/50 p-4 space-y-3 z-10">
+      {/* Clean Search Interface */}
+      <div className="sticky top-0 bg-background/95 backdrop-blur-md border-b border-border/50 p-4 z-10">
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
@@ -33,17 +33,12 @@ export const ListView = ({ onStartOrder, className }: ListViewProps) => {
               placeholder="Search drinks, sellers..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-card/50"
+              className="pl-10 bg-card/50 border-border/30 focus:border-primary/50 transition-colors duration-200"
             />
           </div>
-          <Button variant="outline" size="sm" className="px-3">
+          <Button variant="outline" size="sm" className="px-3 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200">
             <Filter className="w-4 h-4" />
           </Button>
-        </div>
-        
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <MapPin className="w-4 h-4 text-primary" />
-          <span>{filteredSellers.length} sellers nearby</span>
         </div>
       </div>
 

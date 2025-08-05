@@ -16,8 +16,8 @@ This guide explains how to set up OpenRouteService for real routing and navigati
 Create a `.env.local` file in your project root:
 
 ```bash
-# OpenRouteService API Key
-REACT_APP_ORS_API_KEY=your_actual_api_key_here
+# OpenRouteService API Key (Vite environment variable)
+VITE_ORS_API_KEY=your_actual_api_key_here
 ```
 
 ### 3. Update Configuration

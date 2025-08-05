@@ -14,6 +14,7 @@ const Index = () => {
   const [showLanding, setShowLanding] = useState(true);
   const [userLocation, setUserLocation] = useState<string>("New York, NY");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMenuClosing, setIsMenuClosing] = useState(false);
 
   // Mock location detection
   useEffect(() => {
@@ -28,12 +29,21 @@ const Index = () => {
     );
   }, []);
 
+  // Enhanced menu close function with animation
+  const closeMenu = () => {
+    setIsMenuClosing(true);
+    setTimeout(() => {
+      setIsMobileMenuOpen(false);
+      setIsMenuClosing(false);
+    }, 300); // Match animation duration
+  };
+
   // Close mobile menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
       if (isMobileMenuOpen && !target.closest('[data-mobile-menu]')) {
-        setIsMobileMenuOpen(false);
+        closeMenu();
       }
     };
 
@@ -81,7 +91,7 @@ const Index = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            onClick={() => isMobileMenuOpen ? closeMenu() : setIsMobileMenuOpen(true)}
             className="p-2 hover:bg-primary/10 transition-colors duration-200"
           >
             {isMobileMenuOpen ? (
@@ -98,84 +108,94 @@ const Index = () => {
             {/* Overlay */}
             <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 animate-in fade-in duration-300" />
 
-            <div className="absolute top-full left-0 right-0 bg-background/98 backdrop-blur-xl border-b border-border/50 shadow-floating animate-in slide-in-from-top-2 duration-300 z-50">
-            <div className="container mx-auto px-4 py-4 space-y-3">
-              {/* View Toggle */}
-              <div className="space-y-2">
-                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">View</p>
-                <div className="grid grid-cols-2 gap-2">
+            <div className={`absolute top-full left-0 right-0 bg-background/98 backdrop-blur-xl border-b border-border/50 shadow-floating z-50 ${
+              isMenuClosing ? 'animate-slide-out-right' : 'animate-slide-in-right'
+            }`}>
+            <div className="container mx-auto px-6 py-6 space-y-6">
+              {/* Premium View Toggle */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-1 h-4 bg-gradient-matcha rounded-full"></div>
+                  <p className="text-sm font-bold text-foreground">Browse</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                   <Button
                     variant={activeTab === "list" ? "default" : "outline"}
                     onClick={() => {
                       setActiveTab("list");
-                      setIsMobileMenuOpen(false);
+                      closeMenu();
                     }}
-                    className={`justify-start ${activeTab === "list" ? "bg-gradient-matcha" : ""}`}
+                    className={`justify-center py-3 font-semibold transition-all duration-300 ${
+                      activeTab === "list"
+                        ? "bg-gradient-matcha shadow-glow hover:scale-105"
+                        : "hover:bg-primary/10 hover:border-primary/50"
+                    }`}
                   >
-                    List View
+                    📋 List
                   </Button>
                   <Button
                     variant={activeTab === "map" ? "default" : "outline"}
                     onClick={() => {
                       setActiveTab("map");
-                      setIsMobileMenuOpen(false);
+                      closeMenu();
                     }}
-                    className={`justify-start ${activeTab === "map" ? "bg-gradient-matcha" : ""}`}
+                    className={`justify-center py-3 font-semibold transition-all duration-300 ${
+                      activeTab === "map"
+                        ? "bg-gradient-matcha shadow-glow hover:scale-105"
+                        : "hover:bg-primary/10 hover:border-primary/50"
+                    }`}
                   >
-                    Map View
+                    🗺️ Map
                   </Button>
                 </div>
               </div>
 
-              {/* Navigation Links */}
-              <div className="space-y-2">
-                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Actions</p>
-                <div className="space-y-2">
+              {/* Essential Actions */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-1 h-4 bg-gradient-coffee rounded-full"></div>
+                  <p className="text-sm font-bold text-foreground">Quick Actions</p>
+                </div>
+                <div className="space-y-3">
                   <Button
                     variant="outline"
                     onClick={() => {
                       navigate("/add-listing");
-                      setIsMobileMenuOpen(false);
+                      closeMenu();
                     }}
-                    className="w-full justify-start"
+                    className="w-full justify-start py-3 hover:bg-primary/10 hover:border-primary/50 hover:scale-105 transition-all duration-300 group"
                   >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Listing
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      navigate("/profile");
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="w-full justify-start"
-                  >
-                    <User className="w-4 h-4 mr-2" />
-                    Profile
+                    <div className="w-8 h-8 bg-gradient-matcha rounded-lg flex items-center justify-center mr-3 group-hover:scale-110 transition-transform duration-200">
+                      <Plus className="w-4 h-4 text-primary-foreground" />
+                    </div>
+                    <span className="font-semibold">Start Selling</span>
                   </Button>
                 </div>
               </div>
 
               {/* Authentication */}
-              <div className="space-y-2 pt-2 border-t border-border/30">
-                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Account</p>
-                <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-3 pt-3 border-t border-border/30">
+                <div className="flex items-center gap-2">
+                  <div className="w-1 h-4 bg-gradient-latte rounded-full"></div>
+                  <p className="text-sm font-bold text-foreground">Account</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                   <Button
                     variant="outline"
                     onClick={() => {
                       navigate("/auth");
-                      setIsMobileMenuOpen(false);
+                      closeMenu();
                     }}
-                    className="justify-center"
+                    className="justify-center py-3 font-semibold hover:bg-primary/10 hover:border-primary/50 transition-all duration-300"
                   >
                     Sign In
                   </Button>
                   <Button
                     onClick={() => {
                       navigate("/auth");
-                      setIsMobileMenuOpen(false);
+                      closeMenu();
                     }}
-                    className="bg-gradient-matcha hover:shadow-glow transition-all duration-300 justify-center"
+                    className="bg-gradient-matcha hover:shadow-glow hover:scale-105 transition-all duration-300 justify-center py-3 font-semibold"
                   >
                     Sign Up
                   </Button>

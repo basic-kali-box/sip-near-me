@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { MapPin, Navigation, Locate, Route, Clock, AlertCircle } from "lucide-react";
+import { MapPin, Navigation, Locate, Route, Clock, AlertCircle, MapPinIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,10 +36,27 @@ export const MapView = ({ className }: MapViewProps) => {
   const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
   const [mapCenter, setMapCenter] = useState({ lat: 40.7128, lng: -74.0060 }); // Default to NYC
+  const [locationStatus, setLocationStatus] = useState<'loading' | 'granted' | 'denied' | 'unavailable'>('loading');
 
-  // Get user's current location
+  // Enhanced geolocation with better error handling
   useEffect(() => {
-    if (navigator.geolocation) {
+    const getUserLocation = () => {
+      if (!navigator.geolocation) {
+        setLocationStatus('unavailable');
+        toast({
+          title: "Geolocation Not Supported",
+          description: "Your browser doesn't support location services. Using default location.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const options = {
+        enableHighAccuracy: true,
+        timeout: 10000, // 10 seconds timeout
+        maximumAge: 300000 // 5 minutes cache
+      };
+
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const location = {
@@ -48,17 +65,52 @@ export const MapView = ({ className }: MapViewProps) => {
           };
           setUserLocation(location);
           setMapCenter(location);
+          setLocationStatus('granted');
+          toast({
+            title: "Location Found",
+            description: `Located at ${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`,
+          });
         },
         (error) => {
-          console.error('Error getting location:', error);
+          let errorMessage = "Unable to get your location. Using default location.";
+          let errorTitle = "Location Error";
+
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              setLocationStatus('denied');
+              errorTitle = "Location Access Denied";
+              errorMessage = "Please enable location access in your browser settings for better experience.";
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorTitle = "Location Unavailable";
+              errorMessage = "Location information is unavailable. Check your GPS or network connection.";
+              break;
+            case error.TIMEOUT:
+              errorTitle = "Location Timeout";
+              errorMessage = "Location request timed out. Please try again.";
+              break;
+            default:
+              errorTitle = "Unknown Location Error";
+              errorMessage = "An unknown error occurred while retrieving location.";
+              break;
+          }
+
+          console.error('Geolocation error:', error);
           toast({
-            title: "Location Access Denied",
-            description: "Using default location. Enable location access for better experience.",
+            title: errorTitle,
+            description: errorMessage,
             variant: "destructive",
           });
-        }
+
+          // Set a default location (New York City)
+          const defaultLocation = { lat: 40.7128, lng: -74.0060 };
+          setMapCenter(defaultLocation);
+        },
+        options
       );
-    }
+    };
+
+    getUserLocation();
   }, [toast]);
 
   // OpenRouteService API functions
@@ -152,11 +204,48 @@ export const MapView = ({ className }: MapViewProps) => {
         description: "Map centered on your current location.",
       });
     } else {
-      toast({
-        title: "Location Unavailable",
-        description: "Unable to access your current location.",
-        variant: "destructive",
-      });
+      // Try to get location again
+      if (navigator.geolocation) {
+        toast({
+          title: "Getting Location",
+          description: "Attempting to locate you...",
+        });
+
+        const options = {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 60000 // 1 minute cache
+        };
+
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const location = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+            setUserLocation(location);
+            setMapCenter(location);
+            toast({
+              title: "Location Found",
+              description: "Map centered on your current location.",
+            });
+          },
+          (error) => {
+            toast({
+              title: "Location Unavailable",
+              description: "Unable to access your current location. Please check your browser settings.",
+              variant: "destructive",
+            });
+          },
+          options
+        );
+      } else {
+        toast({
+          title: "Location Not Supported",
+          description: "Your browser doesn't support location services.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -281,10 +370,22 @@ export const MapView = ({ className }: MapViewProps) => {
             <MapPin className="w-3 h-3 mr-1" />
             {mockSellers.length} sellers nearby
           </Badge>
-          {userLocation && (
+          {locationStatus === 'granted' && userLocation && (
             <Badge variant="secondary" className="text-xs">
               <Locate className="w-3 h-3 mr-1" />
               Location enabled
+            </Badge>
+          )}
+          {locationStatus === 'denied' && (
+            <Badge variant="destructive" className="text-xs">
+              <AlertCircle className="w-3 h-3 mr-1" />
+              Location blocked
+            </Badge>
+          )}
+          {locationStatus === 'unavailable' && (
+            <Badge variant="outline" className="text-xs">
+              <MapPinIcon className="w-3 h-3 mr-1" />
+              Default location
             </Badge>
           )}
           {isLoadingRoute && (
@@ -357,6 +458,36 @@ export const MapView = ({ className }: MapViewProps) => {
                 Clear
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Location Help Panel */}
+      {locationStatus === 'denied' && (
+        <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border-b border-amber-200 dark:border-amber-800/30">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex items-center justify-center">
+              <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="flex-1">
+              <h4 className="font-semibold text-amber-800 dark:text-amber-200 mb-2">Enable Location Access</h4>
+              <p className="text-sm text-amber-700 dark:text-amber-300 mb-3">
+                To get accurate directions and find nearby sellers, please enable location access:
+              </p>
+              <div className="text-xs text-amber-600 dark:text-amber-400 space-y-1">
+                <p>• Click the location icon (🔒) in your browser's address bar</p>
+                <p>• Select "Allow" for location permissions</p>
+                <p>• Refresh the page to apply changes</p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.location.reload()}
+              className="text-xs border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-900/30"
+            >
+              Refresh
+            </Button>
           </div>
         </div>
       )}
