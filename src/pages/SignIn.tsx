@@ -8,11 +8,13 @@ import { Card } from "@/components/ui/card";
 import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/contexts/UserContext";
+import { ButtonLoading } from "@/components/LoadingSpinner";
+
 
 const SignIn = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { login } = useUser();
+  const { login, loginWithGoogle } = useUser();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -58,11 +60,11 @@ const SignIn = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     setIsLoading(true);
-    
+
     try {
       const success = await login(formData.email, formData.password, formData.userType);
       if (success) {
@@ -89,12 +91,33 @@ const SignIn = () => {
     }
   };
 
-  const handleSocialSignIn = (provider: string) => {
-    toast({
-      title: `${provider} Sign In`,
-      description: "Social authentication would be implemented here.",
-    });
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true);
+    try {
+      await loginWithGoogle();
+      // The redirect will handle the rest
+    } catch (error) {
+      toast({
+        title: "Google Sign In Failed",
+        description: "Please try again or use email/password.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+    }
   };
+
+  const handleSocialSignIn = async (provider: string) => {
+    if (provider === "Google") {
+      await handleGoogleSignIn();
+    } else {
+      toast({
+        title: `${provider} Sign In`,
+        description: "This social authentication method is not yet available.",
+      });
+    }
+  };
+
+
 
   const handleForgotPassword = () => {
     toast({
@@ -362,6 +385,8 @@ const SignIn = () => {
                   <span className="font-medium">Apple</span>
                 </Button>
               </div>
+
+
 
               {/* Enhanced Sign Up Link */}
               <div className="text-center pt-4 group">

@@ -4,6 +4,7 @@ import { BottomNavigation } from "@/components/BottomNavigation";
 import { ListView } from "@/components/ListView";
 import { MapView } from "@/components/MapView";
 import { LandingPage } from "@/components/LandingPage";
+import { NavigationTestPanel } from "@/components/NavigationTestPanel";
 import { Button } from "@/components/ui/button";
 import { Seller } from "@/data/mockSellers";
 import { useNavigate } from "react-router-dom";
@@ -290,6 +291,9 @@ const Index = () => {
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />
+
+      {/* Development test panel */}
+      <NavigationTestPanel />
 
     </div>
   );

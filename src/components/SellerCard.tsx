@@ -112,10 +112,6 @@ export const SellerCard = ({ seller, onStartOrder, className = "" }: SellerCardP
 
             {/* Enhanced badges */}
             <div className="absolute -top-2 -right-2 flex flex-col gap-1">
-              <Badge className="text-xs px-2 py-1 bg-gradient-matcha text-primary-foreground font-semibold shadow-elegant border-0 hover:shadow-glow transition-all duration-300">
-                <MapPin className="w-3 h-3 mr-1" />
-                {seller.distance}
-              </Badge>
               {seller.isVerified && (
                 <Badge className="text-xs px-2 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-elegant border-0 hover:shadow-glow transition-all duration-300">
                   <ShieldCheck className="w-3 h-3 mr-1" />
@@ -225,14 +221,7 @@ export const SellerCard = ({ seller, onStartOrder, className = "" }: SellerCardP
               ))}
             </div>
 
-            {/* Show more drinks indicator */}
-            {seller.drinks.length > 2 && (
-              <div className="text-center">
-                <Badge variant="outline" className="text-xs px-3 py-1 border-muted-foreground/30 text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors duration-200 cursor-pointer">
-                  +{seller.drinks.length - 2} more drinks
-                </Badge>
-              </div>
-            )}
+
           </div>
         )}
 

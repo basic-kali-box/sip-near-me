@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase, signUp, signIn, signOut, signInWithGoogle, getCurrentUser } from '@/lib/supabase';
+import { UserService } from '@/services/userService';
+import { SellerService } from '@/services/sellerService';
 
 export interface User {
   id: string;
@@ -24,10 +27,11 @@ interface UserContextType {
   user: User | null;
   isAuthenticated: boolean;
   login: (email: string, password: string, userType: 'buyer' | 'seller') => Promise<boolean>;
+  loginWithGoogle: () => Promise<boolean>;
   register: (userData: Partial<User>, password: string) => Promise<boolean>;
-  logout: () => void;
-  updateUser: (updates: Partial<User>) => void;
-  toggleSellerAvailability: () => void;
+  logout: () => Promise<void>;
+  updateUser: (updates: Partial<User>) => Promise<void>;
+  toggleSellerAvailability: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -44,110 +48,157 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Load user from localStorage on app start
+  // Load user from Supabase on app start
   useEffect(() => {
-    const savedUser = localStorage.getItem('brewNearUser');
-    if (savedUser) {
+    const initializeAuth = async () => {
       try {
-        const userData = JSON.parse(savedUser);
-        setUser(userData);
-        setIsAuthenticated(true);
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (session?.user) {
+          const userProfile = await UserService.getCurrentUserProfile();
+          if (userProfile) {
+            setUser(userProfile);
+            setIsAuthenticated(true);
+          }
+        }
       } catch (error) {
-        console.error('Error loading user data:', error);
-        localStorage.removeItem('brewNearUser');
+        console.error('Error initializing auth:', error);
       }
-    }
+    };
+
+    initializeAuth();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          const userProfile = await UserService.getCurrentUserProfile();
+          if (userProfile) {
+            setUser(userProfile);
+            setIsAuthenticated(true);
+          }
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, password: string, userType: 'buyer' | 'seller'): Promise<boolean> => {
     try {
-      // Simulate API call - in real app, this would authenticate with backend
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock user data based on email
-      const mockUser: User = {
-        id: `user_${Date.now()}`,
-        email,
-        name: email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-        phone: '+1 (555) 123-4567',
-        userType,
-        ...(userType === 'seller' && {
-          businessName: `${email.split('@')[0]}'s Coffee Shop`,
-          businessAddress: '123 Coffee Street, City, State',
-          businessHours: '8:00 AM - 6:00 PM',
-          specialty: 'coffee' as const,
-          isOnline: true,
-          rating: 4.5,
-          reviewCount: 23
-        }),
-        ...(userType === 'buyer' && {
-          favoriteSellerIds: [],
-          orderHistory: []
-        })
-      };
+      const { user: authUser } = await signIn(email, password);
 
-      setUser(mockUser);
-      setIsAuthenticated(true);
-      localStorage.setItem('brewNearUser', JSON.stringify(mockUser));
-      return true;
+      if (authUser) {
+        const userProfile = await UserService.getCurrentUserProfile();
+        if (userProfile) {
+          setUser(userProfile);
+          setIsAuthenticated(true);
+          return true;
+        }
+      }
+
+      return false;
     } catch (error) {
       console.error('Login error:', error);
       return false;
     }
   };
 
-  const register = async (userData: Partial<User>, password: string): Promise<boolean> => {
+  const loginWithGoogle = async (): Promise<boolean> => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const newUser: User = {
-        id: `user_${Date.now()}`,
-        email: userData.email!,
-        name: userData.name!,
-        phone: userData.phone!,
-        userType: userData.userType!,
-        ...userData,
-        ...(userData.userType === 'seller' && {
-          isOnline: true,
-          rating: 0,
-          reviewCount: 0
-        }),
-        ...(userData.userType === 'buyer' && {
-          favoriteSellerIds: [],
-          orderHistory: []
-        })
-      };
-
-      setUser(newUser);
-      setIsAuthenticated(true);
-      localStorage.setItem('brewNearUser', JSON.stringify(newUser));
+      await signInWithGoogle();
+      // The redirect will handle the rest
       return true;
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error('Google login error:', error);
       return false;
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    setIsAuthenticated(false);
-    localStorage.removeItem('brewNearUser');
-  };
 
-  const updateUser = (updates: Partial<User>) => {
-    if (user) {
-      const updatedUser = { ...user, ...updates };
-      setUser(updatedUser);
-      localStorage.setItem('brewNearUser', JSON.stringify(updatedUser));
+
+  const register = async (userData: Partial<User>, password: string): Promise<boolean> => {
+    try {
+      console.log('Starting registration for:', userData.email);
+
+      // Create auth user without metadata to avoid trigger issues
+      const { user: authUser, session } = await signUp(userData.email!, password, {});
+      console.log('Auth user created:', authUser?.id);
+
+      if (authUser) {
+        // Wait a moment for the auth user to be fully created
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Manually create the user profile (bypass trigger)
+        console.log('Creating user profile...');
+        const userProfile = await UserService.createUserProfile({
+          id: authUser.id,
+          email: userData.email!,
+          name: userData.name!,
+          phone: userData.phone,
+          user_type: userData.userType!
+        });
+        console.log('User profile created:', userProfile.id);
+
+        // If seller, create seller profile
+        if (userData.userType === 'seller' && userData.businessName) {
+          console.log('Creating seller profile...');
+          await SellerService.createSellerProfile({
+            id: authUser.id,
+            business_name: userData.businessName,
+            address: userData.businessAddress || '',
+            phone: userData.phone || userProfile.phone || '',
+            specialty: (userData.specialty as any) || 'coffee',
+            hours: userData.businessHours
+          });
+          console.log('Seller profile created');
+        }
+
+        setUser(userProfile);
+        setIsAuthenticated(true);
+        console.log('Registration completed successfully');
+        return true;
+      }
+
+      throw new Error('Registration failed. Please try again.');
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      throw error;
     }
   };
 
-  const toggleSellerAvailability = () => {
+  const logout = async () => {
+    try {
+      await signOut();
+      setUser(null);
+      setIsAuthenticated(false);
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
+  const updateUser = async (updates: Partial<User>) => {
+    if (user) {
+      try {
+        const updatedUser = await UserService.updateUserProfile(user.id, updates);
+        setUser(updatedUser);
+      } catch (error) {
+        console.error('Update user error:', error);
+      }
+    }
+  };
+
+  const toggleSellerAvailability = async () => {
     if (user && user.userType === 'seller') {
-      const updatedUser = { ...user, isOnline: !user.isOnline };
-      setUser(updatedUser);
-      localStorage.setItem('brewNearUser', JSON.stringify(updatedUser));
+      try {
+        const newAvailability = await SellerService.toggleAvailability(user.id);
+        setUser({ ...user, isOnline: newAvailability });
+      } catch (error) {
+        console.error('Toggle availability error:', error);
+      }
     }
   };
 
@@ -155,6 +206,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     isAuthenticated,
     login,
+    loginWithGoogle,
     register,
     logout,
     updateUser,

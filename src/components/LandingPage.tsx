@@ -2,6 +2,8 @@ import { ArrowRight, Coffee, Leaf, Star, Clock, MapPin, ShoppingBag, LogIn } fro
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
+import { createNavigationHelpers, trackNavigation } from "@/utils/navigationHelpers";
 import heroImage from "@/assets/hero-matcha-coffee.jpg";
 import matchaBarista from "@/assets/matcha-barista.jpg";
 import coffeeBrewing from "@/assets/coffee-brewing.jpg";
@@ -13,6 +15,32 @@ interface LandingPageProps {
 
 export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+
+  // Create navigation helpers with error handling
+  const navigationHelpers = createNavigationHelpers(navigate, (error) => {
+    toast({
+      title: "Navigation Error",
+      description: "Unable to navigate. Please try again.",
+      variant: "destructive",
+    });
+  });
+
+  // Navigation handlers with proper error handling and analytics
+  const handleSignIn = () => {
+    trackNavigation('landing', 'signin');
+    navigationHelpers.navigateToSignIn();
+  };
+
+  const handleSignUp = () => {
+    trackNavigation('landing', 'signup');
+    navigationHelpers.navigateToSignUp();
+  };
+
+  const handleBecomeASeller = () => {
+    trackNavigation('landing', 'signup', 'seller');
+    navigationHelpers.navigateToSellerSignUp('landing_become_seller');
+  };
   const features = [
     {
       icon: Coffee,
@@ -63,15 +91,17 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate("/auth")}
+                onClick={handleSignIn}
                 className="hover:text-primary transition-colors duration-200"
+                aria-label="Sign in to your account"
               >
                 Sign In
               </Button>
               <Button
                 size="sm"
                 className="bg-gradient-matcha hover:shadow-glow transition-all duration-300"
-                onClick={() => navigate("/auth")}
+                onClick={handleSignUp}
+                aria-label="Create a new account"
               >
                 Join Now
               </Button>
@@ -110,6 +140,7 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
                   size="lg"
                   onClick={onGetStarted}
                   className="bg-gradient-matcha hover:shadow-glow transition-all duration-300 text-lg px-8"
+                  aria-label="Explore nearby coffee and matcha sellers"
                 >
                   Explore Nearby
                   <ArrowRight className="w-5 h-5 ml-2" />
@@ -117,8 +148,9 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
                 <Button
                   variant="outline"
                   size="lg"
-                  className="text-lg px-8"
-                  onClick={() => navigate("/auth")}
+                  className="text-lg px-8 hover:bg-primary/10 hover:border-primary/50 transition-all duration-300"
+                  onClick={handleBecomeASeller}
+                  aria-label="Sign up as a seller to start selling drinks"
                 >
                   <ShoppingBag className="w-5 h-5 mr-2" />
                   Become a Seller
@@ -130,8 +162,9 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => navigate("/auth")}
+                  onClick={handleSignIn}
                   className="text-muted-foreground hover:text-foreground transition-colors duration-200"
+                  aria-label="Sign in to existing account"
                 >
                   <LogIn className="w-4 h-4 mr-2" />
                   Already have an account? Sign In
@@ -286,11 +319,12 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               Join thousands of coffee and matcha lovers finding amazing local experiences
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 variant="secondary"
                 onClick={onGetStarted}
-                className="text-lg px-8 bg-background text-foreground hover:bg-background/90"
+                className="text-lg px-8 bg-background text-foreground hover:bg-background/90 transition-all duration-300"
+                aria-label="Find nearby coffee and matcha sellers"
               >
                 <MapPin className="w-5 h-5 mr-2" />
                 Find Nearby Sellers
@@ -298,8 +332,9 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               <Button
                 size="lg"
                 variant="outline"
-                className="text-lg px-8 border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-foreground"
-                onClick={() => navigate("/auth")}
+                className="text-lg px-8 border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-foreground transition-all duration-300"
+                onClick={handleBecomeASeller}
+                aria-label="Start selling your drinks on BrewNear"
               >
                 Start Selling
               </Button>

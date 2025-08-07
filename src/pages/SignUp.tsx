@@ -1,30 +1,63 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, Eye, EyeOff, Mail, Lock, User, Coffee, Leaf, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/contexts/UserContext";
+import { ButtonLoading } from "@/components/LoadingSpinner";
+
 
 const SignUp = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { register } = useUser();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Get initial user type from location state or URL params
+  const getInitialUserType = (): "buyer" | "seller" => {
+    // Check location state first (from navigation)
+    if (location.state?.userType) {
+      return location.state.userType;
+    }
+
+    // Check URL search params as fallback
+    const urlParams = new URLSearchParams(location.search);
+    const userTypeParam = urlParams.get('userType');
+    if (userTypeParam === 'seller' || userTypeParam === 'buyer') {
+      return userTypeParam;
+    }
+
+    // Default to buyer
+    return "buyer";
+  };
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     confirmPassword: "",
-    userType: "buyer" as "buyer" | "seller",
+    userType: getInitialUserType(),
     acceptTerms: false
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Effect to handle pre-selection and show toast for seller signup
+  useEffect(() => {
+    const initialUserType = getInitialUserType();
+    if (initialUserType === "seller" && location.state?.source === "landing_become_seller") {
+      toast({
+        title: "Welcome Future Seller!",
+        description: "You're signing up to become a seller. Complete the form to start your journey.",
+      });
+    }
+  }, [location.state, toast]);
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({
@@ -104,10 +137,31 @@ const SignUp = () => {
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Registration error:', error);
+
+      let title = "Registration failed";
+      let description = "Please try again later.";
+
+      if (error.message?.includes('rate_limit') || error.message?.includes('over_email_send_rate_limit')) {
+        title = "Too many attempts";
+        description = "Please wait a moment, or try signing in if you already have an account.";
+      } else if (error.message?.includes('User already registered') || error.message?.includes('Account already exists')) {
+        title = "Account exists";
+        description = "An account with this email already exists. Try signing in instead.";
+      } else if (error.message?.includes('Database error') || error.message?.includes('saving new user')) {
+        title = "Registration issue";
+        description = "There was a problem creating your account. Please try signing in if you already have an account.";
+      } else if (error.message?.includes('Registration failed')) {
+        title = "Registration failed";
+        description = error.message;
+      } else if (error.message) {
+        description = error.message;
+      }
+
       toast({
-        title: "Registration failed",
-        description: "Please try again later.",
+        title,
+        description,
         variant: "destructive",
       });
     } finally {
@@ -177,16 +231,26 @@ const SignUp = () => {
                       errors.name ? "border-destructive focus:border-destructive" : ""
                     }`}
                     disabled={isLoading}
+                    aria-describedby={errors.name ? "name-error" : undefined}
+                    aria-invalid={!!errors.name}
+                    autoComplete="name"
                   />
                 </div>
                 {errors.name && (
-                  <p className="text-sm text-destructive">{errors.name}</p>
+                  <p id="name-error" className="text-sm text-destructive" role="alert">
+                    {errors.name}
+                  </p>
                 )}
               </div>
 
               {/* User Type Selection */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">I want to</Label>
+                <Label className="text-sm font-medium">
+                  I want to
+                  {location.state?.source === "landing_become_seller" && (
+                    <span className="ml-2 text-xs text-primary font-normal">(Pre-selected as Seller)</span>
+                  )}
+                </Label>
                 <div className="grid grid-cols-2 gap-3">
                   <Button
                     type="button"
@@ -198,6 +262,7 @@ const SignUp = () => {
                         : 'hover:bg-primary/10 hover:border-primary/50 hover:scale-105'
                     }`}
                     disabled={isLoading}
+                    aria-label="Sign up as a buyer to discover and order drinks"
                   >
                     <Coffee className="w-4 h-4 mr-2" />
                     Buy Drinks
@@ -212,6 +277,7 @@ const SignUp = () => {
                         : 'hover:bg-primary/10 hover:border-primary/50 hover:scale-105'
                     }`}
                     disabled={isLoading}
+                    aria-label="Sign up as a seller to start selling drinks"
                   >
                     <Leaf className="w-4 h-4 mr-2" />
                     Sell Drinks
@@ -236,10 +302,15 @@ const SignUp = () => {
                       errors.email ? "border-destructive focus:border-destructive" : ""
                     }`}
                     disabled={isLoading}
+                    aria-describedby={errors.email ? "email-error" : undefined}
+                    aria-invalid={!!errors.email}
+                    autoComplete="email"
                   />
                 </div>
                 {errors.email && (
-                  <p className="text-sm text-destructive">{errors.email}</p>
+                  <p id="email-error" className="text-sm text-destructive" role="alert">
+                    {errors.email}
+                  </p>
                 )}
               </div>
 
@@ -260,6 +331,9 @@ const SignUp = () => {
                       errors.password ? "border-destructive focus:border-destructive" : ""
                     }`}
                     disabled={isLoading}
+                    aria-describedby={errors.password ? "password-error" : undefined}
+                    aria-invalid={!!errors.password}
+                    autoComplete="new-password"
                   />
                   <Button
                     type="button"
@@ -268,6 +342,7 @@ const SignUp = () => {
                     className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
                     onClick={() => setShowPassword(!showPassword)}
                     disabled={isLoading}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? (
                       <EyeOff className="w-4 h-4" />
@@ -277,7 +352,9 @@ const SignUp = () => {
                   </Button>
                 </div>
                 {errors.password && (
-                  <p className="text-sm text-destructive">{errors.password}</p>
+                  <p id="password-error" className="text-sm text-destructive" role="alert">
+                    {errors.password}
+                  </p>
                 )}
               </div>
 
@@ -298,6 +375,9 @@ const SignUp = () => {
                       errors.confirmPassword ? "border-destructive focus:border-destructive" : ""
                     }`}
                     disabled={isLoading}
+                    aria-describedby={errors.confirmPassword ? "confirm-password-error" : undefined}
+                    aria-invalid={!!errors.confirmPassword}
+                    autoComplete="new-password"
                   />
                   <Button
                     type="button"
@@ -306,6 +386,7 @@ const SignUp = () => {
                     className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     disabled={isLoading}
+                    aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
                   >
                     {showConfirmPassword ? (
                       <EyeOff className="w-4 h-4" />
@@ -315,7 +396,9 @@ const SignUp = () => {
                   </Button>
                 </div>
                 {errors.confirmPassword && (
-                  <p className="text-sm text-destructive">{errors.confirmPassword}</p>
+                  <p id="confirm-password-error" className="text-sm text-destructive" role="alert">
+                    {errors.confirmPassword}
+                  </p>
                 )}
               </div>
 
@@ -341,7 +424,9 @@ const SignUp = () => {
                   </Label>
                 </div>
                 {errors.acceptTerms && (
-                  <p className="text-sm text-destructive">{errors.acceptTerms}</p>
+                  <p id="terms-error" className="text-sm text-destructive" role="alert">
+                    {errors.acceptTerms}
+                  </p>
                 )}
               </div>
 
@@ -351,8 +436,16 @@ const SignUp = () => {
                 className="w-full bg-gradient-matcha hover:shadow-glow transition-all duration-300"
                 size="lg"
                 disabled={isLoading}
+                aria-label={isLoading ? "Creating your account, please wait" : `Create ${formData.userType} account`}
               >
-                {isLoading ? "Creating account..." : "Create Account"}
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <ButtonLoading />
+                    Creating account...
+                  </div>
+                ) : (
+                  `Create ${formData.userType === 'seller' ? 'Seller' : 'Buyer'} Account`
+                )}
               </Button>
             </form>
 
