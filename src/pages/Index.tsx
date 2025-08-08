@@ -1,16 +1,18 @@
 import { useState, useEffect } from "react";
-import { MapPin, Droplets, User, Plus, Menu, X, Leaf } from "lucide-react";
+import { MapPin, Droplets, User, Plus, Menu, Leaf } from "lucide-react";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { ListView } from "@/components/ListView";
 import { MapView } from "@/components/MapView";
 import { LandingPage } from "@/components/LandingPage";
 import { NavigationTestPanel } from "@/components/NavigationTestPanel";
 import { Button } from "@/components/ui/button";
+import { useSidebar } from "@/components/ui/sidebar";
 import { Seller } from "@/data/mockSellers";
 import { useNavigate } from "react-router-dom";
 
 const Index = () => {
   const navigate = useNavigate();
+  const { toggleSidebar } = useSidebar();
   const [activeTab, setActiveTab] = useState<"map" | "list">("list");
   const [showLanding, setShowLanding] = useState(true);
   const [userLocation, setUserLocation] = useState<string>("New York, NY");
@@ -88,18 +90,15 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Hamburger Menu Button */}
+          {/* Hamburger Menu Button now toggles the Sidebar */}
           <Button
             variant="ghost"
-            size="sm"
-            onClick={() => isMobileMenuOpen ? closeMenu() : setIsMobileMenuOpen(true)}
-            className="p-2 hover:bg-primary/10 transition-colors duration-200"
+            size="icon"
+            onClick={() => toggleSidebar()}
+            className="h-9 w-9 hover:bg-primary/10 transition-colors duration-200"
           >
-            {isMobileMenuOpen ? (
-              <X className="w-6 h-6 text-foreground" />
-            ) : (
-              <Menu className="w-6 h-6 text-foreground" />
-            )}
+            <Menu className="w-5 h-5 text-foreground" />
+            <span className="sr-only">Toggle menu</span>
           </Button>
         </div>
 
