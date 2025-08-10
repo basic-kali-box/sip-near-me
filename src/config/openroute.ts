@@ -2,8 +2,8 @@
 // Get your free API key at: https://openrouteservice.org/dev/#/signup
 
 export const ORS_CONFIG = {
-  // Replace with your actual OpenRouteService API key
-  API_KEY: import.meta.env.VITE_ORS_API_KEY || '5b3ce3597851110001cf6248dba73aa64857430d8526ddb29467f688',
+  // OpenRouteService API key - get your free key at https://openrouteservice.org/dev/#/signup
+  API_KEY: import.meta.env.VITE_ORS_API_KEY,
   BASE_URL: 'https://api.openrouteservice.org/v2',
 
   // Default routing profile

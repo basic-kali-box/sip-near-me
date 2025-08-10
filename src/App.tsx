@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Home, Plus, LayoutDashboard, ShoppingBag, User as UserIcon, Settings as SettingsIcon, HelpCircle, Droplets } from "lucide-react";
 import Index from "./pages/Index";
+import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
@@ -36,6 +37,7 @@ import Profile from "./pages/Profile";
 import OrderHistory from "./pages/OrderHistory";
 import SettingsPage from "./pages/Settings";
 import Help from "./pages/Help";
+import ResetPassword from "./pages/ResetPassword";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import NotFound from "./pages/NotFound";
@@ -165,11 +167,14 @@ const App = () => (
                 </Sidebar>
                 <SidebarInset>
                   <Routes>
-                    <Route path="/" element={<Index />} />
+                    <Route path="/" element={<Landing />} />
+                    <Route path="/landing" element={<Landing />} />
+                    <Route path="/app" element={<Index />} />
                     <Route path="/auth" element={<Auth />} />
                     <Route path="/signin" element={<SignIn />} />
                     <Route path="/signup" element={<SignUp />} />
                     <Route path="/auth/callback" element={<AuthCallback />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/complete-profile" element={<CompleteProfile />} />
                     <Route path="/add-listing" element={<AddListing />} />
                     <Route path="/seller/:id" element={<SellerDetails />} />

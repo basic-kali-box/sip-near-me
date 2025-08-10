@@ -3,7 +3,8 @@ import { MapPin, Navigation, Locate, Route, Clock, AlertCircle, MapPinIcon } fro
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { mockSellers, Seller } from "@/data/mockSellers";
+import { SellerService } from "@/services/sellerService";
+import { subscribeToSellerAvailability, subscribeToNewSellers } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { ORS_CONFIG, ORS_ERRORS } from "@/config/openroute";
@@ -30,8 +31,21 @@ export const MapView = ({ className }: MapViewProps) => {
   const { toast } = useToast();
   const mapRef = useRef<HTMLDivElement>(null);
 
-  const [hoveredSeller, setHoveredSeller] = useState<Seller | null>(null);
-  const [selectedSeller, setSelectedSeller] = useState<Seller | null>(null);
+  type MapSeller = {
+    id: string;
+    name: string;
+    specialty: string;
+    phone: string;
+    photo_url?: string | null;
+    latitude: number;
+    longitude: number;
+    rating?: number;
+    reviewCount?: number;
+  };
+
+  const [sellers, setSellers] = useState<MapSeller[]>([]);
+  const [hoveredSeller, setHoveredSeller] = useState<MapSeller | null>(null);
+  const [selectedSeller, setSelectedSeller] = useState<MapSeller | null>(null);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
@@ -113,6 +127,74 @@ export const MapView = ({ className }: MapViewProps) => {
     getUserLocation();
   }, [toast]);
 
+  // Load sellers when location or component mounts
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        // If we have user location, use it; otherwise default to NYC
+        const lat = userLocation?.lat ?? 40.7128;
+        const lng = userLocation?.lng ?? -74.0060;
+        const results = await SellerService.getNearbySellers(lat, lng, { radiusKm: 25, isAvailable: true });
+        if (!mounted) return;
+        const mapped = (results || []).map((s: any) => ({
+          id: s.id,
+          name: s.business_name,
+          specialty: s.specialty,
+          phone: s.phone,
+          photo_url: s.photo_url,
+          latitude: Number(s.latitude),
+          longitude: Number(s.longitude),
+          rating: Number(s.rating_average || 0),
+          reviewCount: Number(s.rating_count || 0)
+        }));
+        setSellers(mapped);
+      } catch (e) {
+        console.error('Failed to load sellers for map', e);
+      }
+    };
+    load();
+    return () => { mounted = false; };
+  }, [userLocation]);
+
+  // Real-time: refresh sellers on availability changes and new seller inserts
+  useEffect(() => {
+    const refreshSellers = async () => {
+      try {
+        const lat = userLocation?.lat ?? 40.7128;
+        const lng = userLocation?.lng ?? -74.0060;
+        const results = await SellerService.getNearbySellers(lat, lng, { radiusKm: 25, isAvailable: true });
+        const mapped = (results || []).map((s: any) => ({
+          id: s.id,
+          name: s.business_name,
+          specialty: s.specialty,
+          phone: s.phone,
+          photo_url: s.photo_url,
+          latitude: Number(s.latitude),
+          longitude: Number(s.longitude),
+          rating: Number(s.rating_average || 0),
+          reviewCount: Number(s.rating_count || 0)
+        }));
+        setSellers(mapped);
+      } catch (e) {
+        console.error('Failed to refresh sellers for map', e);
+      }
+    };
+
+    const availability = subscribeToSellerAvailability(() => {
+      refreshSellers();
+    });
+
+    const newSellers = subscribeToNewSellers(() => {
+      refreshSellers();
+    });
+
+    return () => {
+      try { availability.unsubscribe?.(); } catch {}
+      try { newSellers.unsubscribe?.(); } catch {}
+    };
+  }, [userLocation]);
+
   // OpenRouteService API functions
   const getRoute = async (start: [number, number], end: [number, number]): Promise<RouteInfo | null> => {
     if (!ORS_CONFIG.API_KEY) {
@@ -161,7 +243,7 @@ export const MapView = ({ className }: MapViewProps) => {
     }
   };
 
-  const handleGetDirections = async (seller: Seller) => {
+  const handleGetDirections = async (seller: MapSeller) => {
     if (!userLocation) {
       toast({
         title: "Location Required",
@@ -174,11 +256,12 @@ export const MapView = ({ className }: MapViewProps) => {
     setIsLoadingRoute(true);
     setSelectedSeller(seller);
 
-    // Mock seller coordinates (in a real app, these would come from the seller data)
-    const sellerCoords: [number, number] = [
-      userLocation.lng + (Math.random() - 0.5) * 0.02, // Random nearby location
-      userLocation.lat + (Math.random() - 0.5) * 0.02
-    ];
+    if (seller.latitude == null || seller.longitude == null) {
+      toast({ title: 'No coordinates for seller', description: 'This seller has no location set.' });
+      setIsLoadingRoute(false);
+      return;
+    }
+    const sellerCoords: [number, number] = [seller.longitude, seller.latitude];
 
     const route = await getRoute(
       [userLocation.lng, userLocation.lat],
@@ -254,7 +337,7 @@ export const MapView = ({ className }: MapViewProps) => {
     <div className="relative w-full h-full bg-gradient-fresh rounded-lg border border-border/50 overflow-hidden">
       {/* Mock map background */}
       <div className="absolute inset-0 bg-gradient-to-br from-accent/20 to-primary/10" />
-      
+
       {/* Street grid overlay */}
       <div className="absolute inset-0 opacity-20">
         <div className="grid grid-cols-8 grid-rows-8 h-full w-full">
@@ -265,11 +348,12 @@ export const MapView = ({ className }: MapViewProps) => {
       </div>
 
       {/* Seller pins */}
-      {mockSellers.map((seller, index) => (
+      {sellers.map((seller, index) => (
         <div
           key={seller.id}
           className="absolute cursor-pointer transform -translate-x-1/2 -translate-y-1/2 z-10"
           style={{
+            // Simple projection: spread pins based on index if coordinates are not used in this placeholder map
             left: `${20 + (index * 15)}%`,
             top: `${30 + (index % 3) * 20}%`,
           }}
@@ -368,7 +452,8 @@ export const MapView = ({ className }: MapViewProps) => {
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="text-xs">
             <MapPin className="w-3 h-3 mr-1" />
-            {mockSellers.length} sellers nearby
+            {sellers.length} sellers nearby
+          {/* Real-time tags could be added here if needed */}
           </Badge>
           {locationStatus === 'granted' && userLocation && (
             <Badge variant="secondary" className="text-xs">

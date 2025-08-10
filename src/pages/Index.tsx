@@ -1,20 +1,21 @@
 import { useState, useEffect } from "react";
-import { MapPin, Droplets, User, Plus, Menu, Leaf } from "lucide-react";
+import { MapPin, Droplets, User, Plus, Menu, Leaf, LogOut } from "lucide-react";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { ListView } from "@/components/ListView";
 import { MapView } from "@/components/MapView";
-import { LandingPage } from "@/components/LandingPage";
-import { NavigationTestPanel } from "@/components/NavigationTestPanel";
+import { UserMenu } from "@/components/UserMenu";
+
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/components/ui/sidebar";
-import { Seller } from "@/data/mockSellers";
+import type { SellerCardSeller } from "@/components/SellerCard";
 import { useNavigate } from "react-router-dom";
+import { useUser } from "@/contexts/UserContext";
 
 const Index = () => {
   const navigate = useNavigate();
   const { toggleSidebar } = useSidebar();
+  const { user, isAuthenticated } = useUser();
   const [activeTab, setActiveTab] = useState<"map" | "list">("list");
-  const [showLanding, setShowLanding] = useState(true);
   const [userLocation, setUserLocation] = useState<string>("New York, NY");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMenuClosing, setIsMenuClosing] = useState(false);
@@ -31,6 +32,8 @@ const Index = () => {
       }
     );
   }, []);
+
+
 
   // Enhanced menu close function with animation
   const closeMenu = () => {
@@ -54,11 +57,9 @@ const Index = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMobileMenuOpen]);
 
-  if (showLanding) {
-    return <LandingPage onGetStarted={() => setShowLanding(false)} />;
-  }
 
-  const handleStartOrder = (seller: Seller) => {
+
+  const handleStartOrder = (seller: SellerCardSeller) => {
     navigate(`/order/${seller.id}`);
   };
 
@@ -82,7 +83,9 @@ const Index = () => {
               <Droplets className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-foreground">BrewNear</h1>
+              <h1 className="text-lg font-bold text-foreground">
+                {isAuthenticated && user ? `Welcome, ${user.name}` : 'BrewNear'}
+              </h1>
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <MapPin className="w-3 h-3" />
                 <span>{userLocation}</span>
@@ -163,7 +166,7 @@ const Index = () => {
                       navigate("/add-listing");
                       closeMenu();
                     }}
-                    className="w-full justify-start py-3 hover:bg-primary/10 hover:border-primary/50 hover:scale-105 transition-all duration-300 group"
+                    className="w-full justify-start py-3 bg-white/80 border-gray-300 text-gray-700 hover:bg-coffee-50 hover:border-coffee-400 hover:text-coffee-700 hover:scale-105 transition-all duration-300 group"
                   >
                     <div className="w-8 h-8 bg-gradient-matcha rounded-lg flex items-center justify-center mr-3 group-hover:scale-110 transition-transform duration-200">
                       <Plus className="w-4 h-4 text-primary-foreground" />
@@ -179,27 +182,34 @@ const Index = () => {
                   <div className="w-1 h-4 bg-gradient-latte rounded-full"></div>
                   <p className="text-sm font-bold text-foreground">Account</p>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      navigate("/signin");
-                      closeMenu();
-                    }}
-                    className="justify-center py-3 font-semibold hover:bg-primary/10 hover:border-primary/50 transition-all duration-300"
-                  >
-                    Sign In
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      navigate("/signup");
-                      closeMenu();
-                    }}
-                    className="bg-gradient-matcha hover:shadow-glow hover:scale-105 transition-all duration-300 justify-center py-3 font-semibold"
-                  >
-                    Sign Up
-                  </Button>
-                </div>
+
+                {isAuthenticated && user ? (
+                  // Authenticated user options
+                  <UserMenu variant="mobile" />
+                ) : (
+                  // Non-authenticated user options
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        navigate("/signin");
+                        closeMenu();
+                      }}
+                      className="justify-center py-3 font-semibold bg-white/80 border-gray-300 text-gray-700 hover:bg-coffee-50 hover:border-coffee-400 hover:text-coffee-700 transition-all duration-300"
+                    >
+                      Sign In
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        navigate("/signup");
+                        closeMenu();
+                      }}
+                      className="bg-gradient-matcha hover:shadow-glow hover:scale-105 transition-all duration-300 justify-center py-3 font-semibold"
+                    >
+                      Sign Up
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -215,7 +225,9 @@ const Index = () => {
               <Droplets className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground">BrewNear</h1>
+              <h1 className="text-xl font-bold text-foreground">
+                {isAuthenticated && user ? `Welcome, ${user.name}` : 'BrewNear'}
+              </h1>
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
                 <MapPin className="w-3 h-3" />
                 <span>{userLocation}</span>
@@ -239,43 +251,57 @@ const Index = () => {
             >
               Map View
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => navigate("/add-listing")}
-              className="flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Add Listing
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => navigate("/profile")}
-              className="flex items-center gap-2"
-            >
-              <User className="w-4 h-4" />
-              Profile
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => navigate("/signin")}
-              className="flex items-center gap-2"
-            >
-              Sign In
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => navigate("/add-listing")}
-              className="border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50 transition-all duration-300 flex items-center gap-2"
-            >
-              <Leaf className="w-4 h-4" />
-              Become a Seller
-            </Button>
-            <Button
-              onClick={() => navigate("/signup")}
-              className="bg-gradient-sunrise hover:shadow-glow transition-all duration-300 flex items-center gap-2"
-            >
-              Sign Up
-            </Button>
+
+            {isAuthenticated && user ? (
+              // Authenticated user navigation
+              <>
+                {user.userType === 'seller' ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate("/seller-dashboard")}
+                    className="flex items-center gap-2 bg-white/80 border-gray-300 text-gray-700 hover:bg-coffee-50 hover:border-coffee-400 hover:text-coffee-700"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Dashboard
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate("/add-listing")}
+                    className="bg-matcha-50 border-matcha-300 text-matcha-700 hover:bg-matcha-100 hover:border-matcha-400 hover:text-matcha-800 transition-all duration-300 flex items-center gap-2"
+                  >
+                    <Leaf className="w-4 h-4" />
+                    Become a Seller
+                  </Button>
+                )}
+                <UserMenu variant="desktop" />
+              </>
+            ) : (
+              // Non-authenticated user navigation
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate("/signin")}
+                  className="flex items-center gap-2 bg-white/80 border-gray-300 text-gray-700 hover:bg-coffee-50 hover:border-coffee-400 hover:text-coffee-700"
+                >
+                  Sign In
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate("/add-listing")}
+                  className="bg-matcha-50 border-matcha-300 text-matcha-700 hover:bg-matcha-100 hover:border-matcha-400 hover:text-matcha-800 transition-all duration-300 flex items-center gap-2"
+                >
+                  <Leaf className="w-4 h-4" />
+                  Become a Seller
+                </Button>
+                <Button
+                  onClick={() => navigate("/signup")}
+                  className="bg-gradient-sunrise hover:shadow-glow transition-all duration-300 flex items-center gap-2"
+                >
+                  Sign Up
+                </Button>
+              </>
+            )}
           </nav>
         </div>
       </header>
@@ -289,10 +315,9 @@ const Index = () => {
       <BottomNavigation
         activeTab={activeTab}
         onTabChange={setActiveTab}
+        isAuthenticated={isAuthenticated}
       />
 
-      {/* Development test panel */}
-      <NavigationTestPanel />
 
     </div>
   );

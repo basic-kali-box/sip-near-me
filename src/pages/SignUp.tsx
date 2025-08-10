@@ -129,7 +129,7 @@ const SignUp = () => {
           title: "Welcome to BrewNear!",
           description: `Account created successfully as ${formData.userType}.`,
         });
-        navigate(formData.userType === 'seller' ? '/add-listing' : '/');
+        navigate(formData.userType === 'seller' ? '/complete-profile' : '/');
       } else {
         toast({
           title: "Registration failed",
@@ -169,11 +169,18 @@ const SignUp = () => {
     }
   };
 
-  const handleSocialSignUp = (provider: string) => {
-    toast({
-      title: `${provider} Sign Up`,
-      description: "Social authentication would be implemented here.",
-    });
+  const handleSocialSignUp = async (provider: string) => {
+    if (provider !== "Google") {
+      toast({ title: `${provider} Sign Up`, description: "This provider is not yet enabled." });
+      return;
+    }
+    try {
+      // Reuse Google OAuth from context via sign in page flow, or direct call if needed
+      window.location.href =
+        `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(window.location.origin + '/auth/callback')}`;
+    } catch (error: any) {
+      toast({ title: "Google sign up failed", description: error.message || "Please try again.", variant: "destructive" });
+    }
   };
 
   return (

@@ -9,28 +9,51 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { StarRating } from "@/components/StarRating";
 import { useToast } from "@/hooks/use-toast";
-import { mockSellers, Seller } from "@/data/mockSellers";
+import { SellerService } from "@/services/sellerService";
 
 const SellerDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useUser();
-  const [seller, setSeller] = useState<Seller | null>(null);
+  const [seller, setSeller] = useState<any | null>(null);
   const [isFavorited, setIsFavorited] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (id) {
-      const foundSeller = mockSellers.find(s => s.id === id);
-      setSeller(foundSeller || null);
-    }
+    const load = async () => {
+      if (!id) return;
+      try {
+        setLoading(true);
+        setError(null);
+        const s = await SellerService.getSellerById(id);
+        setSeller(s);
+      } catch (e: any) {
+        setError(e.message || 'Failed to load seller details');
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
   }, [id]);
 
   const handleWhatsAppContact = () => {
     if (!seller) return;
-    const message = createQuickContactMessage(seller, user?.name);
+    const message = createQuickContactMessage({
+      id: seller.id,
+      name: seller.business_name,
+      phone: seller.phone,
+      drinks: [],
+      location: { lat: seller.latitude, lng: seller.longitude, address: seller.address },
+      hours: seller.hours || '',
+      photo_url: seller.photo_url || '',
+      rating: Number(seller.rating_average || 0),
+      reviewCount: Number(seller.rating_count || 0),
+      specialty: seller.specialty,
+    } as any, user?.name);
     sendWhatsAppMessage(seller.phone, message);
-    trackContactAttempt(seller.id.toString(), 'whatsapp');
+    trackContactAttempt(String(seller.id), 'whatsapp');
     toast({
       title: "Opening WhatsApp",
       description: `Contacting ${seller.name} via WhatsApp`,
@@ -54,6 +77,29 @@ const SellerDetails = () => {
       });
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading seller details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-foreground mb-2">Error</h2>
+          <p className="text-muted-foreground">{error}</p>
+          <Button onClick={() => navigate("/")} className="mt-4">Go back home</Button>
+        </div>
+      </div>
+    );
+  }
 
   if (!seller) {
     return (
@@ -104,9 +150,8 @@ const SellerDetails = () => {
           className="w-full h-64 object-cover bg-gradient-fresh"
         />
         <div className="absolute bottom-4 left-4 right-4">
-          <Badge className="bg-primary text-primary-foreground mb-2">
-            {seller.distance} away
-          </Badge>
+          {/* Distance not available directly; could compute from userLocation if needed */}
+          {/* <Badge className="bg-primary text-primary-foreground mb-2">{distance} away</Badge> */}
           <h1 className="text-3xl font-bold text-white drop-shadow-lg">
             {seller.name}
           </h1>
@@ -120,20 +165,20 @@ const SellerDetails = () => {
       <div className="container mx-auto px-4 py-6 space-y-6">
         {/* Rating and basic info */}
         <Card className="p-6 space-y-4">
-          <StarRating 
-            rating={seller.rating} 
-            reviewCount={seller.reviewCount}
+          <StarRating
+            rating={Number(seller.rating_average || 0)}
+            reviewCount={Number(seller.rating_count || 0)}
             size="lg"
           />
           
           <div className="space-y-3 text-sm text-muted-foreground">
             <div className="flex items-center gap-3">
               <MapPin className="w-5 h-5 text-primary" />
-              <span>{seller.location.address}</span>
+              <span>{seller.address}</span>
             </div>
             <div className="flex items-center gap-3">
               <Clock className="w-5 h-5 text-primary" />
-              <span>{seller.hours}</span>
+              <span>{seller.hours || 'Hours not provided'}</span>
             </div>
           </div>
         </Card>
@@ -142,14 +187,14 @@ const SellerDetails = () => {
         <Card className="p-6">
           <h2 className="text-xl font-semibold mb-4">Menu</h2>
           <div className="space-y-4">
-            {seller.drinks.map((drink) => (
+            {(seller.drinks || []).map((drink: any) => (
               <div key={drink.id} className="flex justify-between items-start p-4 rounded-lg bg-muted/50">
                 <div className="flex-1">
                   <h3 className="font-medium text-foreground">{drink.name}</h3>
                   <p className="text-sm text-muted-foreground mt-1">{drink.description}</p>
                 </div>
                 <div className="text-right ml-4">
-                  <p className="font-semibold text-primary">${drink.price}</p>
+                  <p className="font-semibold text-primary">${Number(drink.price).toFixed(2)}</p>
                 </div>
               </div>
             ))}
@@ -198,10 +243,10 @@ const SellerDetails = () => {
 
         {/* Reviews Section */}
         <ReviewSystem
-          sellerId={seller.id.toString()}
-          sellerName={seller.name}
-          averageRating={seller.rating}
-          totalReviews={seller.reviewCount}
+          sellerId={String(seller.id)}
+          sellerName={seller.business_name}
+          averageRating={Number(seller.rating_average || 0)}
+          totalReviews={Number(seller.rating_count || 0)}
         />
       </div>
     </div>

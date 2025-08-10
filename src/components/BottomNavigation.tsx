@@ -1,6 +1,8 @@
-import { MapPin, List, Plus, User, LogIn } from "lucide-react";
+import { MapPin, List, Plus, User, LogIn, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { useUser } from "@/contexts/UserContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface BottomNavigationProps {
   activeTab: "map" | "list";
@@ -11,6 +13,25 @@ interface BottomNavigationProps {
 
 export const BottomNavigation = ({ activeTab, onTabChange, className, isAuthenticated = false }: BottomNavigationProps) => {
   const navigate = useNavigate();
+  const { logout } = useUser();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    try {
+      await logout();
+      toast({
+        title: "Signed out successfully",
+        description: "You have been logged out.",
+      });
+      navigate('/landing', { replace: true });
+    } catch (error: any) {
+      toast({
+        title: "Sign out failed",
+        description: error.message || "Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const tabs = [
     { id: "map" as const, label: "Map", icon: MapPin, isTab: true },
@@ -20,6 +41,8 @@ export const BottomNavigation = ({ activeTab, onTabChange, className, isAuthenti
     isAuthenticated
       ? { id: "profile" as const, label: "Profile", icon: User, isTab: false }
       : { id: "signin" as const, label: "Sign In", icon: LogIn, isTab: false },
+    // Add sign out option for authenticated users
+    ...(isAuthenticated ? [{ id: "signout" as const, label: "Sign Out", icon: LogOut, isTab: false }] : []),
   ];
 
   return (
@@ -42,6 +65,8 @@ export const BottomNavigation = ({ activeTab, onTabChange, className, isAuthenti
               navigate("/profile");
             } else if (tab.id === "signin") {
               navigate("/auth");
+            } else if (tab.id === "signout") {
+              handleSignOut();
             }
           };
 

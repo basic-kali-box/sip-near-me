@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { UserService } from "@/services/userService";
 import { useUser } from "@/contexts/UserContext";
 import { ButtonLoading } from "@/components/LoadingSpinner";
 
@@ -66,27 +67,40 @@ const SignIn = () => {
     setIsLoading(true);
 
     try {
-      const success = await login(formData.email, formData.password, formData.userType);
+      console.log('🔐 SignIn: Starting login process...');
+
+      // Add a timeout to the entire login process
+      const loginPromise = login(formData.email, formData.password, formData.userType);
+      const timeoutPromise = new Promise<boolean>((_, reject) => {
+        setTimeout(() => reject(new Error('Login process timeout')), 15000); // 15 second timeout
+      });
+
+      const success = await Promise.race([loginPromise, timeoutPromise]);
+
       if (success) {
+        console.log('✅ SignIn: Login successful, navigating...');
         toast({
           title: "Welcome back!",
           description: `Signed in as ${formData.userType === 'seller' ? 'seller' : 'buyer'}.`,
         });
         navigate(formData.userType === 'seller' ? '/seller-dashboard' : '/');
       } else {
+        console.log('❌ SignIn: Login failed');
         toast({
           title: "Sign in failed",
-          description: "Please check your credentials and try again.",
+          description: "Invalid email or password. Please try again.",
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('❌ SignIn: Sign in error:', error);
       toast({
         title: "Sign in failed",
-        description: "Please check your credentials and try again.",
+        description: error.message || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
+      console.log('🔄 SignIn: Clearing loading state');
       setIsLoading(false);
     }
   };
@@ -119,11 +133,29 @@ const SignIn = () => {
 
 
 
-  const handleForgotPassword = () => {
-    toast({
-      title: "Password Reset",
-      description: "Password reset link would be sent to your email.",
-    });
+  const handleForgotPassword = async () => {
+    if (!formData.email) {
+      setErrors(prev => ({ ...prev, email: "Enter your email to receive a reset link" }));
+      toast({
+        title: "Email required",
+        description: "Please enter your email address first.",
+        variant: "destructive",
+      });
+      return;
+    }
+    try {
+      await UserService.requestPasswordReset(formData.email);
+      toast({
+        title: "Reset Email Sent",
+        description: "Check your inbox for a password reset link.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Reset Failed",
+        description: error.message || "Unable to send reset email. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

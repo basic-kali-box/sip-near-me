@@ -1,8 +1,10 @@
 import { ArrowRight, Coffee, Leaf, Star, Clock, MapPin, ShoppingBag, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { UserMenu } from "@/components/UserMenu";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@/contexts/UserContext";
 import { createNavigationHelpers, trackNavigation } from "@/utils/navigationHelpers";
 import heroImage from "@/assets/hero-matcha-coffee.jpg";
 import matchaBarista from "@/assets/matcha-barista.jpg";
@@ -10,12 +12,20 @@ import coffeeBrewing from "@/assets/coffee-brewing.jpg";
 import matchaProduct from "@/assets/matcha-product.jpg";
 
 interface LandingPageProps {
-  onGetStarted: () => void;
+  onGetStarted?: () => void;
 }
 
 export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, isAuthenticated, isLoading } = useUser();
+
+  // Debug logging to see what the component receives
+  console.log('🏠 LandingPage render:', {
+    isLoading,
+    isAuthenticated,
+    user: user ? { id: user.id, name: user.name, userType: user.userType } : null
+  });
 
   // Create navigation helpers with error handling
   const navigationHelpers = createNavigationHelpers(navigate, (error) => {
@@ -88,23 +98,43 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
             </div>
             
             <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleSignIn}
-                className="hover:text-primary transition-colors duration-200"
-                aria-label="Sign in to your account"
-              >
-                Sign In
-              </Button>
-              <Button
-                size="sm"
-                className="bg-gradient-matcha hover:shadow-glow transition-all duration-300"
-                onClick={handleSignUp}
-                aria-label="Create a new account"
-              >
-                Join Now
-              </Button>
+              {isLoading ? (
+                // Loading state - show placeholder
+                <div className="flex items-center gap-4">
+                  <div className="text-sm text-gray-600">
+                    Loading...
+                  </div>
+                </div>
+              ) : isAuthenticated && user ? (
+                // Authenticated user - show welcome message and user menu
+                <div className="flex items-center gap-4">
+                  <div className="text-sm text-gray-600">
+                    Welcome back, <span className="font-semibold text-gray-800">{user.name || user.email?.split('@')[0] || 'User'}</span>!
+                  </div>
+                  <UserMenu variant="desktop" />
+                </div>
+              ) : (
+                // Non-authenticated user - show sign in/up buttons
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleSignIn}
+                    className="hover:text-primary transition-colors duration-200"
+                    aria-label="Sign in to your account"
+                  >
+                    Sign In
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="bg-gradient-matcha hover:shadow-glow transition-all duration-300"
+                    onClick={handleSignUp}
+                    aria-label="Create a new account"
+                  >
+                    Join Now
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -138,38 +168,80 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button
                   size="lg"
-                  onClick={onGetStarted}
+                  onClick={onGetStarted || (() => navigate('/app'))}
                   className="bg-gradient-matcha hover:shadow-glow transition-all duration-300 text-lg px-8"
                   aria-label="Explore nearby coffee and matcha sellers"
                 >
                   Explore Nearby
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="text-lg px-8 hover:bg-primary/10 hover:border-primary/50 transition-all duration-300"
-                  onClick={handleBecomeASeller}
-                  aria-label="Sign up as a seller to start selling drinks"
-                >
-                  <ShoppingBag className="w-5 h-5 mr-2" />
-                  Become a Seller
-                </Button>
+                {isAuthenticated && user ? (
+                  // Show relevant button based on user type
+                  user.userType === 'seller' ? (
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="text-lg px-8 hover:bg-primary/10 hover:border-primary/50 transition-all duration-300"
+                      onClick={() => navigate('/seller-dashboard')}
+                      aria-label="Go to your seller dashboard"
+                    >
+                      <ShoppingBag className="w-5 h-5 mr-2" />
+                      My Dashboard
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="text-lg px-8 hover:bg-primary/10 hover:border-primary/50 transition-all duration-300"
+                      onClick={handleBecomeASeller}
+                      aria-label="Sign up as a seller to start selling drinks"
+                    >
+                      <ShoppingBag className="w-5 h-5 mr-2" />
+                      Become a Seller
+                    </Button>
+                  )
+                ) : (
+                  // Non-authenticated user - show become a seller
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="text-lg px-8 hover:bg-primary/10 hover:border-primary/50 transition-all duration-300"
+                    onClick={handleBecomeASeller}
+                    aria-label="Sign up as a seller to start selling drinks"
+                  >
+                    <ShoppingBag className="w-5 h-5 mr-2" />
+                    Become a Seller
+                  </Button>
+                )}
               </div>
 
-              {/* Authentication Options */}
-              <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleSignIn}
-                  className="text-muted-foreground hover:text-foreground transition-colors duration-200"
-                  aria-label="Sign in to existing account"
-                >
-                  <LogIn className="w-4 h-4 mr-2" />
-                  Already have an account? Sign In
-                </Button>
-              </div>
+              {/* Authentication Options - only show for non-authenticated users */}
+              {!isAuthenticated && (
+                <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleSignIn}
+                    className="text-muted-foreground hover:text-foreground transition-colors duration-200"
+                    aria-label="Sign in to existing account"
+                  >
+                    <LogIn className="w-4 h-4 mr-2" />
+                    Already have an account? Sign In
+                  </Button>
+                </div>
+              )}
+
+              {/* Authenticated user message */}
+              {!isLoading && isAuthenticated && user && (
+                <div className="pt-4">
+                  <div className="bg-gradient-to-r from-coffee-50 to-matcha-50 border border-coffee-200 rounded-lg p-4">
+                    <p className="text-coffee-800 text-center">
+                      🎉 Welcome back, <span className="font-semibold">{user.name || user.email?.split('@')[0]}</span>!
+                      Ready to {user.userType === 'seller' ? 'manage your business' : 'discover amazing drinks'}?
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Stats */}
               <div className="grid grid-cols-4 gap-4 pt-8">
@@ -322,8 +394,8 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               <Button
                 size="lg"
                 variant="secondary"
-                onClick={onGetStarted}
-                className="text-lg px-8 bg-background text-foreground hover:bg-background/90 transition-all duration-300"
+                onClick={onGetStarted || (() => navigate('/app'))}
+                className="text-lg px-8 bg-white text-gray-800 border border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-all duration-300 shadow-sm"
                 aria-label="Find nearby coffee and matcha sellers"
               >
                 <MapPin className="w-5 h-5 mr-2" />

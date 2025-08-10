@@ -6,30 +6,70 @@ type UserInsert = Database['public']['Tables']['users']['Insert'];
 type UserUpdate = Database['public']['Tables']['users']['Update'];
 
 export class UserService {
-  // Get current user profile
-  static async getCurrentUserProfile(): Promise<User | null> {
+  // Get user profile by ID (direct database query)
+  static async getUserProfileById(userId: string): Promise<User | null> {
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) return null;
-
       const { data, error } = await supabase
         .from('users')
         .select('*')
-        .eq('id', user.id)
-        .single();
+        .eq('id', userId)
+        .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching user profile:', error);
+        return null;
+      }
+
       return data;
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('Error fetching user profile by ID:', error);
       return null;
     }
   }
 
-  // Create user profile manually (bypassing trigger)
-  static async createUserProfile(userData: UserInsert): Promise<User> {
+  // Get current user profile
+  static async getCurrentUserProfile(): Promise<User | null> {
     try {
-      console.log('Creating user profile for:', userData.id);
+      console.log('👤 UserService: Getting current user...');
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        console.log('👤 UserService: No auth user found:', userError?.message);
+        return null;
+      }
+      console.log('👤 UserService: Auth user found:', user.id);
+
+      return await this.getUserProfileById(user.id);
+    } catch (error) {
+      console.error('💥 UserService: Error fetching current user profile:', error);
+      return null;
+    }
+  }
+
+  // Create user profile manually (bypassing trigger) with timeout
+  static async createUserProfile(userData: UserInsert): Promise<User> {
+    console.log('➕ UserService: Creating user profile with timeout for:', userData.id);
+
+    try {
+      // Add timeout to the entire creation process
+      const createPromise = this._createUserProfileInternal(userData);
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('User profile creation timeout')), 8000); // 8 second timeout
+      });
+
+      return await Promise.race([createPromise, timeoutPromise]) as User;
+    } catch (error: any) {
+      console.error('💥 UserService: Create user profile error:', error);
+      if (error.message === 'User profile creation timeout') {
+        console.error('💥 UserService: User profile creation timed out');
+      }
+      throw error;
+    }
+  }
+
+  // Internal method for creating user profile
+  private static async _createUserProfileInternal(userData: UserInsert): Promise<User> {
+    try {
+      console.log('➕ UserService: Starting internal profile creation...');
 
       // First check if profile already exists
       const { data: existingUser, error: selectError } = await supabase
@@ -43,34 +83,32 @@ export class UserService {
       }
 
       if (existingUser) {
-        console.log('User profile already exists');
+        // User profile already exists
         return existingUser;
       }
 
-      // Use RPC function for secure profile creation
-      console.log('Using RPC function to create profile...');
-      const { data: rpcResult, error: rpcError } = await supabase
-        .rpc('create_user_profile_secure', {
-          user_id: userData.id,
-          user_email: userData.email,
-          user_name: userData.name,
-          user_type_val: userData.user_type,
-          user_phone: userData.phone || null,
-          user_avatar_url: userData.avatar_url || null
-        });
-
-      if (rpcError) {
-        console.error('RPC error:', rpcError);
-        throw rpcError;
+      // Try RPC function for secure profile creation if available, otherwise fall back
+      // Attempting RPC to create profile (if available)
+      try {
+        const { data: rpcResult } = await supabase
+          .rpc('create_user_profile_secure', {
+            user_id: userData.id,
+            user_email: userData.email,
+            user_name: userData.name,
+            user_type_val: userData.user_type,
+            user_phone: userData.phone || null,
+            user_avatar_url: userData.avatar_url || null
+          });
+        if (rpcResult) {
+          // Profile created via RPC
+          return rpcResult as User;
+        }
+      } catch (rpcError) {
+        console.warn('RPC not available or failed, falling back to direct insert:', rpcError);
       }
 
-      if (rpcResult) {
-        console.log('Profile created via RPC:', rpcResult);
-        return rpcResult as User;
-      }
-
-      // Fallback: try direct insert (if RLS is disabled)
-      console.log('Trying direct insert...');
+      // Fallback: try direct insert
+      // Trying direct insert
       const now = new Date().toISOString();
       const { data, error } = await supabase
         .from('users')
@@ -105,7 +143,7 @@ export class UserService {
         throw error;
       }
 
-      console.log('Profile created via direct insert:', data);
+      // Profile created via direct insert
       return data;
     } catch (error) {
       console.error('UserService.createUserProfile error:', error);
@@ -281,7 +319,7 @@ export class UserService {
     try {
       // Note: Email verification is handled automatically by Supabase
       // This method is kept for compatibility
-      console.log('Email verification handled by Supabase automatically');
+      // Email verification handled by Supabase automatically
     } catch (error) {
       throw new Error(handleSupabaseError(error));
     }

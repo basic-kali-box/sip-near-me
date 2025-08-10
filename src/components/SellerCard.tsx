@@ -3,15 +3,28 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StarRating } from "./StarRating";
-import { Seller } from "@/data/mockSellers";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { sendWhatsAppMessage, createQuickContactMessage, trackContactAttempt } from "@/utils/whatsapp";
 import { useToast } from "@/hooks/use-toast";
 
+type CardDrink = { name: string; price: number; image?: string };
+
+export interface SellerCardSeller {
+  id: string;
+  name: string;
+  phone: string;
+  specialty: string;
+  photo_url?: string | null;
+  rating?: number;
+  reviewCount?: number;
+  isVerified?: boolean;
+  drinks?: CardDrink[];
+}
+
 interface SellerCardProps {
-  seller: Seller;
-  onStartOrder: (seller: Seller) => void;
+  seller: SellerCardSeller;
+  onStartOrder: (seller: SellerCardSeller) => void;
   className?: string;
 }
 
@@ -96,19 +109,21 @@ export const SellerCard = ({ seller, onStartOrder, className = "" }: SellerCardP
             {!isImageLoaded && (
               <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-muted/50 to-muted animate-pulse"></div>
             )}
-            <img
-              src={seller.photo_url}
-              alt={seller.name}
-              className={`w-24 h-24 rounded-2xl object-cover shadow-elegant transition-all duration-700 group-hover:scale-105 group-hover:shadow-glow ${
-                isImageLoaded ? 'opacity-100' : 'opacity-0 absolute inset-0'
-              }`}
-              onLoad={() => setIsImageLoaded(true)}
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96'%3E%3Crect width='96' height='96' fill='%23f3f4f6' rx='16'/%3E%3Ctext x='48' y='48' text-anchor='middle' dy='0.3em' font-family='Arial' font-size='14' fill='%23666'%3E%F0%9F%8D%B5%3C/text%3E%3C/svg%3E";
-                setIsImageLoaded(true);
-              }}
-            />
+            {seller.photo_url && (
+              <img
+                src={seller.photo_url}
+                alt={seller.name}
+                className={`w-24 h-24 rounded-2xl object-cover shadow-elegant transition-all duration-700 group-hover:scale-105 group-hover:shadow-glow ${
+                  isImageLoaded ? 'opacity-100' : 'opacity-0 absolute inset-0'
+                }`}
+                onLoad={() => setIsImageLoaded(true)}
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96'%3E%3Crect width='96' height='96' fill='%23f3f4f6' rx='16'/%3E%3Ctext x='48' y='48' text-anchor='middle' dy='0.3em' font-family='Arial' font-size='14' fill='%23666'%3E%F0%9F%8D%B5%3C/text%3E%3C/svg%3E";
+                  setIsImageLoaded(true);
+                }}
+              />
+            )}
 
             {/* Enhanced badges */}
             <div className="absolute -top-2 -right-2 flex flex-col gap-1">
@@ -147,8 +162,8 @@ export const SellerCard = ({ seller, onStartOrder, className = "" }: SellerCardP
               {/* Enhanced rating with more info */}
               <div className="flex items-center justify-between">
                 <StarRating
-                  rating={seller.rating}
-                  reviewCount={seller.reviewCount}
+                  rating={seller.rating || 0}
+                  reviewCount={seller.reviewCount || 0}
                   size="sm"
                 />
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -162,8 +177,8 @@ export const SellerCard = ({ seller, onStartOrder, className = "" }: SellerCardP
 
 
 
-        {/* Enhanced drinks showcase */}
-        {seller.drinks.length > 0 && (
+        {/* Enhanced drinks showcase (optional) */}
+        {Array.isArray(seller.drinks) && seller.drinks.length > 0 && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-bold text-foreground flex items-center gap-2">

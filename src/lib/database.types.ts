@@ -44,10 +44,11 @@ export interface Database {
       sellers: {
         Row: {
           id: string
+          name: string
           business_name: string
           address: string
-          latitude: number | null
-          longitude: number | null
+          latitude: number
+          longitude: number
           phone: string
           hours: string | null
           photo_url: string | null
@@ -61,10 +62,11 @@ export interface Database {
         }
         Insert: {
           id: string
+          name: string
           business_name: string
           address: string
-          latitude?: number | null
-          longitude?: number | null
+          latitude: number
+          longitude: number
           phone: string
           hours?: string | null
           photo_url?: string | null
@@ -78,10 +80,11 @@ export interface Database {
         }
         Update: {
           id?: string
+          name?: string
           business_name?: string
           address?: string
-          latitude?: number | null
-          longitude?: number | null
+          latitude?: number
+          longitude?: number
           phone?: string
           hours?: string | null
           photo_url?: string | null

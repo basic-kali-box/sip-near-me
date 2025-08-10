@@ -1,4 +1,5 @@
 import { supabase, handleSupabaseError, findNearbySellers, trackSellerView } from '@/lib/supabase';
+import { getDefaultCoordinates } from '@/utils/geocoding';
 import { Database } from '@/lib/database.types';
 
 type Seller = Database['public']['Tables']['sellers']['Row'];
@@ -57,25 +58,120 @@ export class SellerService {
     }
   }
 
-  // Create seller profile
+  // Create seller profile with retry logic
   static async createSellerProfile(sellerData: SellerInsert): Promise<Seller> {
     try {
+      console.log('🔄 SellerService: Creating seller profile for:', sellerData.id);
+
+      // First check if seller profile already exists
+      const { data: existingSeller, error: checkError } = await supabase
+        .from('sellers')
+        .select('*')
+        .eq('id', sellerData.id)
+        .maybeSingle();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.warn('⚠️ Error checking existing seller:', checkError);
+      }
+
+      if (existingSeller) {
+        console.log('✅ Seller profile already exists, returning existing profile');
+        return existingSeller;
+      }
+
+      // Create new seller profile
+      console.log('🔄 SellerService: Seller data to insert:', JSON.stringify(sellerData, null, 2));
+
+      const insertData = {
+        id: sellerData.id,
+        name: sellerData.business_name, // Add the missing name field using business_name
+        business_name: sellerData.business_name,
+        address: sellerData.address,
+        phone: sellerData.phone,
+        specialty: sellerData.specialty || 'coffee',
+        hours: sellerData.hours || 'Mon-Fri: 9AM-5PM',
+        description: sellerData.description || null,
+        is_available: sellerData.is_available ?? false,
+        rating_average: sellerData.rating_average ?? 0,
+        rating_count: sellerData.rating_count ?? 0,
+        // Provide coordinates based on address or use defaults
+        latitude: sellerData.latitude ?? getDefaultCoordinates(sellerData.address).latitude,
+        longitude: sellerData.longitude ?? getDefaultCoordinates(sellerData.address).longitude,
+        photo_url: sellerData.photo_url || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('🔄 SellerService: Final insert data:', JSON.stringify(insertData, null, 2));
+
       const { data, error } = await supabase
         .from('sellers')
-        .insert(sellerData)
+        .insert(insertData)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ SellerService: Insert error:', error);
+
+        // Handle duplicate key error
+        if (error.code === '23505') {
+          console.log('🔄 Duplicate key error, fetching existing seller...');
+          const { data: duplicateSeller } = await supabase
+            .from('sellers')
+            .select('*')
+            .eq('id', sellerData.id)
+            .single();
+
+          if (duplicateSeller) {
+            return duplicateSeller;
+          }
+        }
+        throw error;
+      }
+
+      console.log('✅ SellerService: Seller profile created successfully');
       return data;
     } catch (error) {
+      console.error('❌ SellerService: Create seller profile error:', error);
       throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  // Check if seller profile exists
+  static async sellerProfileExists(sellerId: string): Promise<boolean> {
+    try {
+      const { data, error } = await supabase
+        .from('sellers')
+        .select('id')
+        .eq('id', sellerId)
+        .maybeSingle();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No rows returned - seller profile doesn't exist
+          return false;
+        } else if (error.code === '42501' || error.message?.includes('permission denied')) {
+          // Permission denied - might be RLS policy issue, assume doesn't exist
+          console.warn('⚠️ Permission denied checking seller profile, assuming does not exist');
+          return false;
+        } else {
+          console.warn('⚠️ Error checking seller profile existence:', error);
+          return false;
+        }
+      }
+
+      return !!data;
+    } catch (error) {
+      console.error('❌ Exception checking seller profile existence:', error);
+      return false;
     }
   }
 
   // Update seller profile
   static async updateSellerProfile(sellerId: string, updates: SellerUpdate): Promise<Seller> {
     try {
+      console.log('🔄 SellerService: Updating seller profile for:', sellerId);
+
       const { data, error } = await supabase
         .from('sellers')
         .update({ ...updates, updated_at: new Date().toISOString() })
@@ -83,7 +179,12 @@ export class SellerService {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ SellerService: Update error:', error);
+        throw error;
+      }
+
+      console.log('✅ SellerService: Seller profile updated successfully');
       return data;
     } catch (error) {
       throw new Error(handleSupabaseError(error));
@@ -93,30 +194,46 @@ export class SellerService {
   // Toggle seller availability
   static async toggleAvailability(sellerId: string): Promise<boolean> {
     try {
-      // Get current availability
+      console.log('🔄 SellerService: Toggling availability for seller:', sellerId);
+
+      // Get current availability using maybeSingle to handle missing profiles
       const { data: currentSeller, error: fetchError } = await supabase
         .from('sellers')
         .select('is_available')
         .eq('id', sellerId)
-        .single();
+        .maybeSingle();
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error('❌ SellerService: Error fetching current seller:', fetchError);
+        throw fetchError;
+      }
+
+      if (!currentSeller) {
+        console.warn('⚠️ SellerService: No seller profile found for:', sellerId);
+        throw new Error('Seller profile not found. Please complete your seller profile first.');
+      }
 
       // Toggle availability
       const newAvailability = !currentSeller.is_available;
-      
+      console.log(`🔄 SellerService: Changing availability from ${currentSeller.is_available} to ${newAvailability}`);
+
       const { error: updateError } = await supabase
         .from('sellers')
-        .update({ 
+        .update({
           is_available: newAvailability,
           updated_at: new Date().toISOString()
         })
         .eq('id', sellerId);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('❌ SellerService: Error updating availability:', updateError);
+        throw updateError;
+      }
 
+      console.log('✅ SellerService: Availability toggled successfully to:', newAvailability);
       return newAvailability;
     } catch (error) {
+      console.error('❌ SellerService: Toggle availability error:', error);
       throw new Error(handleSupabaseError(error));
     }
   }
