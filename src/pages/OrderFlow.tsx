@@ -9,7 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { StarRating } from "@/components/StarRating";
-import { mockSellers, Seller, Drink } from "@/data/mockSellers";
+import { SellerService } from "@/services/sellerService";
+import { Database } from "@/lib/database.types";
+
+type Seller = Database['public']['Tables']['sellers']['Row'] & { drinks?: Drink[] };
+type Drink = Database['public']['Tables']['drinks']['Row'];
 
 interface CartItem extends Drink {
   quantity: number;
@@ -31,21 +35,35 @@ const OrderFlow = () => {
   });
 
   useEffect(() => {
-    if (sellerId) {
-      const foundSeller = mockSellers.find(s => s.id.toString() === sellerId);
-      setSeller(foundSeller || null);
+    const fetchSeller = async () => {
+      if (sellerId) {
+        try {
+          const foundSeller = await SellerService.getSellerById(sellerId, user?.id);
+          setSeller(foundSeller);
 
-      // Check if seller is trying to order from themselves
-      if (user?.userType === 'seller' && user?.id === sellerId) {
-        toast({
-          title: "Cannot Order from Yourself",
-          description: "Sellers cannot place orders from their own business.",
-          variant: "destructive",
-        });
-        navigate('/seller-dashboard');
-        return;
+          // Check if seller is trying to order from themselves
+          if (user?.userType === 'seller' && user?.id === sellerId) {
+            toast({
+              title: "Cannot Order from Yourself",
+              description: "Sellers cannot place orders from their own business.",
+              variant: "destructive",
+            });
+            navigate('/seller-dashboard');
+            return;
+          }
+        } catch (error) {
+          console.error('Error fetching seller:', error);
+          toast({
+            title: "Error",
+            description: "Failed to load seller information.",
+            variant: "destructive",
+          });
+          navigate('/');
+        }
       }
-    }
+    };
+
+    fetchSeller();
   }, [sellerId, user, navigate, toast]);
 
   if (!seller) {
@@ -88,8 +106,8 @@ const OrderFlow = () => {
 
   const getTotalPrice = () => {
     return cart.reduce((total, item) => {
-      // Parse price string (e.g., "75.00 Dh" -> 75.00)
-      const price = parseFloat(item.price.replace(' Dh', ''));
+      // Price is already a number in the database
+      const price = typeof item.price === 'number' ? item.price : parseFloat(item.price.toString().replace(' Dh', ''));
       return total + (price * item.quantity);
     }, 0);
   };
@@ -103,7 +121,7 @@ const OrderFlow = () => {
 
     const orderItems: OrderItem[] = cart.map(item => ({
       name: item.name,
-      price: parseFloat(item.price.replace(' Dh', '')),
+      price: typeof item.price === 'number' ? item.price : parseFloat(item.price.toString().replace(' Dh', '')),
       quantity: item.quantity,
       notes: item.description
     }));
@@ -209,7 +227,7 @@ const OrderFlow = () => {
                     <div className="flex-1">
                       <h3 className="font-semibold text-lg">{drink.name}</h3>
                       <p className="text-muted-foreground mt-1">{drink.description}</p>
-                      <p className="text-xl font-bold text-primary mt-2">{drink.price} Dh</p>
+                      <p className="text-xl font-bold text-primary mt-2">{drink.price.toFixed(2)} Dh</p>
                     </div>
                     <div className="ml-4">
                       {cart.find(item => item.id === drink.id) ? (
@@ -263,7 +281,7 @@ const OrderFlow = () => {
                   <div key={item.id} className="flex justify-between items-center">
                     <div className="flex-1">
                       <h3 className="font-medium">{item.name}</h3>
-                      <p className="text-sm text-muted-foreground">{item.price} Dh each</p>
+                      <p className="text-sm text-muted-foreground">{item.price.toFixed(2)} Dh each</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button

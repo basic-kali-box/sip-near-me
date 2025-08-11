@@ -7,6 +7,7 @@ import { UserProvider, useUser } from "./contexts/UserContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { useEffect } from "react";
 import { initGA, trackPageView, initScrollTracking, trackWebVitals } from "@/utils/analytics";
+import { Analytics } from "@vercel/analytics/react";
 import {
   SidebarProvider,
   Sidebar,
@@ -193,6 +194,7 @@ const App = () => {
           <UserProvider>
             <Toaster />
             <Sonner />
+            <Analytics />
             <BrowserRouter>
             <ErrorBoundary>
               <SidebarProvider defaultOpen={false}>
