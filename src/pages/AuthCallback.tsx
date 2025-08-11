@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { UserService } from '@/services/userService';
 import { useUser } from '@/contexts/UserContext';
 
 const AuthCallback: React.FC = () => {
   const navigate = useNavigate();
-  const { setUser, setIsAuthenticated } = useUser() as any;
+  const [searchParams] = useSearchParams();
+  const { refreshUserData } = useUser();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,33 +22,89 @@ const AuthCallback: React.FC = () => {
         }
 
         if (data.session?.user) {
-          // Check if user profile exists
+          // Get userType from URL params (from email confirmation)
+          const userTypeParam = searchParams.get('userType') as 'buyer' | 'seller' | null;
+
+          // Ensure user profile exists (will create if needed)
+          console.log('🔍 Ensuring user profile exists for OAuth user...');
           let userProfile = await UserService.getCurrentUserProfile();
-          
+
           if (!userProfile) {
-            // Create profile for Google OAuth users
-            // Wait a moment for the trigger to potentially create it
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            userProfile = await UserService.getCurrentUserProfile();
+            console.log('⚠️ No user profile found after OAuth, this should not happen');
+            // Try to create profile manually
+            try {
+              userProfile = await UserService.ensureUserProfileExists(data.session.user.id);
+            } catch (error) {
+              console.error('❌ Failed to create user profile:', error);
+            }
           }
 
           if (userProfile) {
-            setUser(userProfile);
-            setIsAuthenticated(true);
-            
-            // Redirect based on user type
-            if (userProfile.user_type === 'seller') {
+            console.log('✅ User profile found, OAuth callback successful');
+
+            // Refresh user data in UserContext to ensure proper authentication state
+            try {
+              await refreshUserData();
+              console.log('✅ User data refreshed in context');
+            } catch (refreshError) {
+              console.warn('⚠️ Failed to refresh user data, continuing with navigation:', refreshError);
+            }
+
+            // Clear stored confirmation data
+            localStorage.removeItem('pending_confirmation_email');
+            localStorage.removeItem('pending_confirmation_userType');
+
+            // Check for stored returnTo parameter from Google sign-in
+            const storedReturnTo = localStorage.getItem('auth_returnTo');
+            if (storedReturnTo) {
+              localStorage.removeItem('auth_returnTo');
+            }
+
+            // Check for stored OAuth user type from signup
+            const storedOAuthUserType = localStorage.getItem('pending_oauth_userType');
+            if (storedOAuthUserType) {
+              localStorage.removeItem('pending_oauth_userType');
+            }
+
+            // For new sellers coming from email confirmation, redirect to complete profile
+            if (userProfile.user_type === 'seller' && userTypeParam === 'seller') {
+              // Check if seller profile is complete
+              const hasBusinessName = userProfile.businessName && userProfile.businessName.trim() !== '';
+              if (!hasBusinessName) {
+                navigate('/complete-profile');
+                return;
+              }
+            }
+
+            // Check if user needs to complete profile
+            const needsProfileCompletion = !userProfile.name || !userProfile.phone || !userProfile.user_type;
+
+            if (needsProfileCompletion || storedOAuthUserType) {
+              console.log('👤 User needs to complete profile, redirecting...');
+              navigate('/complete-profile');
+              return;
+            }
+
+            // Redirect to stored returnTo URL if available, otherwise use default navigation
+            if (storedReturnTo) {
+              navigate(decodeURIComponent(storedReturnTo));
+            } else if (userProfile.user_type === 'seller') {
               navigate('/seller-dashboard');
             } else {
-              navigate('/');
+              navigate('/app');
             }
           } else {
             // If no profile exists, redirect to complete registration
             navigate('/complete-profile');
           }
         } else {
-          // No session, redirect to login
-          navigate('/signin');
+          // No session, redirect to sign in with userType if available
+          const userTypeParam = searchParams.get('userType');
+          if (userTypeParam) {
+            navigate(`/signin?userType=${userTypeParam}`);
+          } else {
+            navigate('/signin');
+          }
         }
       } catch (error) {
         console.error('Auth callback error:', error);
@@ -59,7 +116,7 @@ const AuthCallback: React.FC = () => {
     };
 
     handleAuthCallback();
-  }, [navigate, setUser, setIsAuthenticated]);
+  }, [navigate]);
 
   if (loading) {
     return (

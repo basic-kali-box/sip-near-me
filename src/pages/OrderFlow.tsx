@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, Minus, ShoppingCart, Clock, MapPin, Star, Truck, Phone, MessageCircle, User } from "lucide-react";
 import { sendWhatsAppMessage, formatOrderMessage, trackContactAttempt, OrderItem, OrderDetails } from "@/utils/whatsapp";
 import { useUser } from "@/contexts/UserContext";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -31,10 +32,21 @@ const OrderFlow = () => {
 
   useEffect(() => {
     if (sellerId) {
-      const foundSeller = mockSellers.find(s => s.id === sellerId);
+      const foundSeller = mockSellers.find(s => s.id.toString() === sellerId);
       setSeller(foundSeller || null);
+
+      // Check if seller is trying to order from themselves
+      if (user?.userType === 'seller' && user?.id === sellerId) {
+        toast({
+          title: "Cannot Order from Yourself",
+          description: "Sellers cannot place orders from their own business.",
+          variant: "destructive",
+        });
+        navigate('/seller-dashboard');
+        return;
+      }
     }
-  }, [sellerId]);
+  }, [sellerId, user, navigate, toast]);
 
   if (!seller) {
     return (
@@ -48,14 +60,17 @@ const OrderFlow = () => {
   }
 
   const addToCart = (drink: Drink) => {
+    // Generate ID if not present
+    const drinkWithId = { ...drink, id: drink.id || `${drink.name}-${Date.now()}` };
+
     setCart(prev => {
-      const existing = prev.find(item => item.id === drink.id);
+      const existing = prev.find(item => item.id === drinkWithId.id);
       if (existing) {
         return prev.map(item =>
-          item.id === drink.id ? { ...item, quantity: item.quantity + 1 } : item
+          item.id === drinkWithId.id ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
-      return [...prev, { ...drink, quantity: 1 }];
+      return [...prev, { ...drinkWithId, quantity: 1 }];
     });
   };
 
@@ -72,7 +87,11 @@ const OrderFlow = () => {
   };
 
   const getTotalPrice = () => {
-    return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+    return cart.reduce((total, item) => {
+      // Parse price string (e.g., "75.00 Dh" -> 75.00)
+      const price = parseFloat(item.price.replace(' Dh', ''));
+      return total + (price * item.quantity);
+    }, 0);
   };
 
   const getTotalItems = () => {
@@ -84,7 +103,7 @@ const OrderFlow = () => {
 
     const orderItems: OrderItem[] = cart.map(item => ({
       name: item.name,
-      price: item.price,
+      price: parseFloat(item.price.replace(' Dh', '')),
       quantity: item.quantity,
       notes: item.description
     }));
@@ -185,12 +204,12 @@ const OrderFlow = () => {
             {/* Menu items */}
             <div className="space-y-4">
               {seller.drinks.map((drink) => (
-                <Card key={drink.id} className="p-4">
+                <Card key={drink.id || drink.name} className="p-4">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <h3 className="font-semibold text-lg">{drink.name}</h3>
                       <p className="text-muted-foreground mt-1">{drink.description}</p>
-                      <p className="text-xl font-bold text-primary mt-2">${drink.price}</p>
+                      <p className="text-xl font-bold text-primary mt-2">{drink.price} Dh</p>
                     </div>
                     <div className="ml-4">
                       {cart.find(item => item.id === drink.id) ? (
@@ -200,7 +219,7 @@ const OrderFlow = () => {
                             variant="outline"
                             onClick={() => {
                               const item = cart.find(item => item.id === drink.id);
-                              if (item) updateQuantity(drink.id, item.quantity - 1);
+                              if (item && drink.id) updateQuantity(drink.id, item.quantity - 1);
                             }}
                           >
                             <Minus className="w-4 h-4" />
@@ -213,7 +232,7 @@ const OrderFlow = () => {
                             variant="outline"
                             onClick={() => {
                               const item = cart.find(item => item.id === drink.id);
-                              if (item) updateQuantity(drink.id, item.quantity + 1);
+                              if (item && drink.id) updateQuantity(drink.id, item.quantity + 1);
                             }}
                           >
                             <Plus className="w-4 h-4" />
@@ -244,7 +263,7 @@ const OrderFlow = () => {
                   <div key={item.id} className="flex justify-between items-center">
                     <div className="flex-1">
                       <h3 className="font-medium">{item.name}</h3>
-                      <p className="text-sm text-muted-foreground">${item.price} each</p>
+                      <p className="text-sm text-muted-foreground">{item.price} Dh each</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
@@ -264,7 +283,7 @@ const OrderFlow = () => {
                       </Button>
                     </div>
                     <div className="w-20 text-right font-semibold">
-                      ${(item.price * item.quantity).toFixed(2)}
+                      {(item.price * item.quantity).toFixed(2)} Dh
                     </div>
                   </div>
                 ))}
@@ -272,7 +291,7 @@ const OrderFlow = () => {
               <Separator className="my-4" />
               <div className="flex justify-between items-center text-lg font-semibold">
                 <span>Total</span>
-                <span>${getTotalPrice().toFixed(2)}</span>
+                <span>{getTotalPrice().toFixed(2)} Dh</span>
               </div>
             </Card>
 
@@ -283,7 +302,7 @@ const OrderFlow = () => {
                 size="lg"
               >
                 <MessageCircle className="w-5 h-5" />
-                Order via WhatsApp - ${getTotalPrice().toFixed(2)}
+                Order via WhatsApp - {getTotalPrice().toFixed(2)} Dh
               </Button>
               <Button
                 variant="outline"
@@ -321,7 +340,7 @@ const OrderFlow = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Total</span>
-                  <span className="font-semibold">${getTotalPrice().toFixed(2)}</span>
+                  <span className="font-semibold">{getTotalPrice().toFixed(2)} Dh</span>
                 </div>
               </div>
             </Card>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MapPin, Droplets, User, Plus, Menu, Leaf, LogOut } from "lucide-react";
+import { MapPin, Droplets, User, Plus, Menu, Leaf, LogOut, ShoppingBag } from "lucide-react";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { ListView } from "@/components/ListView";
 import { MapView } from "@/components/MapView";
@@ -10,27 +10,50 @@ import { useSidebar } from "@/components/ui/sidebar";
 import type { SellerCardSeller } from "@/components/SellerCard";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@/contexts/UserContext";
+import { getCurrentLocation, reverseGeocode } from "@/utils/geocoding";
+import { SEO, SEO_CONFIGS } from "@/components/SEO";
+import { getWebApplicationSchema } from "@/utils/structuredData";
 
 const Index = () => {
   const navigate = useNavigate();
   const { toggleSidebar } = useSidebar();
   const { user, isAuthenticated } = useUser();
   const [activeTab, setActiveTab] = useState<"map" | "list">("list");
-  const [userLocation, setUserLocation] = useState<string>("New York, NY");
+  const [userLocation, setUserLocation] = useState<string>("Detecting location...");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMenuClosing, setIsMenuClosing] = useState(false);
 
-  // Mock location detection
+  // Real location detection with reverse geocoding
   useEffect(() => {
-    navigator.geolocation?.getCurrentPosition(
-      () => {
-        // In a real app, you'd reverse geocode coordinates
-        setUserLocation("Current Location");
-      },
-      () => {
-        console.log("Location access denied");
+    const detectLocation = async () => {
+      try {
+        console.log('🔄 Detecting user location...');
+        const coordinates = await getCurrentLocation();
+        console.log('📍 Got coordinates:', coordinates);
+
+        const address = await reverseGeocode(coordinates.latitude, coordinates.longitude);
+        console.log('🏠 Reverse geocoded address:', address);
+
+        if (address) {
+          // Extract city and state/country from the full address
+          const parts = address.split(',');
+          if (parts.length >= 2) {
+            // Take the last 2 parts (usually city, state/country)
+            const cityAndRegion = parts.slice(-2).map(part => part.trim()).join(', ');
+            setUserLocation(cityAndRegion);
+          } else {
+            setUserLocation(address);
+          }
+        } else {
+          setUserLocation("Location detected");
+        }
+      } catch (error) {
+        console.warn('Location detection failed:', error);
+        setUserLocation("Location unavailable");
       }
-    );
+    };
+
+    detectLocation();
   }, []);
 
 
@@ -73,9 +96,16 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <>
+      <SEO
+        {...SEO_CONFIGS.sellers}
+        title={`Find Coffee & Matcha in ${userLocation}`}
+        description={`Discover amazing coffee roasters and matcha makers in ${userLocation}. Browse local sellers, view menus, and order premium drinks for delivery.`}
+        structuredData={getWebApplicationSchema()}
+      />
+      <div className="min-h-screen bg-background">
       {/* Mobile Header with Hamburger Menu */}
-      <header className="md:hidden bg-background/95 backdrop-blur-md border-b border-border/50 sticky top-0 z-50" data-mobile-menu>
+      <header className="md:hidden bg-background/95 backdrop-blur-md border-b border-border/50 sticky top-0 z-[100]" data-mobile-menu>
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           {/* Logo and Location */}
           <div className="flex items-center gap-3">
@@ -98,7 +128,7 @@ const Index = () => {
             variant="ghost"
             size="icon"
             onClick={() => toggleSidebar()}
-            className="h-9 w-9 hover:bg-primary/10 transition-colors duration-200"
+            className="h-9 w-9 hover:bg-primary/10 transition-colors duration-200 relative z-[101]"
           >
             <Menu className="w-5 h-5 text-foreground" />
             <span className="sr-only">Toggle menu</span>
@@ -267,11 +297,11 @@ const Index = () => {
                 ) : (
                   <Button
                     variant="outline"
-                    onClick={() => navigate("/add-listing")}
-                    className="bg-matcha-50 border-matcha-300 text-matcha-700 hover:bg-matcha-100 hover:border-matcha-400 hover:text-matcha-800 transition-all duration-300 flex items-center gap-2"
+                    onClick={() => navigate("/orders")}
+                    className="bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100 hover:border-blue-400 hover:text-blue-800 transition-all duration-300 flex items-center gap-2"
                   >
-                    <Leaf className="w-4 h-4" />
-                    Become a Seller
+                    <ShoppingBag className="w-4 h-4" />
+                    My Orders
                   </Button>
                 )}
                 <UserMenu variant="desktop" />
@@ -288,7 +318,7 @@ const Index = () => {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => navigate("/add-listing")}
+                  onClick={() => navigate("/signup?userType=seller")}
                   className="bg-matcha-50 border-matcha-300 text-matcha-700 hover:bg-matcha-100 hover:border-matcha-400 hover:text-matcha-800 transition-all duration-300 flex items-center gap-2"
                 >
                   <Leaf className="w-4 h-4" />
@@ -315,11 +345,11 @@ const Index = () => {
       <BottomNavigation
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        isAuthenticated={isAuthenticated}
       />
 
 
-    </div>
+      </div>
+    </>
   );
 };
 

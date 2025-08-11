@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase, signUp, signIn, signOut, signInWithGoogle } from '@/lib/supabase';
 import { UserService } from '@/services/userService';
 import { SellerService } from '@/services/sellerService';
+import { debugOAuthConfig } from "@/utils/oauthConfig";
 
 export interface User {
   id: string;
@@ -32,6 +33,7 @@ interface UserContextType {
   register: (userData: Partial<User>, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   updateUser: (updates: Partial<User>) => Promise<void>;
+  refreshUserData: () => Promise<void>;
   toggleSellerAvailability: () => Promise<void>;
 }
 
@@ -60,6 +62,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: userData.id,
         email: userData.email,
         name: userData.name,
+        phone: userData.phone, // Include phone number in essentials
         user_type: userData.user_type, // Critical for determining user permissions
         avatar_url: userData.avatar_url
       };
@@ -193,7 +196,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const userObject = {
       id: userData.id,
       email: userData.email,
-      name: userData.name,
+      name: userData.name || '',
       phone: userData.phone || '',
       userType: userData.user_type || 'buyer',
       profileImage: userData.avatar_url || undefined,
@@ -226,7 +229,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
               id: storedEssentials.id,
               email: storedEssentials.email,
               name: storedEssentials.name,
-              phone: '', // Will be loaded later if needed
+              phone: storedEssentials.phone || '', // Use stored phone number
               userType: storedEssentials.user_type || 'buyer',
               profileImage: storedEssentials.avatar_url,
               // Seller details will be loaded in background if needed
@@ -270,8 +273,28 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else if (event === 'SIGNED_IN' && session?.user) {
           // Only handle if user is not already set (avoid duplicate processing)
           if (!user || user.id !== session.user.id) {
-            console.log('🔄 New sign-in detected, will be handled by login flow');
-            // Login flow will handle setting the user with proper data
+            console.log('🔄 New sign-in detected');
+            // For OAuth flows, we need to ensure user data is loaded
+            // Check if we have stored essentials for this user
+            const storedEssentials = getStoredUserEssentials();
+            if (storedEssentials && storedEssentials.id === session.user.id) {
+              console.log('📋 Loading user from stored essentials after OAuth sign-in');
+              const appUser: User = {
+                id: storedEssentials.id,
+                email: storedEssentials.email,
+                name: storedEssentials.name,
+                phone: storedEssentials.phone || '',
+                userType: storedEssentials.user_type || 'buyer',
+                profileImage: storedEssentials.avatar_url,
+              };
+              setUser(appUser);
+              setIsAuthenticated(true);
+
+              // Load seller details in background if needed
+              if (appUser.userType === 'seller') {
+                loadSellerDetailsInBackground(appUser.id);
+              }
+            }
           }
         }
       }
@@ -355,6 +378,14 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loginWithGoogle = async (): Promise<boolean> => {
     try {
+      // Debug OAuth configuration before attempting login
+      const configCheck = debugOAuthConfig();
+
+      if (!configCheck.isValid) {
+        console.error('❌ OAuth configuration issues detected');
+        throw new Error('OAuth not properly configured');
+      }
+
       await signInWithGoogle();
       // The redirect will handle the rest
       return true;
@@ -448,6 +479,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('🔄 UserContext: Updating user with filtered fields:', userTableUpdates);
 
         const updatedUser = await UserService.updateUserProfile(user.id, userTableUpdates);
+
+        // Clear stored essentials to force fresh data fetch
+        localStorage.removeItem('user_essentials');
+
         const appUser = await getUserData(updatedUser);
         setUser(appUser);
 
@@ -456,6 +491,43 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('❌ UserContext: Update user error:', error);
         throw error; // Re-throw so the calling component can handle it
       }
+    }
+  };
+
+  // Add method to refresh user data from database
+  const refreshUserData = async () => {
+    try {
+      console.log('🔄 UserContext: Refreshing user data from database...');
+
+      // Get current session to ensure user is authenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        console.log('❌ No session found during refresh');
+        setIsAuthenticated(false);
+        setUser(null);
+        return;
+      }
+
+      // Clear stored essentials to force fresh data fetch
+      localStorage.removeItem(USER_ESSENTIALS_KEY);
+
+      const freshUserData = await UserService.getUserProfileById(session.user.id);
+      if (freshUserData) {
+        // Store fresh essentials
+        storeUserEssentials(freshUserData);
+
+        const appUser = await getUserData(freshUserData);
+        setUser(appUser);
+        setIsAuthenticated(true);
+        console.log('✅ UserContext: User data refreshed successfully');
+      } else {
+        console.log('❌ No user profile found during refresh');
+        setIsAuthenticated(false);
+        setUser(null);
+      }
+    } catch (error) {
+      console.error('❌ UserContext: Refresh user data error:', error);
+      throw error;
     }
   };
 
@@ -494,6 +566,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     register,
     logout,
     updateUser,
+    refreshUserData,
     toggleSellerAvailability
   };
 

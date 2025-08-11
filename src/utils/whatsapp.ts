@@ -31,14 +31,14 @@ export const formatOrderMessage = (seller: Seller, order: OrderDetails): string 
 
   // Add order items
   order.items.forEach((item, index) => {
-    lines.push(`${index + 1}. ${item.name} x${item.quantity} - $${(item.price * item.quantity).toFixed(2)}`);
+    lines.push(`${index + 1}. ${item.name} x${item.quantity} - ${(item.price * item.quantity).toFixed(2)} Dh`);
     if (item.notes) {
       lines.push(`   _Note: ${item.notes}_`);
     }
   });
 
   lines.push(``);
-  lines.push(`💰 *Total: $${order.total.toFixed(2)}*`);
+  lines.push(`💰 *Total: ${order.total.toFixed(2)} Dh*`);
 
   if (order.customerName) {
     lines.push(`👤 *Customer:* ${order.customerName}`);

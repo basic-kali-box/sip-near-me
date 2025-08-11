@@ -50,27 +50,58 @@ export function getDefaultCoordinates(address?: string): Coordinates {
 }
 
 /**
- * Geocode an address using a geocoding service
- * This is a placeholder for future implementation with services like:
- * - Google Maps Geocoding API
- * - Mapbox Geocoding API
- * - OpenStreetMap Nominatim
+ * Geocode an address using OpenRouteService
  */
 export async function geocodeAddress(address: string): Promise<GeocodeResult | null> {
   try {
-    // TODO: Implement actual geocoding service
-    // For now, return default coordinates based on simple city detection
-    console.log('🔄 Geocoding address:', address);
-    
-    const coordinates = getDefaultCoordinates(address);
-    
-    return {
-      coordinates,
-      formattedAddress: address
-    };
+    console.log('🔄 Geocoding address with ORS:', address);
+
+    const ORS_API_KEY = import.meta.env.VITE_ORS_API_KEY;
+    if (!ORS_API_KEY) {
+      console.warn('⚠️ ORS API key not found, using fallback coordinates');
+      return {
+        coordinates: getDefaultCoordinates(address),
+        formattedAddress: address
+      };
+    }
+
+    const response = await fetch(
+      `https://api.openrouteservice.org/geocode/search?api_key=${ORS_API_KEY}&text=${encodeURIComponent(address)}&size=1`,
+      {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        }
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`ORS Geocoding API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (data.features && data.features.length > 0) {
+      const feature = data.features[0];
+      const [longitude, latitude] = feature.geometry.coordinates;
+
+      return {
+        coordinates: { latitude, longitude },
+        formattedAddress: feature.properties.label || address
+      };
+    } else {
+      console.warn('⚠️ No geocoding results found, using fallback coordinates');
+      return {
+        coordinates: getDefaultCoordinates(address),
+        formattedAddress: address
+      };
+    }
   } catch (error) {
     console.error('❌ Geocoding failed:', error);
-    return null;
+    return {
+      coordinates: getDefaultCoordinates(address),
+      formattedAddress: address
+    };
   }
 }
 
@@ -124,6 +155,88 @@ function toRadians(degrees: number): number {
  */
 export function formatCoordinates(lat: number, lng: number): string {
   return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+}
+
+/**
+ * Search for addresses using OpenRouteService autocomplete
+ */
+export async function searchAddresses(query: string, limit: number = 5): Promise<GeocodeResult[]> {
+  try {
+    if (!query || query.length < 3) {
+      return [];
+    }
+
+    const ORS_API_KEY = import.meta.env.VITE_ORS_API_KEY;
+    if (!ORS_API_KEY) {
+      console.warn('⚠️ ORS API key not found');
+      return [];
+    }
+
+    const response = await fetch(
+      `https://api.openrouteservice.org/geocode/autocomplete?api_key=${ORS_API_KEY}&text=${encodeURIComponent(query)}&size=${limit}`,
+      {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        }
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`ORS Autocomplete API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    return (data.features || []).map((feature: any) => ({
+      coordinates: {
+        latitude: feature.geometry.coordinates[1],
+        longitude: feature.geometry.coordinates[0]
+      },
+      formattedAddress: feature.properties.label
+    }));
+  } catch (error) {
+    console.error('❌ Address search failed:', error);
+    return [];
+  }
+}
+
+/**
+ * Reverse geocode coordinates to get address using OpenRouteService
+ */
+export async function reverseGeocode(latitude: number, longitude: number): Promise<string | null> {
+  try {
+    const ORS_API_KEY = import.meta.env.VITE_ORS_API_KEY;
+    if (!ORS_API_KEY) {
+      console.warn('⚠️ ORS API key not found');
+      return null;
+    }
+
+    const response = await fetch(
+      `https://api.openrouteservice.org/geocode/reverse?api_key=${ORS_API_KEY}&point.lon=${longitude}&point.lat=${latitude}&size=1`,
+      {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        }
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`ORS Reverse Geocoding API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (data.features && data.features.length > 0) {
+      return data.features[0].properties.label;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('❌ Reverse geocoding failed:', error);
+    return null;
+  }
 }
 
 /**

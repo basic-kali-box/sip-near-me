@@ -10,6 +10,8 @@ import { Card } from "@/components/ui/card";
 import { StarRating } from "@/components/StarRating";
 import { useToast } from "@/hooks/use-toast";
 import { SellerService } from "@/services/sellerService";
+import { SEO, SEO_CONFIGS } from "@/components/SEO";
+import { getLocalBusinessSchema, getBreadcrumbSchema } from "@/utils/structuredData";
 
 const SellerDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -124,8 +126,21 @@ const SellerDetails = () => {
     navigate(`/order/${seller.id}`);
   };
 
+  // Generate SEO data for this seller
+  const sellerSEO = SEO_CONFIGS.seller(seller.business_name, seller.address);
+  const breadcrumbData = getBreadcrumbSchema([
+    { name: 'Home', url: 'https://brewnear.app/' },
+    { name: 'Sellers', url: 'https://brewnear.app/app' },
+    { name: seller.business_name, url: `https://brewnear.app/seller/${seller.id}` }
+  ]);
+
   return (
-    <div className="min-h-screen bg-background">
+    <>
+      <SEO
+        {...sellerSEO}
+        structuredData={[getLocalBusinessSchema(seller), breadcrumbData]}
+      />
+      <div className="min-h-screen bg-background">
       {/* Header with back navigation */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border/50">
         <div className="container mx-auto px-4 h-16 flex items-center gap-4">
@@ -194,7 +209,7 @@ const SellerDetails = () => {
                   <p className="text-sm text-muted-foreground mt-1">{drink.description}</p>
                 </div>
                 <div className="text-right ml-4">
-                  <p className="font-semibold text-primary">${Number(drink.price).toFixed(2)}</p>
+                  <p className="font-semibold text-primary">{Number(drink.price).toFixed(2)} Dh</p>
                 </div>
               </div>
             ))}
@@ -249,7 +264,8 @@ const SellerDetails = () => {
           totalReviews={Number(seller.rating_count || 0)}
         />
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 

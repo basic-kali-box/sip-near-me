@@ -8,12 +8,11 @@ interface BottomNavigationProps {
   activeTab: "map" | "list";
   onTabChange: (tab: "map" | "list") => void;
   className?: string;
-  isAuthenticated?: boolean; // Optional prop for future authentication state
 }
 
-export const BottomNavigation = ({ activeTab, onTabChange, className, isAuthenticated = false }: BottomNavigationProps) => {
+export const BottomNavigation = ({ activeTab, onTabChange, className }: BottomNavigationProps) => {
   const navigate = useNavigate();
-  const { logout } = useUser();
+  const { logout, user, isAuthenticated } = useUser();
   const { toast } = useToast();
 
   const handleSignOut = async () => {
@@ -36,7 +35,11 @@ export const BottomNavigation = ({ activeTab, onTabChange, className, isAuthenti
   const tabs = [
     { id: "map" as const, label: "Map", icon: MapPin, isTab: true },
     { id: "list" as const, label: "List", icon: List, isTab: true },
-    { id: "add" as const, label: "Add Listing", icon: Plus, isTab: false },
+    // Only show Add Listing for sellers
+    ...(isAuthenticated && user?.userType === 'seller'
+      ? [{ id: "add" as const, label: "Add Listing", icon: Plus, isTab: false }]
+      : []
+    ),
     // Show different options based on authentication state
     isAuthenticated
       ? { id: "profile" as const, label: "Profile", icon: User, isTab: false }

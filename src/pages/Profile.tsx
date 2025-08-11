@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, User, Mail, Phone, MapPin, Edit, Settings, Heart, ShoppingBag, Coffee, Leaf, Plus, LayoutDashboard } from "lucide-react";
+import { ArrowLeft, User, Mail, Phone, MapPin, Edit, Settings, Heart, ShoppingBag, Coffee, Leaf, Plus, LayoutDashboard, Star, Save, X, Camera, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Badge } from "@/components/ui/badge";
 import { UserMenu } from "@/components/UserMenu";
 import { useNavigate } from "react-router-dom";
@@ -12,6 +13,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/contexts/UserContext";
 import { UserService } from "@/services/userService";
 import { SellerService } from "@/services/sellerService";
+import { BuyerService } from "@/services/buyerService";
+import { AddressInput } from "@/components/AddressInput";
+import { BusinessHoursInput } from "@/components/BusinessHoursInput";
+
+import { type Coordinates } from "@/utils/geocoding";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -19,57 +25,173 @@ const Profile = () => {
   const { user, updateUser } = useUser();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [profile, setProfile] = useState({
     name: "",
     email: "",
     phone: "",
     address: "",
+    coordinates: null as Coordinates | null,
     avatar: "",
     memberSince: "",
     // Seller-specific fields
     businessName: "",
     businessHours: "",
-    specialty: "coffee" as "coffee" | "matcha" | "both"
+    specialty: "coffee" as "coffee" | "matcha" | "both",
+    description: "",
+    isAvailable: false,
+    rating: 0,
+    reviewCount: 0
   });
 
-  // Load user data on component mount
+  const [buyerStats, setBuyerStats] = useState({
+    totalOrders: 0,
+    totalSpent: 0,
+    favoriteCount: 0,
+    reviewCount: 0
+  });
+
+  // Load user data and seller/buyer details on component mount
   useEffect(() => {
-    if (user) {
-      setProfile({
-        name: user.name || "",
-        email: user.email || "",
-        phone: user.phone || "",
-        address: user.businessAddress || "",
-        avatar: user.profileImage || "",
-        memberSince: new Date(user.id).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-        businessName: user.businessName || "",
-        businessHours: user.businessHours || "",
-        specialty: (user.specialty as any) || "coffee"
-      });
-    }
+    const loadProfileData = async () => {
+      if (user) {
+        // Load basic user data
+        setProfile({
+          name: user.name || "",
+          email: user.email || "",
+          phone: user.phone || "",
+          address: user.businessAddress || "",
+          avatar: user.profileImage || "",
+          memberSince: user.id ? new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Recently',
+          businessName: user.businessName || "",
+          businessHours: user.businessHours || "",
+          specialty: (user.specialty as any) || "coffee",
+          description: "", // Will be loaded from seller details if available
+          isAvailable: user.isOnline || false,
+          rating: user.rating || 0,
+          reviewCount: user.reviewCount || 0
+        });
+
+        // Fetch user creation date from database
+        try {
+          const userDetails = await UserService.getUserProfileById(user.id);
+          if (userDetails?.created_at) {
+            setProfile(prev => ({
+              ...prev,
+              memberSince: new Date(userDetails.created_at).toLocaleDateString('en-US', {
+                month: 'long',
+                year: 'numeric'
+              })
+            }));
+          }
+        } catch (error) {
+          console.warn('Failed to load user creation date:', error);
+        }
+
+        // Load user-type specific data
+        if (user.userType === 'seller') {
+          try {
+            const sellerDetails = await SellerService.getSellerById(user.id);
+            if (sellerDetails) {
+              setProfile(prev => ({
+                ...prev,
+                businessName: sellerDetails.business_name || user.businessName || "",
+                address: sellerDetails.address || prev.address,
+                businessHours: sellerDetails.hours || prev.businessHours,
+                specialty: sellerDetails.specialty || prev.specialty,
+                description: sellerDetails.description || "",
+                isAvailable: sellerDetails.is_available || false,
+                rating: sellerDetails.rating_average || 0,
+                reviewCount: sellerDetails.rating_count || 0,
+                phone: sellerDetails.phone || prev.phone
+              }));
+            }
+          } catch (error) {
+            console.warn('Failed to load seller details:', error);
+          }
+        } else if (user.userType === 'buyer') {
+          try {
+            const buyerProfile = await BuyerService.getBuyerProfile(user.id);
+            if (buyerProfile) {
+              setBuyerStats(buyerProfile.stats);
+              // Update profile with any additional buyer data
+              setProfile(prev => ({
+                ...prev,
+                name: buyerProfile.user.name || prev.name,
+                email: buyerProfile.user.email || prev.email,
+                phone: buyerProfile.user.phone || prev.phone,
+                avatar: buyerProfile.user.avatar_url || prev.avatar
+              }));
+            }
+          } catch (error) {
+            console.warn('Failed to load buyer details:', error);
+          }
+        }
+      }
+    };
+
+    loadProfileData();
   }, [user]);
+
+  // Check if seller profile is complete
+  const isSellerProfileComplete = () => {
+    if (user?.userType !== 'seller') return true;
+    return !!(
+      profile.businessName &&
+      profile.address &&
+      profile.businessHours &&
+      profile.phone
+    );
+  };
+
+  // Get missing information for incomplete profiles
+  const getMissingInfo = () => {
+    if (user?.userType !== 'seller') return [];
+    const missing = [];
+    if (!profile.businessName) missing.push('Business name');
+    if (!profile.address) missing.push('Business address');
+    if (!profile.businessHours) missing.push('Business hours');
+    if (!profile.phone) missing.push('Phone number');
+    return missing;
+  };
 
   const handleSave = async () => {
     if (!user) return;
 
     setLoading(true);
     try {
-      // Update user profile
-      await updateUser({
-        name: profile.name,
-        phone: profile.phone,
-        profileImage: profile.avatar
-      });
+      if (user.userType === 'buyer') {
+        // For buyers, update user profile directly
+        await BuyerService.updateBuyerProfile(user.id, {
+          name: profile.name,
+          phone: profile.phone,
+          avatar_url: profile.avatar
+        });
 
-      // If seller, update seller-specific fields
-      if (user.userType === 'seller') {
+        // Also update the user context
+        await updateUser({
+          name: profile.name,
+          phone: profile.phone,
+          profileImage: profile.avatar
+        });
+      } else {
+        // For sellers, update both user profile and seller-specific fields
+        await updateUser({
+          name: profile.name,
+          phone: profile.phone,
+          profileImage: profile.avatar
+        });
+
         await SellerService.updateSellerProfile(user.id, {
-          name: profile.businessName, // Include the name field
+          name: profile.name, // Use the person's actual name, not business name
           business_name: profile.businessName,
           address: profile.address,
+          latitude: profile.coordinates?.latitude,
+          longitude: profile.coordinates?.longitude,
           hours: profile.businessHours,
           specialty: profile.specialty,
-          phone: profile.phone
+          phone: profile.phone,
+          description: profile.description
         });
       }
 
@@ -96,6 +218,58 @@ const Profile = () => {
     }));
   };
 
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user || user.userType !== 'seller') return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select an image file.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 5MB.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      const photoUrl = await SellerService.uploadSellerPhoto(user.id, file);
+      setProfile(prev => ({
+        ...prev,
+        avatar: photoUrl
+      }));
+
+      // Update user context
+      await updateUser({
+        profileImage: photoUrl
+      });
+
+      toast({
+        title: "Photo uploaded",
+        description: "Your profile picture has been updated successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload photo. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   // Show loading if no user data
   if (!user) {
     return (
@@ -113,9 +287,9 @@ const Profile = () => {
     { label: "Contact Requests", value: "23", icon: Phone },
     { label: "Menu Items", value: "8", icon: Coffee },
   ] : [
-    { label: "Orders Placed", value: "12", icon: ShoppingBag },
-    { label: "Favorites", value: "8", icon: Heart },
-    { label: "Reviews", value: "5", icon: User },
+    { label: "Orders Placed", value: buyerStats.totalOrders.toString(), icon: ShoppingBag },
+    { label: "Favorites", value: buyerStats.favoriteCount.toString(), icon: Heart },
+    { label: "Reviews", value: buyerStats.reviewCount.toString(), icon: User },
   ];
 
   return (
@@ -169,32 +343,93 @@ const Profile = () => {
       </header>
 
       <div className="container mx-auto px-4 py-6 space-y-6">
+
+        {/* Profile Incomplete Alert */}
+        {user?.userType === 'seller' && !isSellerProfileComplete() && (
+          <Card className="p-4 border-yellow-200 bg-yellow-50">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <User className="w-5 h-5 text-yellow-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-yellow-800 mb-2">Complete Your Seller Profile</h3>
+                <p className="text-yellow-700 text-sm mb-3">
+                  Your profile is missing some important information. Complete it to start appearing in search results and accepting orders.
+                </p>
+                <div className="text-xs text-yellow-600 mb-3">
+                  <strong>Missing:</strong> {getMissingInfo().join(', ')}
+                </div>
+                <Button
+                  onClick={() => navigate('/complete-profile')}
+                  className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                  size="sm"
+                >
+                  Complete Profile Now
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
+
         {/* Profile Header */}
-        <Card className="p-6">
-          <div className="flex items-center gap-6">
-            <Avatar className="w-24 h-24">
-              <AvatarImage src={profile.avatar} />
-              <AvatarFallback className="text-2xl bg-gradient-sunrise text-primary-foreground">
-                {profile.name ? profile.name.split(' ').map(n => n[0]).join('') : 'U'}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <h2 className="text-2xl font-bold">{profile.name || 'User'}</h2>
-              <p className="text-muted-foreground">Member since {profile.memberSince}</p>
-              <div className="flex items-center gap-2 mt-2">
-                <Badge variant="secondary">
-                  Verified User
-                </Badge>
-                {user.userType === 'seller' && (
-                  <Badge variant="default" className="bg-gradient-matcha">
-                    <Coffee className="w-3 h-3 mr-1" />
-                    Seller
-                  </Badge>
+        <Card className="p-8 bg-gradient-to-r from-matcha-50 to-coffee-50 border-0 shadow-lg">
+          <div className="flex flex-col md:flex-row items-center gap-8">
+            <div className="relative">
+              <Avatar className="w-32 h-32 border-4 border-white shadow-xl">
+                <AvatarImage src={profile.avatar} />
+                <AvatarFallback className="text-3xl bg-gradient-to-br from-matcha-600 to-coffee-600 text-white">
+                  {profile.name ? profile.name.split(' ').map(n => n[0]).join('') : 'U'}
+                </AvatarFallback>
+              </Avatar>
+
+              {/* Photo upload button for sellers */}
+              {user?.userType === 'seller' && (
+                <>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                    id="photo-upload"
+                  />
+                  <label
+                    htmlFor="photo-upload"
+                    className="absolute top-2 right-2 bg-white/90 hover:bg-white text-gray-700 p-2 rounded-full shadow-lg cursor-pointer transition-all duration-200 hover:scale-105"
+                  >
+                    {uploadingPhoto ? (
+                      <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Camera className="w-4 h-4" />
+                    )}
+                  </label>
+                </>
+              )}
+
+              {user?.userType === 'seller' && (
+                <div className="absolute -bottom-2 -right-2 bg-matcha-600 text-white px-3 py-1 rounded-full text-xs font-medium shadow-lg">
+                  <Coffee className="w-3 h-3 inline mr-1" />
+                  Seller
+                </div>
+              )}
+            </div>
+            <div className="flex-1 text-center md:text-left">
+              <h2 className="text-3xl font-bold text-gray-800 mb-2">{profile.name || 'User'}</h2>
+              <p className="text-gray-600 text-lg mb-4">{profile.email}</p>
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm">
+                <div className="flex items-center gap-2 bg-white/70 px-3 py-2 rounded-full">
+                  <User className="w-4 h-4 text-matcha-600" />
+                  <span className="text-gray-700">Member since {profile.memberSince}</span>
+                </div>
+                <div className="flex items-center gap-2 bg-white/70 px-3 py-2 rounded-full">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-gray-700">Verified User</span>
+                </div>
+                {user?.userType === 'seller' && profile.rating > 0 && (
+                  <div className="flex items-center gap-2 bg-white/70 px-3 py-2 rounded-full">
+                    <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                    <span className="text-gray-700">{profile.rating.toFixed(1)} ({profile.reviewCount} reviews)</span>
+                  </div>
                 )}
-                {/* Debug info */}
-                <Badge variant="outline" className="text-xs">
-                  Type: {user.userType || 'undefined'}
-                </Badge>
               </div>
             </div>
           </div>
@@ -212,38 +447,47 @@ const Profile = () => {
         </div>
 
         {/* Profile Information */}
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-4">Personal Information</h3>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+        <Card className="p-8 shadow-lg border-0">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-10 h-10 bg-gradient-to-br from-matcha-500 to-matcha-600 rounded-lg flex items-center justify-center">
+              <User className="w-5 h-5 text-white" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-800">Personal Information</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <Label htmlFor="name" className="text-sm font-medium text-gray-700">Full Name</Label>
               {isEditing ? (
                 <Input
                   id="name"
                   value={profile.name}
                   onChange={(e) => handleInputChange("name", e.target.value)}
+                  className="h-12 border-gray-300 focus:border-matcha-500 focus:ring-matcha-500"
+                  placeholder="Enter your full name"
                 />
               ) : (
-                <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
-                  <User className="w-4 h-4 text-muted-foreground" />
-                  <span>{profile.name}</span>
+                <div className="flex items-center gap-3 p-4 rounded-xl bg-gray-50 border border-gray-200">
+                  <User className="w-5 h-5 text-matcha-600" />
+                  <span className="text-gray-800 font-medium">{profile.name}</span>
                 </div>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+            <div className="space-y-3">
+              <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email Address</Label>
               {isEditing ? (
                 <Input
                   id="email"
                   type="email"
                   value={profile.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
+                  className="h-12 border-gray-300 focus:border-matcha-500 focus:ring-matcha-500"
+                  placeholder="Enter your email address"
                 />
               ) : (
-                <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
-                  <Mail className="w-4 h-4 text-muted-foreground" />
-                  <span>{profile.email}</span>
+                <div className="flex items-center gap-3 p-4 rounded-xl bg-gray-50 border border-gray-200">
+                  <Mail className="w-5 h-5 text-matcha-600" />
+                  <span className="text-gray-800 font-medium">{profile.email}</span>
                 </div>
               )}
             </div>
@@ -266,17 +510,25 @@ const Profile = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
+              <Label htmlFor="address">Business Address</Label>
               {isEditing ? (
-                <Input
-                  id="address"
+                <AddressInput
                   value={profile.address}
-                  onChange={(e) => handleInputChange("address", e.target.value)}
+                  coordinates={profile.coordinates}
+                  onChange={(address, coordinates) => {
+                    setProfile(prev => ({
+                      ...prev,
+                      address,
+                      coordinates: coordinates || null
+                    }));
+                  }}
+                  placeholder="Enter your business address"
+                  className="w-full"
                 />
               ) : (
                 <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
                   <MapPin className="w-4 h-4 text-muted-foreground" />
-                  <span>{profile.address}</span>
+                  <span>{profile.address || "No address set"}</span>
                 </div>
               )}
             </div>
@@ -291,11 +543,22 @@ const Profile = () => {
                       id="businessName"
                       value={profile.businessName}
                       onChange={(e) => handleInputChange("businessName", e.target.value)}
+                      placeholder="Enter your business name (e.g., Café Central, Bean & Brew)"
                     />
                   ) : (
-                    <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
-                      <Coffee className="w-4 h-4 text-muted-foreground" />
-                      <span>{profile.businessName || "Not set"}</span>
+                    <div className={`flex items-center gap-2 p-2 rounded-md ${
+                      profile.businessName
+                        ? 'bg-muted/50'
+                        : 'bg-yellow-50 border border-yellow-200'
+                    }`}>
+                      <Coffee className={`w-4 h-4 ${
+                        profile.businessName
+                          ? 'text-muted-foreground'
+                          : 'text-yellow-600'
+                      }`} />
+                      <span className={profile.businessName ? '' : 'text-yellow-800 font-medium'}>
+                        {profile.businessName || "⚠️ Business name required"}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -303,11 +566,9 @@ const Profile = () => {
                 <div className="space-y-2">
                   <Label htmlFor="businessHours">Business Hours</Label>
                   {isEditing ? (
-                    <Input
-                      id="businessHours"
+                    <BusinessHoursInput
                       value={profile.businessHours}
-                      onChange={(e) => handleInputChange("businessHours", e.target.value)}
-                      placeholder="e.g., 9:00 AM - 5:00 PM"
+                      onChange={(value) => handleInputChange("businessHours", value)}
                     />
                   ) : (
                     <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
@@ -340,6 +601,81 @@ const Profile = () => {
                       <span className="capitalize">{profile.specialty}</span>
                     </div>
                   )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description">Business Description</Label>
+                  {isEditing ? (
+                    <textarea
+                      id="description"
+                      value={profile.description}
+                      onChange={(e) => handleInputChange("description", e.target.value)}
+                      placeholder="Tell customers about your business..."
+                      className="w-full p-2 border border-input rounded-md bg-background min-h-[80px] resize-none"
+                    />
+                  ) : (
+                    <div className="p-2 rounded-md bg-muted/50 min-h-[60px]">
+                      <span className="text-sm">{profile.description || "No description provided"}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Seller Status */}
+                <div className="space-y-2">
+                  <Label>Business Status</Label>
+                  <div className="flex items-center gap-4 p-3 rounded-md bg-muted/50">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full ${profile.isAvailable ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                      <span className="text-sm font-medium">
+                        {profile.isAvailable ? 'Online' : 'Offline'}
+                      </span>
+                    </div>
+                    {profile.rating > 0 && (
+                      <div className="flex items-center gap-1">
+                        <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                        <span className="text-sm font-medium">{profile.rating.toFixed(1)}</span>
+                        <span className="text-xs text-muted-foreground">({profile.reviewCount} reviews)</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Profile Completeness */}
+                <div className="space-y-2">
+                  <Label>Profile Status</Label>
+                  <div className={`p-3 rounded-md border ${isSellerProfileComplete() ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
+                    <div className="flex items-center gap-2">
+                      {isSellerProfileComplete() ? (
+                        <>
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <span className="text-sm font-medium text-green-800">Profile Complete</span>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                          <span className="text-sm font-medium text-yellow-800">Profile Incomplete</span>
+                        </>
+                      )}
+                    </div>
+                    {!isSellerProfileComplete() && (
+                      <div className="mt-2">
+                        <p className="text-xs text-yellow-700 mb-2">Missing information:</p>
+                        <ul className="text-xs text-yellow-600 space-y-1">
+                          {getMissingInfo().map((item, index) => (
+                            <li key={index}>• {item}</li>
+                          ))}
+                        </ul>
+                        <Button
+                          onClick={() => navigate('/complete-profile')}
+                          size="sm"
+                          className="mt-2"
+                          variant="outline"
+                        >
+                          Complete Profile
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </>
             )}

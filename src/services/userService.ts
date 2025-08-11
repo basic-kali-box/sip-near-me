@@ -6,21 +6,98 @@ type UserInsert = Database['public']['Tables']['users']['Insert'];
 type UserUpdate = Database['public']['Tables']['users']['Update'];
 
 export class UserService {
+  // Clean up duplicate user records for a given user ID
+  static async cleanupDuplicateUsers(userId: string): Promise<void> {
+    try {
+      const { data: allUsers, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId);
+
+      if (error || !allUsers || allUsers.length <= 1) {
+        return; // No duplicates or error
+      }
+
+      console.warn(`⚠️ Found ${allUsers.length} duplicate user records for ${userId}`);
+
+      // Keep the most recent record
+      const userToKeep = allUsers.reduce((latest, current) => {
+        if (!latest.updated_at && !current.updated_at) return latest;
+        if (!latest.updated_at) return current;
+        if (!current.updated_at) return latest;
+        return new Date(current.updated_at) > new Date(latest.updated_at) ? current : latest;
+      });
+
+      // Delete duplicates
+      const duplicateIds = allUsers.filter(u => u !== userToKeep).map(u => u.id);
+
+      if (duplicateIds.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('users')
+          .delete()
+          .in('id', duplicateIds);
+
+        if (deleteError) {
+          console.error('❌ Error deleting duplicate users:', deleteError);
+        } else {
+          console.log(`✅ Cleaned up ${duplicateIds.length} duplicate user records`);
+        }
+      }
+    } catch (error) {
+      console.error('Error cleaning up duplicate users:', error);
+    }
+  }
+
   // Get user profile by ID (direct database query)
   static async getUserProfileById(userId: string): Promise<User | null> {
     try {
-      const { data, error } = await supabase
+      // First check for multiple records
+      const { data: allUsers, error } = await supabase
         .from('users')
         .select('*')
-        .eq('id', userId)
-        .maybeSingle();
+        .eq('id', userId);
 
       if (error) {
         console.error('Error fetching user profile:', error);
         return null;
       }
 
-      return data;
+      if (!allUsers || allUsers.length === 0) {
+        return null;
+      }
+
+      if (allUsers.length > 1) {
+        console.warn(`⚠️ Found ${allUsers.length} user records for ID ${userId}, cleaning up duplicates`);
+
+        // Keep the most recent record (or first if no timestamps)
+        const userToKeep = allUsers.reduce((latest, current) => {
+          if (!latest.updated_at && !current.updated_at) return latest;
+          if (!latest.updated_at) return current;
+          if (!current.updated_at) return latest;
+          return new Date(current.updated_at) > new Date(latest.updated_at) ? current : latest;
+        });
+
+        // Delete duplicate records
+        const duplicateIds = allUsers.filter(u => u !== userToKeep).map(u => u.id);
+
+        if (duplicateIds.length > 0) {
+          console.log('🗑️ Removing duplicate user records:', duplicateIds);
+          const { error: deleteError } = await supabase
+            .from('users')
+            .delete()
+            .in('id', duplicateIds);
+
+          if (deleteError) {
+            console.error('❌ Error deleting duplicate users:', deleteError);
+          } else {
+            console.log('✅ Successfully cleaned up duplicate user records');
+          }
+        }
+
+        return userToKeep;
+      }
+
+      return allUsers[0];
     } catch (error) {
       console.error('Error fetching user profile by ID:', error);
       return null;
@@ -38,10 +115,71 @@ export class UserService {
       }
       console.log('👤 UserService: Auth user found:', user.id);
 
-      return await this.getUserProfileById(user.id);
+      let profile = await this.getUserProfileById(user.id);
+
+      // If no profile exists for authenticated user, create one
+      if (!profile) {
+        console.log('👤 No profile found for authenticated user, creating...');
+        try {
+          profile = await this.ensureUserProfileExists(user.id);
+        } catch (error) {
+          console.error('❌ Failed to create profile for authenticated user:', error);
+          return null;
+        }
+      }
+
+      return profile;
     } catch (error) {
       console.error('💥 UserService: Error fetching current user profile:', error);
       return null;
+    }
+  }
+
+  // Ensure user profile exists for authenticated user
+  static async ensureUserProfileExists(userId: string): Promise<User> {
+    try {
+      // Check if profile already exists
+      const existingProfile = await this.getUserProfileById(userId);
+      if (existingProfile) {
+        return existingProfile;
+      }
+
+      // Get auth user info
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+      if (authError || !authUser || authUser.id !== userId) {
+        throw new Error('Cannot create profile: Auth user mismatch');
+      }
+
+      // Create basic profile from auth data
+      const newUserData: UserInsert = {
+        id: userId,
+        email: authUser.email!,
+        name: authUser.user_metadata?.name || authUser.email!.split('@')[0],
+        phone: authUser.user_metadata?.phone || null,
+        user_type: 'buyer', // Default to buyer, can be changed later
+        avatar_url: authUser.user_metadata?.avatar_url || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('➕ Creating user profile from auth data:', newUserData);
+
+      const { data: newUser, error: createError } = await supabase
+        .from('users')
+        .insert(newUserData)
+        .select()
+        .single();
+
+      if (createError) {
+        console.error('❌ Error creating user profile:', createError);
+        throw createError;
+      }
+
+      console.log('✅ User profile created successfully:', newUser);
+      return newUser;
+    } catch (error) {
+      console.error('❌ ensureUserProfileExists failed:', error);
+      throw error;
     }
   }
 
@@ -154,6 +292,80 @@ export class UserService {
   // Update user profile
   static async updateUserProfile(userId: string, updates: UserUpdate): Promise<User> {
     try {
+      console.log('🔄 Updating user profile for ID:', userId);
+      console.log('📝 Updates:', updates);
+
+      // First, check if user exists and how many records there are
+      const { data: existingUsers, error: checkError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId);
+
+      if (checkError) {
+        console.error('❌ Error checking existing users:', checkError);
+        throw checkError;
+      }
+
+      console.log('👥 Found users:', existingUsers?.length || 0);
+
+      if (!existingUsers || existingUsers.length === 0) {
+        console.log('👤 User record not found, creating new profile...');
+
+        // Get auth user info to create profile
+        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+        if (authError || !authUser) {
+          throw new Error('Cannot create profile: No authenticated user found');
+        }
+
+        // Create new user profile
+        const newUserData: UserInsert = {
+          id: userId,
+          email: authUser.email!,
+          name: updates.name || authUser.user_metadata?.name || authUser.email!.split('@')[0],
+          phone: updates.phone || null,
+          user_type: updates.user_type || 'buyer',
+          avatar_url: updates.avatar_url || authUser.user_metadata?.avatar_url || null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+
+        console.log('➕ Creating user profile:', newUserData);
+
+        const { data: newUser, error: createError } = await supabase
+          .from('users')
+          .insert(newUserData)
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('❌ Error creating user profile:', createError);
+          throw createError;
+        }
+
+        console.log('✅ User profile created successfully:', newUser);
+        return newUser;
+      }
+
+      if (existingUsers.length > 1) {
+        console.error('⚠️ Multiple user records found:', existingUsers);
+        // Delete duplicate records, keeping the first one
+        const userToKeep = existingUsers[0];
+        const duplicateIds = existingUsers.slice(1).map(u => u.id);
+
+        if (duplicateIds.length > 0) {
+          console.log('🗑️ Removing duplicate user records:', duplicateIds);
+          const { error: deleteError } = await supabase
+            .from('users')
+            .delete()
+            .in('id', duplicateIds);
+
+          if (deleteError) {
+            console.error('❌ Error deleting duplicates:', deleteError);
+          }
+        }
+      }
+
+      // Now update the user profile
       const { data, error } = await supabase
         .from('users')
         .update({ ...updates, updated_at: new Date().toISOString() })
@@ -161,9 +373,15 @@ export class UserService {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Update error:', error);
+        throw error;
+      }
+
+      console.log('✅ User profile updated successfully:', data);
       return data;
     } catch (error) {
+      console.error('❌ updateUserProfile failed:', error);
       throw new Error(handleSupabaseError(error));
     }
   }

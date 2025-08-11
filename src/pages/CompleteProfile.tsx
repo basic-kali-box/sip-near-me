@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { UserService } from '@/services/userService';
 import { SellerService } from '@/services/sellerService';
-import { getDefaultCoordinates } from '@/utils/geocoding';
+import { getDefaultCoordinates, type Coordinates } from '@/utils/geocoding';
 import { useUser } from '@/contexts/UserContext';
 import { useToast } from '@/hooks/use-toast';
 import { UserMenu } from '@/components/UserMenu';
 import { Button } from '@/components/ui/button';
+import { AddressInput } from '@/components/AddressInput';
+import { BusinessHoursInput } from '@/components/BusinessHoursInput';
 
 const CompleteProfile: React.FC = () => {
   const navigate = useNavigate();
@@ -22,12 +24,14 @@ const CompleteProfile: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [userType, setUserType] = useState<'buyer' | 'seller'>('buyer');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isCheckingProfile, setIsCheckingProfile] = useState(true);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
     // Seller-specific fields
     businessName: '',
     businessAddress: '',
+    businessCoordinates: null as Coordinates | null,
     businessHours: 'Mon-Fri: 8:00 AM - 6:00 PM, Sat-Sun: 9:00 AM - 5:00 PM',
     specialty: 'coffee' as 'coffee' | 'matcha' | 'both',
     description: ''
@@ -45,24 +49,72 @@ const CompleteProfile: React.FC = () => {
       // If user is already set from registration, use their type and pre-fill data
       if (user) {
         setUserType(user.userType);
+
+        // Pre-populate basic user data
         setFormData(prev => ({
           ...prev,
           name: user.name || '',
           phone: user.phone || ''
         }));
+
+        // If seller, try to load existing seller profile data
+        if (user.userType === 'seller') {
+          try {
+            const sellerProfile = await SellerService.getSellerById(user.id);
+            if (sellerProfile) {
+              // Check if seller profile is already complete
+              const isComplete = !!(
+                sellerProfile.business_name &&
+                sellerProfile.address &&
+                sellerProfile.hours &&
+                sellerProfile.phone
+              );
+
+              if (isComplete) {
+                console.log('🔄 Profile already complete, redirecting to dashboard...');
+                toast({
+                  title: "Profile Already Complete",
+                  description: "Your seller profile is already set up. Redirecting to dashboard.",
+                });
+                navigate('/seller-dashboard');
+                return;
+              }
+
+              // Pre-populate form with existing seller data
+              setFormData(prev => ({
+                ...prev,
+                name: user.name || sellerProfile.name || '',
+                phone: user.phone || sellerProfile.phone || '',
+                businessName: sellerProfile.business_name || '',
+                businessAddress: sellerProfile.address || '',
+                businessHours: sellerProfile.hours || prev.businessHours,
+                specialty: sellerProfile.specialty || prev.specialty,
+                description: sellerProfile.description || ''
+              }));
+
+              console.log('✅ Pre-populated form with existing seller data');
+            }
+          } catch (error) {
+            console.log('ℹ️ No existing seller profile found, starting fresh');
+            // This is expected for new sellers, so we don't show an error
+          }
+        }
       }
 
-      // Pre-fill name from Google profile if available
-      if (session.user.user_metadata?.full_name) {
+      // Pre-fill data from auth metadata if available (e.g., Google profile)
+      if (session.user.user_metadata) {
+        const metadata = session.user.user_metadata;
         setFormData(prev => ({
           ...prev,
-          name: session.user.user_metadata.full_name
+          name: metadata.full_name || metadata.name || prev.name,
+          phone: metadata.phone_number || metadata.phone || prev.phone
         }));
       }
     };
 
     checkAuth();
-  }, [navigate, user]);
+    setIsCheckingProfile(false);
+  }, [navigate, user, toast]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -114,8 +166,21 @@ const CompleteProfile: React.FC = () => {
 
       console.log('✅ Auth user found:', authUser.id);
 
-      // Update user profile with complete information
-      console.log('🔄 Updating user profile...');
+      // Check if user profile exists first
+      console.log('🔍 Checking if user profile exists...');
+      let existingProfile = await UserService.getUserProfileById(authUser.id);
+
+      if (!existingProfile) {
+        console.log('👤 No user profile found, will be created during update');
+      } else {
+        console.log('✅ User profile exists:', existingProfile.id);
+        // Clean up any duplicate user records
+        console.log('🧹 Cleaning up any duplicate user records...');
+        await UserService.cleanupDuplicateUsers(authUser.id);
+      }
+
+      // Update/create user profile with complete information
+      console.log('🔄 Updating/creating user profile...');
       const userProfile = await UserService.updateUserProfile(authUser.id, {
         name: formData.name,
         phone: formData.phone,
@@ -149,7 +214,7 @@ const CompleteProfile: React.FC = () => {
         try {
           await SellerService.createSellerProfile({
             id: authUser.id,
-            name: formData.businessName.trim(), // Add the name field
+            name: formData.name.trim(), // Use the person's actual name, not business name
             business_name: formData.businessName.trim(),
             address: formData.businessAddress.trim(),
             phone: formData.phone.trim(),
@@ -159,9 +224,9 @@ const CompleteProfile: React.FC = () => {
             is_available: false, // Start as offline
             rating_average: 0,
             rating_count: 0,
-            // Provide smart default coordinates based on address
-            latitude: getDefaultCoordinates(formData.businessAddress).latitude,
-            longitude: getDefaultCoordinates(formData.businessAddress).longitude,
+            // Use coordinates from address input or fallback to geocoding
+            latitude: formData.businessCoordinates?.latitude || getDefaultCoordinates(formData.businessAddress).latitude,
+            longitude: formData.businessCoordinates?.longitude || getDefaultCoordinates(formData.businessAddress).longitude,
             photo_url: null
           });
           console.log('✅ Seller profile created successfully');
@@ -193,23 +258,57 @@ const CompleteProfile: React.FC = () => {
         if (userType === 'seller') {
           navigate('/seller-dashboard');
         } else {
-          navigate('/');
+          navigate('/app'); // Redirect buyers to /app instead of landing page
         }
       }, 1000);
 
     } catch (error: any) {
       console.error('❌ Profile completion error:', error);
-      setErrors({ general: error.message || 'Failed to complete profile. Please try again.' });
+
+      let errorMessage = error.message || 'Failed to complete profile. Please try again.';
+
+      // Handle specific database errors
+      if (error.message?.includes('multiple') && error.message?.includes('rows')) {
+        errorMessage = 'Database synchronization issue detected. Please try again in a moment.';
+
+        // Attempt to clean up and retry once
+        try {
+          console.log('🔄 Attempting to clean up and retry...');
+          const { data: { user: authUser } } = await supabase.auth.getUser();
+          if (authUser) {
+            await UserService.cleanupDuplicateUsers(authUser.id);
+          }
+        } catch (cleanupError) {
+          console.error('Cleanup failed:', cleanupError);
+        }
+      } else if (error.message?.includes('JSON object requested')) {
+        errorMessage = 'Data format issue. Please refresh the page and try again.';
+      }
+
+      setErrors({ general: errorMessage });
 
       toast({
         title: "Profile completion failed",
-        description: error.message || "Please check your information and try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
+
+  // Show loading while checking profile completeness
+  if (isCheckingProfile) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-coffee-50 via-white to-matcha-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-coffee-600 mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Checking Profile...</h2>
+          <p className="text-gray-600">Please wait while we verify your profile status.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-coffee-50 via-white to-matcha-50">
@@ -395,7 +494,7 @@ const CompleteProfile: React.FC = () => {
                           ? 'border-red-300 focus:ring-red-500'
                           : 'border-gray-300 focus:ring-matcha-500'
                       }`}
-                      placeholder="Your Coffee Shop Name"
+                      placeholder="e.g., Café Central, Bean & Brew, The Coffee Corner"
                     />
                     {errors.businessName && <p className="text-red-600 text-sm mt-1">{errors.businessName}</p>}
                   </div>
@@ -404,22 +503,22 @@ const CompleteProfile: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Business Address *
                     </label>
-                    <input
-                      type="text"
-                      required
+                    <AddressInput
                       value={formData.businessAddress}
-                      onChange={(e) => {
-                        setFormData(prev => ({ ...prev, businessAddress: e.target.value }));
+                      coordinates={formData.businessCoordinates}
+                      onChange={(address, coordinates) => {
+                        setFormData(prev => ({
+                          ...prev,
+                          businessAddress: address,
+                          businessCoordinates: coordinates || null
+                        }));
                         if (errors.businessAddress) setErrors(prev => ({ ...prev, businessAddress: '' }));
                       }}
-                      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:border-transparent ${
-                        errors.businessAddress
-                          ? 'border-red-300 focus:ring-red-500'
-                          : 'border-gray-300 focus:ring-matcha-500'
-                      }`}
-                      placeholder="123 Main St, City, State"
+                      placeholder="Enter your exact business address"
+                      error={errors.businessAddress}
+                      required
+                      className="w-full"
                     />
-                    {errors.businessAddress && <p className="text-red-600 text-sm mt-1">{errors.businessAddress}</p>}
                   </div>
 
                   <div>
@@ -437,28 +536,14 @@ const CompleteProfile: React.FC = () => {
                     </select>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Business Hours *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.businessHours}
-                      onChange={(e) => {
-                        setFormData(prev => ({ ...prev, businessHours: e.target.value }));
-                        if (errors.businessHours) setErrors(prev => ({ ...prev, businessHours: '' }));
-                      }}
-                      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:border-transparent ${
-                        errors.businessHours
-                          ? 'border-red-300 focus:ring-red-500'
-                          : 'border-gray-300 focus:ring-matcha-500'
-                      }`}
-                      placeholder="Mon-Fri: 8:00 AM - 6:00 PM"
-                    />
-                    {errors.businessHours && <p className="text-red-600 text-sm mt-1">{errors.businessHours}</p>}
-                    <p className="text-sm text-gray-500 mt-1">e.g., "Mon-Fri: 7AM-7PM, Sat-Sun: 8AM-6PM"</p>
-                  </div>
+                  <BusinessHoursInput
+                    value={formData.businessHours}
+                    onChange={(value) => {
+                      setFormData(prev => ({ ...prev, businessHours: value }));
+                      if (errors.businessHours) setErrors(prev => ({ ...prev, businessHours: '' }));
+                    }}
+                    error={errors.businessHours}
+                  />
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">

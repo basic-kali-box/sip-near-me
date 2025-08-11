@@ -62,6 +62,33 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Coffee and Matcha color palettes
+				coffee: {
+					50: '#faf7f2',
+					100: '#f4ede0',
+					200: '#e8d7c0',
+					300: '#d9bc96',
+					400: '#c89d6a',
+					500: '#bc8448',
+					600: '#ae6f3c',
+					700: '#915833',
+					800: '#76472e',
+					900: '#603c28',
+					950: '#331e15'
+				},
+				matcha: {
+					50: '#f6f8f4',
+					100: '#eaf0e6',
+					200: '#d6e2ce',
+					300: '#b8cca8',
+					400: '#94b07e',
+					500: '#73955c',
+					600: '#5a7a46',
+					700: '#476139',
+					800: '#3a4f30',
+					900: '#32432a',
+					950: '#1a2416'
 				}
 			},
 			borderRadius: {

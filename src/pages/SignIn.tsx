@@ -5,23 +5,30 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { UserService } from "@/services/userService";
 import { useUser } from "@/contexts/UserContext";
 import { ButtonLoading } from "@/components/LoadingSpinner";
+import { SEO, SEO_CONFIGS } from "@/components/SEO";
 
 
 const SignIn = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { login, loginWithGoogle } = useUser();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Get userType and returnTo from URL params if available
+  const userTypeFromUrl = searchParams.get('userType') as 'buyer' | 'seller' | null;
+  const returnTo = searchParams.get('returnTo');
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    userType: "buyer" as "buyer" | "seller",
+    userType: (userTypeFromUrl || "buyer") as "buyer" | "seller",
     rememberMe: false
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -83,7 +90,13 @@ const SignIn = () => {
           title: "Welcome back!",
           description: `Signed in as ${formData.userType === 'seller' ? 'seller' : 'buyer'}.`,
         });
-        navigate(formData.userType === 'seller' ? '/seller-dashboard' : '/');
+
+        // Navigate to returnTo URL if provided, otherwise use default navigation
+        if (returnTo) {
+          navigate(decodeURIComponent(returnTo));
+        } else {
+          navigate(formData.userType === 'seller' ? '/seller-dashboard' : '/app');
+        }
       } else {
         console.log('❌ SignIn: Login failed');
         toast({
@@ -108,12 +121,28 @@ const SignIn = () => {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
+      // Store returnTo in localStorage for auth callback to use
+      if (returnTo) {
+        localStorage.setItem('auth_returnTo', returnTo);
+      }
       await loginWithGoogle();
       // The redirect will handle the rest
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Google sign in error:', error);
+
+      let errorMessage = "Please try again or use email/password.";
+
+      if (error.message?.includes('provider is not enabled')) {
+        errorMessage = "Google sign-in is not configured. Please contact support or try email sign-in.";
+      } else if (error.message?.includes('validation_failed')) {
+        errorMessage = "Google authentication is not properly set up. Please try email sign-in.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       toast({
         title: "Google Sign In Failed",
-        description: "Please try again or use email/password.",
+        description: errorMessage,
         variant: "destructive",
       });
       setIsLoading(false);
@@ -159,7 +188,9 @@ const SignIn = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-warm relative overflow-hidden">
+    <>
+      <SEO {...SEO_CONFIGS.auth} />
+      <div className="min-h-screen bg-gradient-warm relative overflow-hidden">
 
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
@@ -439,7 +470,8 @@ const SignIn = () => {
           </Card>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 

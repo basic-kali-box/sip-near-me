@@ -258,16 +258,16 @@ const AddListing = () => {
                   <div className="space-y-2">
                     <Label htmlFor="price" className="text-sm font-semibold text-gray-700">Price *</Label>
                     <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm font-medium">Dh</span>
                       <Input
                         id="price"
                         type="number"
                         step="0.01"
                         min="0"
-                        placeholder="5.50"
+                        placeholder="50.00"
                         value={formData.price}
                         onChange={(e) => handleInputChange("price", e.target.value)}
-                        className={`pl-10 transition-all duration-200 bg-white/80 ${errors.price ? 'border-red-300 focus:border-red-500' : 'border-gray-200 focus:border-coffee-400'}`}
+                        className={`pl-12 transition-all duration-200 bg-white/80 ${errors.price ? 'border-red-300 focus:border-red-500' : 'border-gray-200 focus:border-coffee-400'}`}
                       />
                     </div>
                     {errors.price && <p className="text-xs text-red-600 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.price}</p>}

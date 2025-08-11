@@ -9,13 +9,14 @@ import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/contexts/UserContext";
 import { ButtonLoading } from "@/components/LoadingSpinner";
+import { SEO, SEO_CONFIGS } from "@/components/SEO";
 
 
 const SignUp = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const { register } = useUser();
+  const { register, loginWithGoogle } = useUser();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -37,6 +38,10 @@ const SignUp = () => {
     // Default to buyer
     return "buyer";
   };
+
+  // Get returnTo parameter from URL
+  const urlParams = new URLSearchParams(location.search);
+  const returnTo = urlParams.get('returnTo');
 
   const [formData, setFormData] = useState({
     name: "",
@@ -125,11 +130,22 @@ const SignUp = () => {
       }, formData.password);
 
       if (success) {
+        // Store email and userType for confirmation page
+        localStorage.setItem('pending_confirmation_email', formData.email);
+        localStorage.setItem('pending_confirmation_userType', formData.userType);
+
+        // Store returnTo parameter if provided
+        if (returnTo) {
+          localStorage.setItem('auth_returnTo', returnTo);
+        }
+
         toast({
-          title: "Welcome to BrewNear!",
-          description: `Account created successfully as ${formData.userType}.`,
+          title: "Account created!",
+          description: "Please check your email to confirm your account.",
         });
-        navigate(formData.userType === 'seller' ? '/complete-profile' : '/');
+
+        // Redirect to email confirmation page
+        navigate(`/email-confirmation?email=${encodeURIComponent(formData.email)}&userType=${formData.userType}`);
       } else {
         toast({
           title: "Registration failed",
@@ -174,17 +190,41 @@ const SignUp = () => {
       toast({ title: `${provider} Sign Up`, description: "This provider is not yet enabled." });
       return;
     }
+
+    setIsLoading(true);
     try {
-      // Reuse Google OAuth from context via sign in page flow, or direct call if needed
-      window.location.href =
-        `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(window.location.origin + '/auth/callback')}`;
+      // Store the user type for the OAuth callback
+      localStorage.setItem('pending_oauth_userType', formData.userType);
+
+      // Use the proper Google OAuth method from context
+      await loginWithGoogle();
+      // The redirect will handle the rest
     } catch (error: any) {
-      toast({ title: "Google sign up failed", description: error.message || "Please try again.", variant: "destructive" });
+      console.error('Google sign up error:', error);
+
+      let errorMessage = "Please try again or use email/password.";
+
+      if (error.message?.includes('provider is not enabled')) {
+        errorMessage = "Google sign-up is not configured. Please contact support or try email sign-up.";
+      } else if (error.message?.includes('validation_failed')) {
+        errorMessage = "Google authentication is not properly set up. Please try email sign-up.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      toast({
+        title: "Google sign up failed",
+        description: errorMessage,
+        variant: "destructive"
+      });
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/5">
+    <>
+      <SEO {...SEO_CONFIGS.signup} />
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/5">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border/50">
         <div className="container mx-auto px-4 h-16 flex items-center gap-4">
@@ -512,7 +552,8 @@ const SignUp = () => {
           </div>
         </Card>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 

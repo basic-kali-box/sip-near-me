@@ -34,10 +34,10 @@ const OrderHistory = () => {
       sellerName: "Green Goddess Smoothies",
       sellerPhoto: "https://images.unsplash.com/photo-1551024506-0bccd828d307?w=400",
       items: [
-        { name: "Green Power Smoothie", quantity: 1, price: 8.50 },
-        { name: "Protein Boost", quantity: 1, price: 9.00 }
+        { name: "Green Power Smoothie", quantity: 1, price: 85.00 },
+        { name: "Protein Boost", quantity: 1, price: 90.00 }
       ],
-      total: 17.50,
+      total: 175.00,
       status: "preparing",
       orderDate: "2024-01-15T10:30:00Z",
       estimatedTime: "15-20 min",
@@ -49,9 +49,9 @@ const OrderHistory = () => {
       sellerName: "Matcha Master",
       sellerPhoto: "https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=400",
       items: [
-        { name: "Traditional Matcha Latte", quantity: 2, price: 6.50 }
+        { name: "Traditional Matcha Latte", quantity: 2, price: 65.00 }
       ],
-      total: 13.00,
+      total: 130.00,
       status: "delivered",
       orderDate: "2024-01-14T14:15:00Z",
       address: "456 Oak Ave"
@@ -62,10 +62,10 @@ const OrderHistory = () => {
       sellerName: "Fresh Juice Co.",
       sellerPhoto: "https://images.unsplash.com/photo-1622597467836-f3285f2131b8?w=400",
       items: [
-        { name: "Orange Carrot Ginger", quantity: 1, price: 7.00 },
-        { name: "Green Detox", quantity: 1, price: 8.00 }
+        { name: "Orange Carrot Ginger", quantity: 1, price: 70.00 },
+        { name: "Green Detox", quantity: 1, price: 80.00 }
       ],
-      total: 15.00,
+      total: 150.00,
       status: "delivered",
       orderDate: "2024-01-13T09:45:00Z",
       address: "789 Pine St"
@@ -149,7 +149,7 @@ const OrderHistory = () => {
         {order.items.map((item, index) => (
           <div key={index} className="flex justify-between text-sm">
             <span>{item.quantity}x {item.name}</span>
-            <span>${(item.price * item.quantity).toFixed(2)}</span>
+            <span>{(item.price * item.quantity).toFixed(2)} Dh</span>
           </div>
         ))}
       </div>
@@ -159,7 +159,7 @@ const OrderHistory = () => {
           <MapPin className="w-4 h-4" />
           <span>{order.address}</span>
         </div>
-        <div className="text-lg font-semibold">${order.total.toFixed(2)}</div>
+        <div className="text-lg font-semibold">{order.total.toFixed(2)} Dh</div>
       </div>
 
       {order.estimatedTime && (order.status === "preparing" || order.status === "pending") && (

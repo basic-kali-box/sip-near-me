@@ -3,6 +3,7 @@ import { Database } from './database.types';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '750298159534-05hfkft27aq028ggm02rebkivh4gogsf.apps.googleusercontent.com';
 
 console.log('🔧 Supabase Config Check:');
 console.log('  URL:', supabaseUrl ? '✅ Set' : '❌ Missing');
@@ -38,12 +39,13 @@ export const signUp = async (email: string, password: string, userData?: {
   phone?: string;
   user_type?: 'buyer' | 'seller';
 }) => {
+  const userType = userData?.user_type || 'buyer';
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       ...(userData && { data: userData }),
-      emailRedirectTo: `${window.location.origin}/auth/callback`
+      emailRedirectTo: `${window.location.origin}/auth/callback?userType=${userType}`
     }
   });
 
@@ -62,20 +64,73 @@ export const signIn = async (email: string, password: string) => {
 };
 
 export const signInWithGoogle = async () => {
+  console.log('🔄 Attempting Google OAuth sign-in...');
+  console.log('📍 Redirect URL:', `${window.location.origin}/auth/callback`);
+  console.log('🔑 Google Client ID:', googleClientId);
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${window.location.origin}/auth/callback`
+      redirectTo: `${window.location.origin}/auth/callback`,
+      queryParams: {
+        access_type: 'offline',
+        prompt: 'consent',
+        client_id: googleClientId
+      },
+      scopes: 'email profile openid'
     }
   });
 
-  if (error) throw error;
+  if (error) {
+    console.error('❌ Google sign-in error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      status: error.status,
+      code: error.code || 'unknown',
+      clientId: googleClientId
+    });
+
+    // Provide specific error guidance
+    if (error.message?.includes('provider is not enabled')) {
+      console.error('🚨 Google OAuth is not enabled in Supabase. Please:');
+      console.error('1. Go to Supabase Dashboard → Authentication → Providers');
+      console.error('2. Enable Google provider');
+      console.error('3. Add Client ID:', googleClientId);
+    }
+
+    throw error;
+  }
+
+  console.log('✅ Google OAuth initiated successfully');
   return data;
 };
 
 export const signOut = async () => {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
+};
+
+// Check if Google OAuth is properly configured
+export const checkGoogleOAuthConfig = async () => {
+  try {
+    console.log('🔍 Checking Google OAuth configuration...');
+
+    // Try to get the current session to check if auth is working
+    const { data: { session }, error } = await supabase.auth.getSession();
+
+    if (error) {
+      console.error('❌ Auth session error:', error);
+      return false;
+    }
+
+    console.log('✅ Supabase auth is working');
+    console.log('📊 Current session:', session ? 'Active' : 'None');
+
+    return true;
+  } catch (error) {
+    console.error('❌ OAuth config check failed:', error);
+    return false;
+  }
 };
 
 // Real-time subscriptions

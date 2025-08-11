@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { MapPin, Navigation, Locate, Route, Clock, AlertCircle, MapPinIcon } from "lucide-react";
+import { MapPin, Navigation, Locate, Route, Clock, AlertCircle, MapPinIcon, Coffee, Leaf } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,26 @@ import { subscribeToSellerAvailability, subscribeToNewSellers } from "@/lib/supa
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { ORS_CONFIG, ORS_ERRORS } from "@/config/openroute";
+import { getCurrentLocation, type Coordinates } from "@/utils/geocoding";
+
+// Dynamic import for Leaflet to ensure it only loads in browser
+let L: any = null;
+
+// Initialize Leaflet only in browser environment
+const initializeLeaflet = async () => {
+  if (typeof window !== 'undefined' && !L) {
+    L = await import('leaflet');
+
+    // Fix for default markers in Leaflet with Vite/Vercel
+    delete (L.Icon.Default.prototype as any)._getIconUrl;
+    L.Icon.Default.mergeOptions({
+      iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+    });
+  }
+  return L;
+};
 
 interface MapViewProps {
   className?: string;
@@ -51,6 +71,10 @@ export const MapView = ({ className }: MapViewProps) => {
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
   const [mapCenter, setMapCenter] = useState({ lat: 40.7128, lng: -74.0060 }); // Default to NYC
   const [locationStatus, setLocationStatus] = useState<'loading' | 'granted' | 'denied' | 'unavailable'>('loading');
+  const [mapInstance, setMapInstance] = useState<any>(null);
+  const [mapReady, setMapReady] = useState(false);
+  const [sellerMarkers, setSellerMarkers] = useState<any[]>([]);
+  const [routePolyline, setRoutePolyline] = useState<any>(null);
 
   // Enhanced geolocation with better error handling
   useEffect(() => {
@@ -195,6 +219,198 @@ export const MapView = ({ className }: MapViewProps) => {
     };
   }, [userLocation]);
 
+  // Initialize map
+  useEffect(() => {
+    if (!mapRef.current || mapInstance || typeof window === 'undefined') return;
+
+    const initMap = async () => {
+      try {
+        const leaflet = await initializeLeaflet();
+        if (!leaflet || !mapRef.current) return;
+
+        // Create map instance
+        const map = leaflet.map(mapRef.current).setView([mapCenter.lat, mapCenter.lng], 13);
+
+        // Add tile layer (OpenStreetMap)
+        leaflet.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        setMapInstance(map);
+        setMapReady(true);
+      } catch (error) {
+        console.error('Failed to initialize map:', error);
+        toast({
+          title: "Map Error",
+          description: "Failed to load interactive map. Please try refreshing the page.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    initMap();
+
+    // Cleanup function
+    return () => {
+      if (mapInstance) {
+        mapInstance.remove();
+        setMapInstance(null);
+        setMapReady(false);
+      }
+    };
+  }, []);
+
+  // Update map center when user location changes
+  useEffect(() => {
+    if (mapInstance && userLocation) {
+      mapInstance.setView([userLocation.lat, userLocation.lng], 13);
+      setMapCenter({ lat: userLocation.lat, lng: userLocation.lng });
+    }
+  }, [mapInstance, userLocation]);
+
+  // Add seller markers to map
+  useEffect(() => {
+    if (!mapInstance || !L) return;
+
+    // Clear existing markers
+    sellerMarkers.forEach(marker => {
+      mapInstance.removeLayer(marker);
+    });
+
+    // Add new markers
+    const newMarkers = sellers.map(seller => {
+      // Create custom icon based on specialty
+      const iconColor = seller.specialty === 'matcha' ? '#10b981' : '#f59e0b'; // green for matcha, amber for coffee
+      const iconHtml = `
+        <div style="
+          width: 32px;
+          height: 32px;
+          background-color: ${iconColor};
+          border: 2px solid white;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+          position: relative;
+        ">
+          <div style="
+            width: 16px;
+            height: 16px;
+            background-color: white;
+            border-radius: 50%;
+          "></div>
+        </div>
+      `;
+
+      const customIcon = L.divIcon({
+        html: iconHtml,
+        className: 'custom-seller-marker',
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+        popupAnchor: [0, -16]
+      });
+
+      const marker = L.marker([seller.latitude, seller.longitude], { icon: customIcon })
+        .addTo(mapInstance);
+
+      // Add popup with seller info
+      const popupContent = `
+        <div style="padding: 12px; min-width: 200px;">
+          <h3 style="font-weight: bold; font-size: 14px; margin-bottom: 4px; color: #1f2937;">${seller.name}</h3>
+          <p style="font-size: 12px; color: #6b7280; margin-bottom: 8px; text-transform: capitalize;">${seller.specialty} specialist</p>
+          ${seller.rating ? `<p style="font-size: 12px; color: #6b7280; margin-bottom: 8px;">⭐ ${seller.rating.toFixed(1)} (${seller.reviewCount || 0} reviews)</p>` : ''}
+          <div style="display: flex; gap: 8px;">
+            <button onclick="window.location.href='/seller/${seller.id}'" style="
+              padding: 4px 8px;
+              background-color: #3b82f6;
+              color: white;
+              font-size: 12px;
+              border: none;
+              border-radius: 4px;
+              cursor: pointer;
+            ">View Details</button>
+            <button onclick="window.location.href='tel:${seller.phone}'" style="
+              padding: 4px 8px;
+              background-color: #10b981;
+              color: white;
+              font-size: 12px;
+              border: none;
+              border-radius: 4px;
+              cursor: pointer;
+            ">Call</button>
+          </div>
+        </div>
+      `;
+
+      marker.bindPopup(popupContent);
+
+      // Add event handlers
+      marker.on('click', () => {
+        setSelectedSeller(seller);
+      });
+
+      marker.on('mouseover', () => {
+        setHoveredSeller(seller);
+      });
+
+      marker.on('mouseout', () => {
+        setHoveredSeller(null);
+      });
+
+      return marker;
+    });
+
+    setSellerMarkers(newMarkers);
+  }, [mapInstance, sellers, L]);
+
+  // Add user location marker
+  useEffect(() => {
+    if (!mapInstance || !L || !userLocation) return;
+
+    // Create user location marker
+    const userIconHtml = `
+      <div style="
+        width: 20px;
+        height: 20px;
+        background-color: #3b82f6;
+        border: 3px solid white;
+        border-radius: 50%;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        position: relative;
+      ">
+        <div style="
+          position: absolute;
+          top: -10px;
+          left: -10px;
+          width: 40px;
+          height: 40px;
+          background-color: rgba(59, 130, 246, 0.2);
+          border-radius: 50%;
+          animation: pulse 2s infinite;
+        "></div>
+      </div>
+    `;
+
+    const userIcon = L.divIcon({
+      html: userIconHtml,
+      className: 'user-location-marker',
+      iconSize: [20, 20],
+      iconAnchor: [10, 10],
+      popupAnchor: [0, -10]
+    });
+
+    const userMarker = L.marker([userLocation.lat, userLocation.lng], { icon: userIcon })
+      .addTo(mapInstance)
+      .bindPopup('<div style="padding: 8px; text-align: center;"><strong>Your Location</strong></div>');
+
+    return () => {
+      if (userMarker) {
+        mapInstance.removeLayer(userMarker);
+      }
+    };
+  }, [mapInstance, userLocation, L]);
+
   // OpenRouteService API functions
   const getRoute = async (start: [number, number], end: [number, number]): Promise<RouteInfo | null> => {
     if (!ORS_CONFIG.API_KEY) {
@@ -270,6 +486,35 @@ export const MapView = ({ className }: MapViewProps) => {
 
     if (route) {
       setRouteInfo(route);
+
+      // Draw route on map
+      if (mapInstance && L) {
+        // Remove existing route
+        if (routePolyline) {
+          mapInstance.removeLayer(routePolyline);
+        }
+
+        // Convert coordinates to Leaflet format [lat, lng]
+        const leafletCoords = route.coordinates.map(coord => [coord[1], coord[0]]);
+
+        // Create polyline
+        const polyline = L.polyline(leafletCoords, {
+          color: '#3b82f6',
+          weight: 4,
+          opacity: 0.8,
+          dashArray: '10, 5'
+        }).addTo(mapInstance);
+
+        setRoutePolyline(polyline);
+
+        // Fit map to show entire route
+        const bounds = L.latLngBounds([
+          [userLocation.lat, userLocation.lng],
+          [seller.latitude, seller.longitude]
+        ]);
+        mapInstance.fitBounds(bounds, { padding: [20, 20] });
+      }
+
       toast({
         title: "Route Calculated",
         description: `${route.distance.toFixed(1)}km • ${Math.round(route.duration)} min drive`,
@@ -280,13 +525,13 @@ export const MapView = ({ className }: MapViewProps) => {
   };
 
   const handleCenterOnUser = () => {
-    if (userLocation) {
-      setMapCenter(userLocation);
+    if (userLocation && mapInstance) {
+      mapInstance.setView([userLocation.lat, userLocation.lng], 15);
       toast({
         title: "Location Updated",
         description: "Map centered on your current location.",
       });
-    } else {
+    } else if (!userLocation) {
       // Try to get location again
       if (navigator.geolocation) {
         toast({
@@ -332,121 +577,72 @@ export const MapView = ({ className }: MapViewProps) => {
     }
   };
 
-  // Enhanced map implementation with OpenRouteService integration
-  const MapPlaceholder = () => (
-    <div className="relative w-full h-full bg-gradient-fresh rounded-lg border border-border/50 overflow-hidden">
-      {/* Mock map background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-accent/20 to-primary/10" />
+  const handleFitAllSellers = () => {
+    if (mapInstance && L && sellers.length > 0) {
+      const bounds = L.latLngBounds(sellers.map(seller => [seller.latitude, seller.longitude]));
 
-      {/* Street grid overlay */}
-      <div className="absolute inset-0 opacity-20">
-        <div className="grid grid-cols-8 grid-rows-8 h-full w-full">
-          {Array.from({ length: 64 }).map((_, i) => (
-            <div key={i} className="border border-muted-foreground/10" />
-          ))}
-        </div>
-      </div>
+      // Include user location if available
+      if (userLocation) {
+        bounds.extend([userLocation.lat, userLocation.lng]);
+      }
 
-      {/* Seller pins */}
-      {sellers.map((seller, index) => (
-        <div
-          key={seller.id}
-          className="absolute cursor-pointer transform -translate-x-1/2 -translate-y-1/2 z-10"
-          style={{
-            // Simple projection: spread pins based on index if coordinates are not used in this placeholder map
-            left: `${20 + (index * 15)}%`,
-            top: `${30 + (index % 3) * 20}%`,
-          }}
-          onMouseEnter={() => setHoveredSeller(seller)}
-          onMouseLeave={() => setHoveredSeller(null)}
-          onClick={() => navigate(`/seller/${seller.id}`)}
-          onDoubleClick={() => handleGetDirections(seller)}
-        >
-          <div className={`relative transition-all duration-200 ${
-            hoveredSeller?.id === seller.id ? 'scale-110' : ''
-          }`}>
-            <div className="w-8 h-8 bg-primary rounded-full border-2 border-background shadow-floating flex items-center justify-center animate-pulse-glow">
-              <MapPin className="w-4 h-4 text-primary-foreground" />
-            </div>
-            {/* Pin label */}
-            <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
-              <div className="bg-background/90 backdrop-blur-sm px-2 py-1 rounded text-xs font-medium shadow-card border border-border/50">
-                {seller.name}
-              </div>
-            </div>
-          </div>
-        </div>
-      ))}
+      mapInstance.fitBounds(bounds, { padding: [20, 20] });
 
-      {/* User location */}
-      <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
-        <div className="w-4 h-4 bg-blue-500 rounded-full border-2 border-background shadow-lg animate-pulse" />
-        <div className="absolute inset-0 bg-blue-500/20 rounded-full animate-ping" />
-      </div>
-
-      {/* Enhanced Map controls */}
-      <div className="absolute top-4 right-4 space-y-2">
-        <Button
-          size="sm"
-          variant="outline"
-          className="bg-background/80 backdrop-blur-sm hover:bg-primary/10"
-          onClick={handleCenterOnUser}
-          disabled={!userLocation}
-        >
-          <Locate className="w-4 h-4" />
-        </Button>
-        {selectedSeller && (
-          <Button
-            size="sm"
-            variant="outline"
-            className="bg-background/80 backdrop-blur-sm hover:bg-primary/10"
-            onClick={() => {
-              setRouteInfo(null);
-              setSelectedSeller(null);
-            }}
-          >
-            <Route className="w-4 h-4" />
-          </Button>
-        )}
-      </div>
-
-      {/* Route visualization */}
-      {routeInfo && routeInfo.coordinates.length > 0 && (
-        <svg className="absolute inset-0 w-full h-full pointer-events-none z-5">
-          <polyline
-            points={routeInfo.coordinates.map((coord, index) => {
-              const x = 50 + (index / routeInfo.coordinates.length) * 30;
-              const y = 50 + Math.sin(index * 0.5) * 10;
-              return `${x}%,${y}%`;
-            }).join(' ')}
-            fill="none"
-            stroke="rgb(34, 197, 94)"
-            strokeWidth="3"
-            strokeDasharray="5,5"
-            className="animate-pulse"
-          />
-        </svg>
-      )}
-
-      {/* Mock street labels */}
-      <div className="absolute top-12 left-8 text-xs text-muted-foreground font-medium bg-background/60 px-2 py-1 rounded">
-        Main Street
-      </div>
-      <div className="absolute bottom-20 right-12 text-xs text-muted-foreground font-medium bg-background/60 px-2 py-1 rounded rotate-90">
-        Broadway
-      </div>
-
-      {/* Instructions */}
-      {!selectedSeller && (
-        <div className="absolute bottom-4 left-4 text-xs text-muted-foreground bg-background/80 backdrop-blur-sm px-3 py-2 rounded-lg border border-border/30">
-          💡 Double-click a seller pin to get directions
-        </div>
-      )}
-    </div>
-  );
+      toast({
+        title: "View Updated",
+        description: `Showing all ${sellers.length} nearby sellers`,
+      });
+    }
+  };
 
   return (
     <div className={`h-full flex flex-col ${className}`}>
+      {/* Add custom CSS for map markers and z-index fixes */}
+      <style>{`
+        @keyframes pulse {
+          0% {
+            transform: scale(1);
+            opacity: 1;
+          }
+          50% {
+            transform: scale(1.2);
+            opacity: 0.7;
+          }
+          100% {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
+        .custom-seller-marker {
+          background: transparent !important;
+          border: none !important;
+        }
+        .user-location-marker {
+          background: transparent !important;
+          border: none !important;
+        }
+        .leaflet-popup-content-wrapper {
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .leaflet-popup-tip {
+          background: white;
+        }
+        /* Ensure Leaflet map doesn't interfere with mobile sidebar */
+        .leaflet-container {
+          z-index: 1 !important;
+        }
+        .leaflet-control-container {
+          z-index: 2 !important;
+        }
+        .leaflet-popup-pane {
+          z-index: 3 !important;
+        }
+        /* Ensure mobile sidebar appears above everything */
+        [data-mobile="true"] {
+          z-index: 9999 !important;
+        }
+      `}</style>
       {/* Map Controls Header */}
       <div className="flex items-center justify-between p-4 bg-background/95 backdrop-blur-md border-b border-border/50">
         <div className="flex items-center gap-2">
@@ -535,6 +731,11 @@ export const MapView = ({ className }: MapViewProps) => {
                 variant="outline"
                 size="sm"
                 onClick={() => {
+                  // Clear route from map
+                  if (routePolyline && mapInstance) {
+                    mapInstance.removeLayer(routePolyline);
+                    setRoutePolyline(null);
+                  }
                   setRouteInfo(null);
                   setSelectedSeller(null);
                 }}
@@ -579,7 +780,56 @@ export const MapView = ({ className }: MapViewProps) => {
 
       {/* Map area */}
       <div className="flex-1 p-4">
-        <MapPlaceholder />
+        <div className="relative w-full h-full rounded-lg border border-border/50 overflow-hidden">
+          {/* Map Container */}
+          <div
+            ref={mapRef}
+            className="w-full h-full"
+          />
+
+          {/* Loading Overlay */}
+          {!mapReady && (
+            <div className="absolute inset-0 bg-gradient-to-br from-accent/20 to-primary/10 rounded-lg flex items-center justify-center">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                <p className="text-sm text-muted-foreground">Loading interactive map...</p>
+              </div>
+            </div>
+          )}
+
+          {/* Map Controls */}
+          {mapReady && (
+            <div className="absolute top-4 right-4 space-y-2 z-10">
+              <Button
+                size="sm"
+                variant="outline"
+                className="bg-background/80 backdrop-blur-sm hover:bg-primary/10"
+                onClick={handleCenterOnUser}
+                disabled={!userLocation}
+                title="Center on your location"
+              >
+                <Locate className="w-4 h-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="bg-background/80 backdrop-blur-sm hover:bg-primary/10"
+                onClick={handleFitAllSellers}
+                disabled={sellers.length === 0}
+                title="Show all sellers"
+              >
+                <MapPin className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+
+          {/* Instructions */}
+          {mapReady && !selectedSeller && (
+            <div className="absolute bottom-4 left-4 text-xs text-muted-foreground bg-background/80 backdrop-blur-sm px-3 py-2 rounded-lg border border-border/30 z-10">
+              💡 Click a seller marker to view details
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Hovered seller preview */}

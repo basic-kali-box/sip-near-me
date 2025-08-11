@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Coffee, Leaf, Eye, EyeOff, Plus, Edit, Trash2, BarChart3, Users, Phone, MapPin, Clock, Star, TrendingUp } from "lucide-react";
+import { ArrowLeft, Coffee, Leaf, Eye, EyeOff, Plus, Edit, Trash2, BarChart3, Users, Phone, MapPin, Clock, Star, TrendingUp, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -169,44 +169,44 @@ const SellerDashboard = () => {
     <div className="min-h-screen bg-gradient-warm">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-xl border-b border-border/30 shadow-elegant">
-        <div className="container mx-auto px-4 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="container mx-auto px-4 h-16 md:h-20 flex items-center justify-between">
+          <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate('/')}
-              className="flex items-center gap-2 text-gray-700 hover:bg-coffee-50 hover:text-coffee-700 transition-colors duration-200"
+              className="flex items-center gap-1 md:gap-2 text-gray-700 hover:bg-coffee-50 hover:text-coffee-700 transition-colors duration-200 shrink-0"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Back to App</span>
+              <span className="hidden sm:inline text-sm">Back</span>
             </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Seller Dashboard</h1>
-              <p className="text-sm text-muted-foreground">Manage your coffee/matcha business</p>
+            <div className="min-w-0">
+              <h1 className="text-lg md:text-2xl font-bold text-foreground truncate">Dashboard</h1>
+              <p className="text-xs md:text-sm text-muted-foreground hidden sm:block">Manage your business</p>
             </div>
           </div>
-          
+
           {/* Availability Toggle and User Menu */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-muted-foreground">
-                {hasSellerProfile === false ? 'Profile Incomplete' : (user.isOnline ? 'Online' : 'Offline')}
+          <div className="flex items-center gap-2 md:gap-4 shrink-0">
+            <div className="flex items-center gap-2 md:gap-3">
+              <span className="text-xs md:text-sm font-medium text-muted-foreground hidden md:inline">
+                {hasSellerProfile === false ? 'Incomplete' : (user.isOnline ? 'Online' : 'Offline')}
               </span>
               <Switch
                 checked={user.isOnline && hasSellerProfile !== false}
                 onCheckedChange={handleToggleAvailability}
                 disabled={hasSellerProfile === false}
-                className="data-[state=checked]:bg-green-500 disabled:opacity-50"
+                className="data-[state=checked]:bg-green-500 disabled:opacity-50 scale-90 md:scale-100"
               />
-              <div className={`w-3 h-3 rounded-full ${
+              <div className={`w-2 h-2 md:w-3 md:h-3 rounded-full ${
                 hasSellerProfile === false
                   ? 'bg-yellow-400'
                   : (user.isOnline ? 'bg-green-500 animate-pulse' : 'bg-gray-400')
               }`} />
             </div>
             {hasSellerProfile === false && (
-              <span className="text-xs text-yellow-600 dark:text-yellow-400">
-                Complete profile to go online
+              <span className="text-xs text-yellow-600 dark:text-yellow-400 hidden lg:inline">
+                Complete profile
               </span>
             )}
             <UserMenu variant="desktop" />
@@ -227,9 +227,43 @@ const SellerDashboard = () => {
           </div>
           <div>
             <h2 className="text-3xl font-bold text-foreground">Welcome back, {user.name}!</h2>
-            <p className="text-muted-foreground">{user.businessName}</p>
+            <p className="text-muted-foreground">{user.businessName || 'Your Business'}</p>
           </div>
         </div>
+
+        {/* Profile Status Alert */}
+        {hasSellerProfile === false && (
+          <Card className="p-6 border-yellow-200 bg-yellow-50">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <User className="w-5 h-5 text-yellow-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-yellow-800 mb-2">Complete Your Profile</h3>
+                <p className="text-yellow-700 text-sm mb-4">
+                  Your seller profile is incomplete. Complete it to start accepting orders and appear in search results.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    onClick={() => navigate('/complete-profile')}
+                    className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                    size="sm"
+                  >
+                    Complete Profile
+                  </Button>
+                  <Button
+                    onClick={() => navigate('/profile')}
+                    variant="outline"
+                    size="sm"
+                    className="border-yellow-300 text-yellow-700 hover:bg-yellow-100"
+                  >
+                    View Profile
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* Loading State */}
         {loading && (
@@ -330,13 +364,7 @@ const SellerDashboard = () => {
               <Edit className="w-4 h-4 mr-2" />
               Edit Profile
             </Button>
-            <Button
-              variant="outline"
-              className="bg-white/80 border-gray-300 text-gray-700 hover:bg-coffee-50 hover:border-coffee-400 hover:text-coffee-700 transition-all duration-300 h-12"
-            >
-              <BarChart3 className="w-4 h-4 mr-2" />
-              View Analytics
-            </Button>
+
           </div>
         </Card>
         )}
@@ -391,7 +419,7 @@ const SellerDashboard = () => {
                     </div>
                     <div className="text-sm text-muted-foreground">{item.description}</div>
                   </div>
-                  <div className="text-lg font-bold text-primary">${item.price}</div>
+                  <div className="text-lg font-bold text-primary">{item.price} Dh</div>
                 </div>
                 <div className="flex gap-2 mt-3">
                   <Button
