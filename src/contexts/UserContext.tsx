@@ -34,7 +34,8 @@ interface UserContextType {
   logout: () => Promise<void>;
   updateUser: (updates: Partial<User>) => Promise<void>;
   refreshUserData: () => Promise<void>;
-  toggleSellerAvailability: () => Promise<void>;
+  switchUserType: (newUserType: 'buyer' | 'seller') => Promise<void>;
+
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -531,29 +532,44 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const toggleSellerAvailability = async () => {
-    if (user && user.userType === 'seller') {
-      try {
-        console.log('🔄 UserContext: Toggling seller availability for:', user.id);
+  // Removed toggleSellerAvailability - sellers are now always available
 
-        // First check if seller profile exists
-        const profileExists = await SellerService.sellerProfileExists(user.id);
+  const switchUserType = async (newUserType: 'buyer' | 'seller') => {
+    if (!user) {
+      throw new Error('No user logged in');
+    }
 
-        if (!profileExists) {
-          console.warn('⚠️ UserContext: No seller profile found, cannot toggle availability');
-          throw new Error('Please complete your seller profile first before going online.');
-        }
+    if (user.userType === newUserType) {
+      throw new Error(`Already a ${newUserType}`);
+    }
 
-        const newAvailability = await SellerService.toggleAvailability(user.id);
-        setUser({ ...user, isOnline: newAvailability });
-        console.log('✅ UserContext: Availability toggled successfully to:', newAvailability);
-      } catch (error: any) {
-        console.error('❌ UserContext: Toggle availability error:', error);
-        // Re-throw the error so the UI can handle it
-        throw error;
+    try {
+      console.log(`🔄 UserContext: Switching user type from ${user.userType} to ${newUserType}`);
+
+      // Update user type in database
+      await UserService.updateUserProfile(user.id, {
+        user_type: newUserType
+      });
+
+      // Update local user state
+      const updatedUser = { ...user, userType: newUserType };
+      setUser(updatedUser);
+
+      // Update stored essentials in localStorage to persist the change
+      const storedEssentials = getStoredUserEssentials();
+      if (storedEssentials && storedEssentials.id === user.id) {
+        const updatedEssentials = {
+          ...storedEssentials,
+          user_type: newUserType
+        };
+        localStorage.setItem(USER_ESSENTIALS_KEY, JSON.stringify(updatedEssentials));
+        console.log('📋 Updated stored essentials with new user type');
       }
-    } else {
-      throw new Error('Only sellers can toggle availability.');
+
+      console.log(`✅ UserContext: Successfully switched to ${newUserType}`);
+    } catch (error: any) {
+      console.error('❌ UserContext: Switch user type error:', error);
+      throw error;
     }
   };
 
@@ -567,7 +583,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     updateUser,
     refreshUserData,
-    toggleSellerAvailability
+    switchUserType,
+
   };
 
   return (

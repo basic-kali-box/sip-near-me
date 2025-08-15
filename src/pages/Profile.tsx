@@ -60,16 +60,16 @@ const Profile = () => {
           name: user.name || "",
           email: user.email || "",
           phone: user.phone || "",
-          address: user.businessAddress || "",
+          address: user.userType === 'seller' ? (user.businessAddress || "") : "",
           avatar: user.profileImage || "",
           memberSince: user.id ? new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Recently',
-          businessName: user.businessName || "",
-          businessHours: user.businessHours || "",
-          specialty: (user.specialty as any) || "coffee",
+          businessName: user.userType === 'seller' ? (user.businessName || "") : "",
+          businessHours: user.userType === 'seller' ? (user.businessHours || "") : "",
+          specialty: user.userType === 'seller' ? ((user.specialty as any) || "coffee") : "coffee",
           description: "", // Will be loaded from seller details if available
-          isAvailable: user.isOnline || false,
-          rating: user.rating || 0,
-          reviewCount: user.reviewCount || 0
+          isAvailable: user.userType === 'seller' ? (user.isOnline || false) : false,
+          rating: user.userType === 'seller' ? (user.rating || 0) : 0,
+          reviewCount: user.userType === 'seller' ? (user.reviewCount || 0) : 0
         });
 
         // Fetch user creation date from database
@@ -93,6 +93,7 @@ const Profile = () => {
           try {
             const sellerDetails = await SellerService.getSellerById(user.id);
             if (sellerDetails) {
+              console.log('🔍 Loading seller details - hours from DB:', sellerDetails.hours);
               setProfile(prev => ({
                 ...prev,
                 businessName: sellerDetails.business_name || user.businessName || "",
@@ -105,6 +106,7 @@ const Profile = () => {
                 reviewCount: sellerDetails.rating_count || 0,
                 phone: sellerDetails.phone || prev.phone
               }));
+              console.log('✅ Profile updated with business hours:', sellerDetails.hours || prev.businessHours);
             }
           } catch (error) {
             console.warn('Failed to load seller details:', error);
@@ -158,6 +160,19 @@ const Profile = () => {
   const handleSave = async () => {
     if (!user) return;
 
+    // Validate phone number if provided
+    if (profile.phone.trim()) {
+      const cleanPhone = profile.phone.replace(/[\s\-\(\)\+]/g, '');
+      if (!/^\d{10,14}$/.test(cleanPhone)) {
+        toast({
+          title: "Invalid Phone Number",
+          description: "Phone number must be 10-14 digits",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       if (user.userType === 'buyer') {
@@ -182,6 +197,7 @@ const Profile = () => {
           profileImage: profile.avatar
         });
 
+        console.log('💾 Saving business hours:', profile.businessHours);
         await SellerService.updateSellerProfile(user.id, {
           name: profile.name, // Use the person's actual name, not business name
           business_name: profile.businessName,
@@ -193,6 +209,7 @@ const Profile = () => {
           phone: profile.phone,
           description: profile.description
         });
+        console.log('✅ Business hours saved successfully');
       }
 
       setIsEditing(false);
@@ -321,7 +338,7 @@ const Profile = () => {
                   size="sm"
                   onClick={handleSave}
                   disabled={loading}
-                  className="bg-gradient-sunrise hover:shadow-glow transition-all duration-300"
+                  className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 border-0"
                 >
                   {loading ? "Saving..." : "Save"}
                 </Button>
@@ -475,21 +492,11 @@ const Profile = () => {
 
             <div className="space-y-3">
               <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email Address</Label>
-              {isEditing ? (
-                <Input
-                  id="email"
-                  type="email"
-                  value={profile.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
-                  className="h-12 border-gray-300 focus:border-matcha-500 focus:ring-matcha-500"
-                  placeholder="Enter your email address"
-                />
-              ) : (
-                <div className="flex items-center gap-3 p-4 rounded-xl bg-gray-50 border border-gray-200">
-                  <Mail className="w-5 h-5 text-matcha-600" />
-                  <span className="text-gray-800 font-medium">{profile.email}</span>
-                </div>
-              )}
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-gray-50 border border-gray-200">
+                <Mail className="w-5 h-5 text-matcha-600" />
+                <span className="text-gray-800 font-medium">{profile.email}</span>
+                <span className="text-xs text-gray-500 ml-auto">Cannot be changed</span>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -509,29 +516,32 @@ const Profile = () => {
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="address">Business Address</Label>
-              {isEditing ? (
-                <AddressInput
-                  value={profile.address}
-                  coordinates={profile.coordinates}
-                  onChange={(address, coordinates) => {
-                    setProfile(prev => ({
-                      ...prev,
-                      address,
-                      coordinates: coordinates || null
-                    }));
-                  }}
-                  placeholder="Enter your business address"
-                  className="w-full"
-                />
-              ) : (
-                <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
-                  <MapPin className="w-4 h-4 text-muted-foreground" />
-                  <span>{profile.address || "No address set"}</span>
-                </div>
-              )}
-            </div>
+            {/* Business Address - Only for sellers */}
+            {user?.userType === 'seller' && (
+              <div className="space-y-2">
+                <Label htmlFor="address">Business Address</Label>
+                {isEditing ? (
+                  <AddressInput
+                    value={profile.address}
+                    coordinates={profile.coordinates}
+                    onChange={(address, coordinates) => {
+                      setProfile(prev => ({
+                        ...prev,
+                        address,
+                        coordinates: coordinates || null
+                      }));
+                    }}
+                    placeholder="Enter your business address"
+                    className="w-full"
+                  />
+                ) : (
+                  <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
+                    <MapPin className="w-4 h-4 text-muted-foreground" />
+                    <span>{profile.address || "No address set"}</span>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Seller-specific fields */}
             {user.userType === 'seller' && (

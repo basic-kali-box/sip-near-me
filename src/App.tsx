@@ -34,6 +34,7 @@ import AuthCallback from "./pages/AuthCallback";
 import EmailConfirmation from "./pages/EmailConfirmation";
 import CompleteProfile from "./pages/CompleteProfile";
 import AddListing from "./pages/AddListing";
+import EditListing from "./pages/EditListing";
 import SellerDetails from "./pages/SellerDetails";
 import SellerDashboard from "./pages/SellerDashboard";
 import OrderFlow from "./pages/OrderFlow";
@@ -222,6 +223,11 @@ const App = () => {
                     <Route path="/add-listing" element={
                       <ProtectedRoute requireAuth={true} requireUserType="seller">
                         <AddListing />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/edit-listing/:itemId" element={
+                      <ProtectedRoute requireAuth={true} requireUserType="seller">
+                        <EditListing />
                       </ProtectedRoute>
                     } />
                     <Route path="/seller/:id" element={<SellerDetails />} />

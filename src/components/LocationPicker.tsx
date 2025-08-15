@@ -166,12 +166,14 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
         title: "Location Found",
         description: "Using your current location",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to get current location:', error);
+
+      // Since we now handle all errors gracefully in getCurrentLocation,
+      // this catch block should rarely be reached, but keep it for safety
       toast({
-        title: "Location Error",
-        description: "Unable to get your current location. Please search for an address or click on the map.",
-        variant: "destructive",
+        title: "Using Default Location",
+        description: "Unable to access your location. Using default location instead.",
       });
     } finally {
       setIsLoadingLocation(false);

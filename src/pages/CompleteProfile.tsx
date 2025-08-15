@@ -71,13 +71,13 @@ const CompleteProfile: React.FC = () => {
               );
 
               if (isComplete) {
-                console.log('🔄 Profile already complete, redirecting to dashboard...');
+                console.log('🔄 Profile already complete, allowing updates...');
+                // Don't redirect immediately - allow users to update their profile
+                // Just show a message that the profile is complete
                 toast({
-                  title: "Profile Already Complete",
-                  description: "Your seller profile is already set up. Redirecting to dashboard.",
+                  title: "Profile Complete",
+                  description: "Your seller profile is set up. You can update it here if needed.",
                 });
-                navigate('/seller-dashboard');
-                return;
               }
 
               // Pre-populate form with existing seller data
@@ -132,13 +132,15 @@ const CompleteProfile: React.FC = () => {
       }
       if (!formData.phone.trim()) {
         newErrors.phone = 'Phone number is required for sellers';
+      } else {
+        // Validate phone number format (10-14 digits)
+        const cleanPhone = formData.phone.replace(/[\s\-\(\)\+]/g, '');
+        if (!/^\d{10,14}$/.test(cleanPhone)) {
+          newErrors.phone = 'Phone number must be 10-14 digits';
+        }
       }
       if (!formData.businessHours.trim()) {
         newErrors.businessHours = 'Business hours are required';
-      }
-      // Validate phone number format (basic)
-      if (formData.phone && !/^[\+]?[1-9][\d]{0,15}$/.test(formData.phone.replace(/[\s\-\(\)]/g, ''))) {
-        newErrors.phone = 'Please enter a valid phone number';
       }
     }
 

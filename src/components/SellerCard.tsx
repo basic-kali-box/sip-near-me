@@ -252,26 +252,14 @@ export const SellerCard = ({ seller, onStartOrder, className = "" }: SellerCardP
             <span className="font-medium hidden sm:inline">Call</span>
           </Button>
           <Button
-            variant="outline"
             size="sm"
+            className="flex-1 px-3 py-2 bg-gradient-matcha hover:shadow-glow hover:scale-105 transition-all duration-300 font-semibold relative overflow-hidden group/whatsapp"
             onClick={handleWhatsAppContact}
-            className="flex items-center gap-2 px-3 py-2 glass-card border-green-500/50 text-green-600 hover:border-green-500 hover:bg-green-500/10 hover:scale-105 transition-all duration-300 group/whatsapp"
-          >
-            <MessageCircle className="w-4 h-4 group-hover/whatsapp:scale-110 transition-transform duration-200" />
-            <span className="font-medium hidden sm:inline">WhatsApp</span>
-          </Button>
-          <Button
-            size="sm"
-            className="flex-1 px-3 py-2 bg-gradient-matcha hover:shadow-glow hover:scale-105 transition-all duration-300 font-semibold relative overflow-hidden group/order"
-            onClick={(e) => {
-              e.stopPropagation();
-              onStartOrder(seller);
-            }}
           >
             {/* Shimmer effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/order:translate-x-full transition-transform duration-700"></div>
-            <Coffee className="w-4 h-4 mr-2 group-hover/order:scale-110 transition-transform duration-200" />
-            <span>Order</span>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/whatsapp:translate-x-full transition-transform duration-700"></div>
+            <MessageCircle className="w-4 h-4 mr-2 group-hover/whatsapp:scale-110 transition-transform duration-200" />
+            <span>Contact</span>
           </Button>
         </div>
 

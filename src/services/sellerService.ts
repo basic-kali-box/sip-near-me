@@ -191,49 +191,28 @@ export class SellerService {
     }
   }
 
-  // Toggle seller availability
-  static async toggleAvailability(sellerId: string): Promise<boolean> {
+  // Set seller as always available
+  static async setSellerAvailable(sellerId: string): Promise<boolean> {
     try {
-      console.log('🔄 SellerService: Toggling availability for seller:', sellerId);
-
-      // Get current availability using maybeSingle to handle missing profiles
-      const { data: currentSeller, error: fetchError } = await supabase
-        .from('sellers')
-        .select('is_available')
-        .eq('id', sellerId)
-        .maybeSingle();
-
-      if (fetchError) {
-        console.error('❌ SellerService: Error fetching current seller:', fetchError);
-        throw fetchError;
-      }
-
-      if (!currentSeller) {
-        console.warn('⚠️ SellerService: No seller profile found for:', sellerId);
-        throw new Error('Seller profile not found. Please complete your seller profile first.');
-      }
-
-      // Toggle availability
-      const newAvailability = !currentSeller.is_available;
-      console.log(`🔄 SellerService: Changing availability from ${currentSeller.is_available} to ${newAvailability}`);
+      console.log('🔄 SellerService: Setting seller as available:', sellerId);
 
       const { error: updateError } = await supabase
         .from('sellers')
         .update({
-          is_available: newAvailability,
+          is_available: true,
           updated_at: new Date().toISOString()
         })
         .eq('id', sellerId);
 
       if (updateError) {
-        console.error('❌ SellerService: Error updating availability:', updateError);
+        console.error('❌ SellerService: Error setting availability:', updateError);
         throw updateError;
       }
 
-      console.log('✅ SellerService: Availability toggled successfully to:', newAvailability);
-      return newAvailability;
+      console.log('✅ SellerService: Seller set as available');
+      return true;
     } catch (error) {
-      console.error('❌ SellerService: Toggle availability error:', error);
+      console.error('❌ SellerService: Set availability error:', error);
       throw new Error(handleSupabaseError(error));
     }
   }

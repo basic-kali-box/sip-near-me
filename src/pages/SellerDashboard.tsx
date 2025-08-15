@@ -3,17 +3,18 @@ import { ArrowLeft, Coffee, Leaf, Eye, EyeOff, Plus, Edit, Trash2, BarChart3, Us
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
+
 import { UserMenu } from "@/components/UserMenu";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@/contexts/UserContext";
 import { useToast } from "@/hooks/use-toast";
 import { SellerService } from "@/services/sellerService";
+import { DrinkService } from "@/services/drinkService";
 import { supabase } from "@/lib/supabase";
 
 const SellerDashboard = () => {
   const navigate = useNavigate();
-  const { user, updateUser, toggleSellerAvailability } = useUser();
+  const { user, updateUser } = useUser();
   const { toast } = useToast();
 
   const [stats, setStats] = useState({
@@ -122,46 +123,34 @@ const SellerDashboard = () => {
     );
   }
 
-  const handleToggleAvailability = async () => {
+  // Removed availability toggle - sellers are now always available
+
+  const handleEditItem = (itemId: string) => {
+    // Navigate to edit page (we'll create this)
+    navigate(`/edit-listing/${itemId}`);
+  };
+
+  const handleDeleteItem = async (itemId: string, itemName: string) => {
+    if (!window.confirm(`Are you sure you want to delete "${itemName}"? This action cannot be undone.`)) {
+      return;
+    }
+
     try {
-      console.log('🔄 SellerDashboard: Toggling availability...');
-      await toggleSellerAvailability();
+      await DrinkService.deleteDrink(itemId);
 
-      // Show success message
+      // Remove item from local state
+      setMenuItems(prev => prev.filter(item => item.id !== itemId));
+
       toast({
-        title: user.isOnline ? "You're now offline" : "You're now online",
-        description: user.isOnline ? "Customers won't see you in search results" : "Customers can now find and contact you",
+        title: "Item Deleted",
+        description: `${itemName} has been removed from your menu.`,
       });
-
-      console.log('✅ SellerDashboard: Availability toggled successfully');
     } catch (error: any) {
-      console.error('❌ SellerDashboard: Toggle availability error:', error);
-
-      // Show error message
       toast({
-        title: "Failed to toggle availability",
-        description: error.message || "Please try again or complete your seller profile first.",
+        title: "Failed to Delete Item",
+        description: error.message || "Please try again.",
         variant: "destructive",
       });
-
-      // If the error is about missing seller profile, offer to redirect
-      if (error.message?.includes('complete your seller profile')) {
-        setTimeout(() => {
-          toast({
-            title: "Complete your seller profile",
-            description: "Click here to complete your seller profile and start selling.",
-            action: (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate('/complete-profile')}
-              >
-                Complete Profile
-              </Button>
-            ),
-          });
-        }, 2000);
-      }
     }
   };
 
@@ -186,22 +175,16 @@ const SellerDashboard = () => {
             </div>
           </div>
 
-          {/* Availability Toggle and User Menu */}
+          {/* User Menu */}
           <div className="flex items-center gap-2 md:gap-4 shrink-0">
             <div className="flex items-center gap-2 md:gap-3">
               <span className="text-xs md:text-sm font-medium text-muted-foreground hidden md:inline">
-                {hasSellerProfile === false ? 'Incomplete' : (user.isOnline ? 'Online' : 'Offline')}
+                {hasSellerProfile === false ? 'Incomplete' : 'Always Available'}
               </span>
-              <Switch
-                checked={user.isOnline && hasSellerProfile !== false}
-                onCheckedChange={handleToggleAvailability}
-                disabled={hasSellerProfile === false}
-                className="data-[state=checked]:bg-green-500 disabled:opacity-50 scale-90 md:scale-100"
-              />
               <div className={`w-2 h-2 md:w-3 md:h-3 rounded-full ${
                 hasSellerProfile === false
                   ? 'bg-yellow-400'
-                  : (user.isOnline ? 'bg-green-500 animate-pulse' : 'bg-gray-400')
+                  : 'bg-green-500 animate-pulse'
               }`} />
             </div>
             {hasSellerProfile === false && (
@@ -425,6 +408,7 @@ const SellerDashboard = () => {
                   <Button
                     variant="outline"
                     size="sm"
+                    onClick={() => handleEditItem(item.id)}
                     className="flex-1 bg-white/80 border-gray-300 text-gray-700 hover:bg-coffee-50 hover:border-coffee-400 hover:text-coffee-700"
                   >
                     <Edit className="w-3 h-3 mr-1" />
@@ -433,6 +417,7 @@ const SellerDashboard = () => {
                   <Button
                     variant="outline"
                     size="sm"
+                    onClick={() => handleDeleteItem(item.id, item.name)}
                     className="bg-red-50 border-red-300 text-red-600 hover:bg-red-100 hover:border-red-400 hover:text-red-700"
                   >
                     <Trash2 className="w-3 h-3" />

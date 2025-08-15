@@ -45,7 +45,8 @@ export const signUp = async (email: string, password: string, userData?: {
     password,
     options: {
       ...(userData && { data: userData }),
-      emailRedirectTo: `${window.location.origin}/auth/callback?userType=${userType}`
+      // Remove email confirmation requirement
+      // emailRedirectTo: `${window.location.origin}/auth/callback?userType=${userType}`
     }
   });
 

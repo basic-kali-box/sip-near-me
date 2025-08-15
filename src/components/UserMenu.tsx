@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LogOut, User, Settings, ChevronDown, Coffee, LayoutDashboard } from 'lucide-react';
+import { LogOut, User, Settings, ChevronDown, Coffee, LayoutDashboard, Leaf } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -20,7 +20,7 @@ interface UserMenuProps {
 }
 
 export const UserMenu: React.FC<UserMenuProps> = ({ variant = 'desktop', className = '' }) => {
-  const { user, logout, isAuthenticated } = useUser();
+  const { user, logout, isAuthenticated, switchUserType } = useUser();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -28,6 +28,31 @@ export const UserMenu: React.FC<UserMenuProps> = ({ variant = 'desktop', classNa
   if (!isAuthenticated || !user) {
     return null;
   }
+
+  const handleSwitchUserType = async () => {
+    try {
+      const newUserType = user.userType === 'buyer' ? 'seller' : 'buyer';
+      await switchUserType(newUserType);
+
+      toast({
+        title: `Switched to ${newUserType}`,
+        description: `You are now a ${newUserType}. ${newUserType === 'seller' ? 'Complete your seller profile to start selling.' : 'You can now browse and order drinks.'}`,
+      });
+
+      // Navigate to appropriate page
+      if (newUserType === 'seller') {
+        navigate('/seller-dashboard');
+      } else {
+        navigate('/');
+      }
+    } catch (error: any) {
+      toast({
+        title: "Failed to switch user type",
+        description: error.message || "Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -129,6 +154,27 @@ export const UserMenu: React.FC<UserMenuProps> = ({ variant = 'desktop', classNa
           </Button>
         </div>
 
+        {/* User Type Switch Button */}
+        <div className="pt-2 border-t border-border/50">
+          <Button
+            variant="ghost"
+            onClick={handleSwitchUserType}
+            className="w-full justify-start py-3 font-medium hover:bg-primary/10 transition-all duration-300"
+          >
+            {user.userType === 'buyer' ? (
+              <>
+                <Leaf className="w-4 h-4 mr-3" />
+                Switch to Seller
+              </>
+            ) : (
+              <>
+                <Coffee className="w-4 h-4 mr-3" />
+                Switch to Buyer
+              </>
+            )}
+          </Button>
+        </div>
+
         {/* Sign Out Button */}
         <div className="pt-2 border-t border-border/50">
           <Button
@@ -202,11 +248,27 @@ export const UserMenu: React.FC<UserMenuProps> = ({ variant = 'desktop', classNa
           <Settings className="w-4 h-4 mr-2" />
           Settings
         </DropdownMenuItem>
-        
+
         <DropdownMenuSeparator />
-        
-        <DropdownMenuItem 
-          onClick={handleSignOut} 
+
+        <DropdownMenuItem onClick={handleSwitchUserType} className="cursor-pointer">
+          {user.userType === 'buyer' ? (
+            <>
+              <Leaf className="w-4 h-4 mr-2" />
+              Switch to Seller
+            </>
+          ) : (
+            <>
+              <Coffee className="w-4 h-4 mr-2" />
+              Switch to Buyer
+            </>
+          )}
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem
+          onClick={handleSignOut}
           disabled={isLoggingOut}
           className="cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50"
         >

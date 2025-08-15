@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/contexts/UserContext";
 import { DrinkService } from "@/services/drinkService";
+import { SellerService } from "@/services/sellerService";
 
 const AddListing = () => {
   const navigate = useNavigate();
@@ -31,27 +32,47 @@ const AddListing = () => {
 
   // Redirect if not authenticated or not a seller
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/auth');
-      return;
-    }
-    if (user?.userType !== 'seller') {
-      toast({
-        title: "Access Denied",
-        description: "Only sellers can add menu items.",
-        variant: "destructive",
-      });
-      navigate('/');
-      return;
-    }
-    if (!user?.businessName) {
-      toast({
-        title: "Complete Your Profile",
-        description: "Please complete your seller profile before adding menu items.",
-        variant: "destructive",
-      });
-      navigate('/complete-profile');
-      return;
+    const checkSellerProfile = async () => {
+      if (!isAuthenticated) {
+        navigate('/auth');
+        return;
+      }
+      if (user?.userType !== 'seller') {
+        toast({
+          title: "Access Denied",
+          description: "Only sellers can add menu items.",
+          variant: "destructive",
+        });
+        navigate('/');
+        return;
+      }
+
+      // Check if seller profile exists in database instead of relying on user context
+      try {
+        const sellerProfile = await SellerService.getSellerById(user.id);
+        if (!sellerProfile || !sellerProfile.business_name || !sellerProfile.address || !sellerProfile.phone) {
+          toast({
+            title: "Complete Your Profile",
+            description: "Please complete your seller profile before adding menu items.",
+            variant: "destructive",
+          });
+          navigate('/complete-profile');
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking seller profile:', error);
+        toast({
+          title: "Complete Your Profile",
+          description: "Please complete your seller profile before adding menu items.",
+          variant: "destructive",
+        });
+        navigate('/complete-profile');
+        return;
+      }
+    };
+
+    if (user) {
+      checkSellerProfile();
     }
   }, [isAuthenticated, user, navigate, toast]);
 

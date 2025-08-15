@@ -122,9 +122,7 @@ const SellerDetails = () => {
     window.location.href = `sms:${seller.phone}`;
   };
 
-  const handleStartOrder = () => {
-    navigate(`/order/${seller.id}`);
-  };
+  // Removed handleStartOrder - now using WhatsApp contact instead
 
   // Generate SEO data for this seller
   const sellerSEO = SEO_CONFIGS.seller(seller.business_name, seller.address);
@@ -217,22 +215,14 @@ const SellerDetails = () => {
         </Card>
 
         {/* Enhanced Action buttons */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <Button
-            onClick={handleStartOrder}
+            onClick={handleWhatsAppContact}
             className="bg-gradient-matcha hover:shadow-glow transition-all duration-300"
             size="lg"
           >
-            <ShoppingCart className="w-4 h-4 mr-2" />
-            Order Now
-          </Button>
-          <Button
-            onClick={handleWhatsAppContact}
-            className="bg-green-600 hover:bg-green-700 hover:shadow-glow transition-all duration-300"
-            size="lg"
-          >
             <MessageCircle className="w-4 h-4 mr-2" />
-            WhatsApp
+            Contact via WhatsApp
           </Button>
           <Button
             onClick={handleCall}

@@ -245,25 +245,42 @@ export async function reverseGeocode(latitude: number, longitude: number): Promi
 export function getCurrentLocation(): Promise<Coordinates> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
+      console.warn('Geolocation is not supported by this browser');
       reject(new Error('Geolocation is not supported by this browser'));
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        console.log('✅ Geolocation success:', position.coords.latitude, position.coords.longitude);
         resolve({
           latitude: position.coords.latitude,
           longitude: position.coords.longitude
         });
       },
       (error) => {
-        console.warn('Geolocation error:', error);
-        // Return default coordinates instead of rejecting
-        resolve(DEFAULT_COORDINATES.default);
+        console.warn('❌ Geolocation error:', error.message, 'Code:', error.code);
+
+        // Handle different error types appropriately
+        if (error.code === error.PERMISSION_DENIED) {
+          console.log('🚫 User denied geolocation permission, using default coordinates');
+          resolve(DEFAULT_COORDINATES.default);
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          console.log('📍 Position unavailable (common in production), using default coordinates');
+          // In production, position unavailable is common, so fallback gracefully
+          resolve(DEFAULT_COORDINATES.default);
+        } else if (error.code === error.TIMEOUT) {
+          console.log('⏰ Geolocation timeout, using default coordinates');
+          resolve(DEFAULT_COORDINATES.default);
+        } else {
+          // Unknown error, still fallback to default
+          console.log('❓ Unknown geolocation error, using default coordinates');
+          resolve(DEFAULT_COORDINATES.default);
+        }
       },
       {
         enableHighAccuracy: true,
-        timeout: 10000,
+        timeout: 15000, // Increased timeout to 15 seconds
         maximumAge: 300000 // 5 minutes
       }
     );
