@@ -1,0 +1,274 @@
+/* RTL (Right-to-Left) Support for Arabic */
+
+/* Base RTL styles */
+[dir="rtl"] {
+  text-align: right;
+}
+
+[dir="rtl"] body {
+  font-family: 'Segoe UI', 'Tahoma', 'Arial', sans-serif;
+}
+
+/* Flexbox direction adjustments */
+[dir="rtl"] .flex {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .flex-col {
+  flex-direction: column;
+}
+
+[dir="rtl"] .flex-row {
+  flex-direction: row-reverse;
+}
+
+/* Margin and padding adjustments */
+[dir="rtl"] .ml-2 { margin-left: 0; margin-right: 0.5rem; }
+[dir="rtl"] .mr-2 { margin-right: 0; margin-left: 0.5rem; }
+[dir="rtl"] .ml-3 { margin-left: 0; margin-right: 0.75rem; }
+[dir="rtl"] .mr-3 { margin-right: 0; margin-left: 0.75rem; }
+[dir="rtl"] .ml-4 { margin-left: 0; margin-right: 1rem; }
+[dir="rtl"] .mr-4 { margin-right: 0; margin-left: 1rem; }
+
+[dir="rtl"] .pl-2 { padding-left: 0; padding-right: 0.5rem; }
+[dir="rtl"] .pr-2 { padding-right: 0; padding-left: 0.5rem; }
+[dir="rtl"] .pl-3 { padding-left: 0; padding-right: 0.75rem; }
+[dir="rtl"] .pr-3 { padding-right: 0; padding-left: 0.75rem; }
+[dir="rtl"] .pl-4 { padding-left: 0; padding-right: 1rem; }
+[dir="rtl"] .pr-4 { padding-right: 0; padding-left: 1rem; }
+[dir="rtl"] .pl-10 { padding-left: 0; padding-right: 2.5rem; }
+
+/* Border radius adjustments */
+[dir="rtl"] .rounded-l { border-radius: 0 0.375rem 0.375rem 0; }
+[dir="rtl"] .rounded-r { border-radius: 0.375rem 0 0 0.375rem; }
+[dir="rtl"] .rounded-tl { border-top-left-radius: 0; border-top-right-radius: 0.375rem; }
+[dir="rtl"] .rounded-tr { border-top-right-radius: 0; border-top-left-radius: 0.375rem; }
+[dir="rtl"] .rounded-bl { border-bottom-left-radius: 0; border-bottom-right-radius: 0.375rem; }
+[dir="rtl"] .rounded-br { border-bottom-right-radius: 0; border-bottom-left-radius: 0.375rem; }
+
+/* Position adjustments */
+[dir="rtl"] .left-0 { left: auto; right: 0; }
+[dir="rtl"] .right-0 { right: auto; left: 0; }
+[dir="rtl"] .left-2 { left: auto; right: 0.5rem; }
+[dir="rtl"] .right-2 { right: auto; left: 0.5rem; }
+[dir="rtl"] .left-3 { left: auto; right: 0.75rem; }
+[dir="rtl"] .right-3 { right: auto; left: 0.75rem; }
+[dir="rtl"] .left-4 { left: auto; right: 1rem; }
+[dir="rtl"] .right-4 { right: auto; left: 1rem; }
+[dir="rtl"] .left-6 { left: auto; right: 1.5rem; }
+[dir="rtl"] .right-6 { right: auto; left: 1.5rem; }
+
+/* Text alignment */
+[dir="rtl"] .text-left { text-align: right; }
+[dir="rtl"] .text-right { text-align: left; }
+
+/* Transform adjustments for icons */
+[dir="rtl"] .transform.rotate-180 {
+  transform: rotate(0deg);
+}
+
+[dir="rtl"] .transform.-rotate-180 {
+  transform: rotate(180deg);
+}
+
+/* Specific component adjustments */
+[dir="rtl"] .sidebar {
+  right: 0;
+  left: auto;
+}
+
+[dir="rtl"] .dropdown-menu {
+  right: 0;
+  left: auto;
+}
+
+/* Search input icon positioning */
+[dir="rtl"] .search-icon {
+  left: auto;
+  right: 0.75rem;
+}
+
+/* Button icon spacing */
+[dir="rtl"] .btn-icon-left {
+  margin-left: 0;
+  margin-right: 0.5rem;
+}
+
+[dir="rtl"] .btn-icon-right {
+  margin-right: 0;
+  margin-left: 0.5rem;
+}
+
+/* Card layouts */
+[dir="rtl"] .card-content {
+  text-align: right;
+}
+
+/* Navigation adjustments */
+[dir="rtl"] .nav-item {
+  text-align: right;
+}
+
+/* Form adjustments */
+[dir="rtl"] .form-label {
+  text-align: right;
+}
+
+[dir="rtl"] .form-input {
+  text-align: right;
+}
+
+/* Grid adjustments for RTL */
+[dir="rtl"] .grid-flow-col {
+  grid-auto-flow: column reverse;
+}
+
+/* Floating action button positioning */
+[dir="rtl"] .fab-bottom-right {
+  right: auto;
+  left: 1.5rem;
+}
+
+/* Toast positioning */
+[dir="rtl"] .toast-container {
+  right: auto;
+  left: 1rem;
+}
+
+/* Breadcrumb separators */
+[dir="rtl"] .breadcrumb-separator::before {
+  content: "\\";
+  transform: scaleX(-1);
+}
+
+/* Arrow icons */
+[dir="rtl"] .arrow-left {
+  transform: scaleX(-1);
+}
+
+[dir="rtl"] .arrow-right {
+  transform: scaleX(-1);
+}
+
+/* Specific adjustments for common UI patterns */
+[dir="rtl"] .justify-between {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .space-x-2 > * + * {
+  margin-left: 0;
+  margin-right: 0.5rem;
+}
+
+[dir="rtl"] .space-x-3 > * + * {
+  margin-left: 0;
+  margin-right: 0.75rem;
+}
+
+[dir="rtl"] .space-x-4 > * + * {
+  margin-left: 0;
+  margin-right: 1rem;
+}
+
+/* Menu and dropdown positioning */
+[dir="rtl"] .menu-right {
+  right: auto;
+  left: 0;
+}
+
+[dir="rtl"] .menu-left {
+  left: auto;
+  right: 0;
+}
+
+/* Image and media adjustments */
+[dir="rtl"] .object-left {
+  object-position: right;
+}
+
+[dir="rtl"] .object-right {
+  object-position: left;
+}
+
+/* Scrollbar adjustments */
+[dir="rtl"] .overflow-x-auto {
+  direction: rtl;
+}
+
+[dir="rtl"] .overflow-y-auto {
+  direction: rtl;
+}
+
+/* Table adjustments */
+[dir="rtl"] table {
+  direction: rtl;
+}
+
+[dir="rtl"] th,
+[dir="rtl"] td {
+  text-align: right;
+}
+
+/* List adjustments */
+[dir="rtl"] ul,
+[dir="rtl"] ol {
+  padding-left: 0;
+  padding-right: 1.5rem;
+}
+
+/* Badge and tag positioning */
+[dir="rtl"] .badge-top-left {
+  left: auto;
+  right: 0.5rem;
+}
+
+[dir="rtl"] .badge-top-right {
+  right: auto;
+  left: 0.5rem;
+}
+
+/* Animation adjustments */
+[dir="rtl"] .slide-in-left {
+  animation: slideInRight 0.3s ease-out;
+}
+
+[dir="rtl"] .slide-in-right {
+  animation: slideInLeft 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  [dir="rtl"] .mobile-menu {
+    right: 0;
+    left: auto;
+  }
+  
+  [dir="rtl"] .mobile-search {
+    text-align: right;
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  [dir="rtl"] .dark-mode-text {
+    text-align: right;
+  }
+}

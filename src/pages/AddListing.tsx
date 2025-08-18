@@ -151,9 +151,34 @@ const AddListing = () => {
       const newDrink = await DrinkService.createDrink(drinkData);
       console.log('✅ Menu item created successfully:', newDrink.id);
 
-      // TODO: Upload image if provided
+      // Upload image if provided
       if (formData.image) {
-        console.log('📸 Image upload will be implemented in future update');
+        try {
+          console.log('📸 Uploading image...', {
+            fileName: formData.image.name,
+            fileSize: formData.image.size,
+            fileType: formData.image.type,
+            drinkId: newDrink.id
+          });
+          const photoUrl = await DrinkService.uploadDrinkPhoto(newDrink.id, formData.image);
+          console.log('✅ Image uploaded successfully:', photoUrl);
+        } catch (imageError) {
+          console.error('❌ Image upload failed:', imageError);
+          console.error('Image upload context:', {
+            drinkId: newDrink.id,
+            fileName: formData.image.name,
+            fileSize: formData.image.size,
+            fileType: formData.image.type,
+          });
+
+          // Don't fail the entire operation if image upload fails
+          const errorMessage = imageError instanceof Error ? imageError.message : 'Unknown error';
+          toast({
+            title: "⚠️ Image Upload Warning",
+            description: `Menu item created but image upload failed: ${errorMessage}. You can add an image later.`,
+            variant: "destructive",
+          });
+        }
       }
 
       toast({

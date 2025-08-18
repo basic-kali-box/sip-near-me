@@ -2,8 +2,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Link, useNavigate } from "react-router-dom";
 import { UserProvider, useUser } from "./contexts/UserContext";
+import { LanguageProvider } from "./contexts/LanguageContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { useEffect } from "react";
 import { initGA, trackPageView, initScrollTracking, trackWebVitals } from "@/utils/analytics";
@@ -24,7 +25,9 @@ import {
   SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Home, Plus, LayoutDashboard, ShoppingBag, User as UserIcon, Settings as SettingsIcon, HelpCircle, Droplets, LogOut } from "lucide-react";
+import { Home, Plus, LayoutDashboard, ShoppingBag, User as UserIcon, Settings as SettingsIcon, HelpCircle, Droplets, LogOut, Coffee, Leaf, ArrowRightLeft, Store } from "lucide-react";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useToast } from "@/hooks/use-toast";
 import Index from "./pages/Index";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
@@ -38,6 +41,7 @@ import EditListing from "./pages/EditListing";
 import SellerDetails from "./pages/SellerDetails";
 import SellerDashboard from "./pages/SellerDashboard";
 import OrderFlow from "./pages/OrderFlow";
+import ItemDetail from "./pages/ItemDetail";
 import Profile from "./pages/Profile";
 import OrderHistory from "./pages/OrderHistory";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -47,6 +51,8 @@ import ResetPassword from "./pages/ResetPassword";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import LocationPickerDemo from "./pages/LocationPickerDemo";
+import ItemCardDemo from "./pages/ItemCardDemo";
+import ImageUploadDebug from "./pages/ImageUploadDebug";
 import DebugData from "./pages/DebugData";
 import NotFound from "./pages/NotFound";
 
@@ -54,7 +60,10 @@ const queryClient = new QueryClient();
 
 function SidebarNavContent() {
   const { isMobile, setOpenMobile } = useSidebar()
-  const { user, isAuthenticated, logout } = useUser()
+  const { user, isAuthenticated, logout, switchUserType } = useUser()
+  const navigate = useNavigate()
+  const { toast } = useToast()
+
   const handleNavigate = () => {
     if (isMobile) setOpenMobile(false)
   }
@@ -66,6 +75,35 @@ function SidebarNavContent() {
       // Redirect will be handled by the logout function
     } catch (error) {
       console.error('Signout error:', error)
+    }
+  }
+
+  const handleSwitchUserType = async () => {
+    if (!user) return
+
+    try {
+      const newUserType = user.userType === 'buyer' ? 'seller' : 'buyer'
+      await switchUserType(newUserType)
+
+      if (isMobile) setOpenMobile(false)
+
+      toast({
+        title: `Switched to ${newUserType}`,
+        description: `You are now a ${newUserType}. ${newUserType === 'seller' ? 'Complete your seller profile to start selling.' : 'You can now browse and order drinks.'}`,
+      })
+
+      // Navigate to appropriate page
+      if (newUserType === 'seller') {
+        navigate('/seller-dashboard')
+      } else {
+        navigate('/app')
+      }
+    } catch (error: any) {
+      toast({
+        title: "Failed to switch user type",
+        description: error.message || "Please try again.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -159,6 +197,38 @@ function SidebarNavContent() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            {isAuthenticated && user && (
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={handleSwitchUserType}
+                  className="group relative overflow-hidden bg-gradient-to-r from-transparent via-primary/5 to-transparent hover:from-primary/10 hover:via-primary/15 hover:to-primary/10 border border-primary/20 hover:border-primary/40 transition-all duration-500 hover:shadow-md py-3 my-1"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                  <div className="relative flex items-center w-full">
+                    <div className={`p-1.5 rounded-md mr-3 transition-all duration-300 ${
+                      user.userType === 'buyer'
+                        ? 'bg-green-100 text-green-700 group-hover:bg-green-200'
+                        : 'bg-amber-100 text-amber-700 group-hover:bg-amber-200'
+                    }`}>
+                      {user.userType === 'buyer' ? (
+                        <Store className="w-4 h-4" />
+                      ) : (
+                        <ShoppingBag className="w-4 h-4" />
+                      )}
+                    </div>
+                    <div className="flex-1 text-left">
+                      <div className="font-semibold text-sm">
+                        {user.userType === 'buyer' ? 'Switch to Seller' : 'Switch to Buyer'}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {user.userType === 'buyer' ? 'Start selling' : 'Browse drinks'}
+                      </div>
+                    </div>
+                    <ArrowRightLeft className="w-4 h-4 text-primary group-hover:scale-110 transition-transform duration-300" />
+                  </div>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
             {isAuthenticated && (
               <SidebarMenuItem>
                 <SidebarMenuButton onClick={handleSignOut} className="text-red-600 hover:text-red-700 hover:bg-red-50">
@@ -174,7 +244,10 @@ function SidebarNavContent() {
       <SidebarSeparator />
 
       <SidebarFooter>
-        <div className="px-2 text-xs text-muted-foreground">v1.0 • 12rem compact</div>
+        <div className="flex items-center justify-between px-2 py-2">
+          <div className="text-xs text-muted-foreground">v1.0</div>
+          <LanguageSwitcher variant="ghost" size="sm" />
+        </div>
       </SidebarFooter>
     </>
   )
@@ -192,11 +265,12 @@ const App = () => {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <UserProvider>
-            <Toaster />
-            <Sonner />
-            <Analytics />
-            <BrowserRouter>
+          <LanguageProvider>
+            <UserProvider>
+              <Toaster />
+              <Sonner />
+              <Analytics />
+              <BrowserRouter>
             <ErrorBoundary>
               <SidebarProvider defaultOpen={false}>
                 <Sidebar collapsible="offcanvas">
@@ -231,6 +305,7 @@ const App = () => {
                       </ProtectedRoute>
                     } />
                     <Route path="/seller/:id" element={<SellerDetails />} />
+                    <Route path="/item/:itemId" element={<ItemDetail />} />
                     <Route path="/seller-dashboard" element={
                       <ProtectedRoute requireAuth={true} requireUserType="seller">
                         <SellerDashboard />
@@ -256,6 +331,8 @@ const App = () => {
                     <Route path="/terms" element={<Terms />} />
                     <Route path="/privacy" element={<Privacy />} />
                     <Route path="/location-demo" element={<LocationPickerDemo />} />
+                    <Route path="/itemcard-demo" element={<ItemCardDemo />} />
+                    <Route path="/image-debug" element={<ImageUploadDebug />} />
                     <Route path="/debug-data" element={<DebugData />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
@@ -264,10 +341,11 @@ const App = () => {
               </SidebarProvider>
             </ErrorBoundary>
           </BrowserRouter>
-        </UserProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </ErrorBoundary>
+            </UserProvider>
+          </LanguageProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 };
 

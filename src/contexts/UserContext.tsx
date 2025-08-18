@@ -20,7 +20,6 @@ export interface User {
   rating?: number;
   reviewCount?: number;
   // Buyer-specific fields
-  favoriteSellerIds?: string[];
   orderHistory?: string[];
 }
 
@@ -200,7 +199,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       name: userData.name || '',
       phone: userData.phone || '',
       userType: userData.user_type || 'buyer',
-      profileImage: userData.avatar_url || undefined,
+      profileImage: userData.user_type === 'seller' ? (sellerDetails?.photo_url || userData.avatar_url) : userData.avatar_url || undefined,
       businessName: sellerDetails?.business_name || undefined,
       businessAddress: sellerDetails?.address || undefined,
       businessHours: sellerDetails?.hours || undefined,
@@ -371,9 +370,21 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       console.log('❌ No auth user or session received');
       return false;
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Login error:', error);
-      return false;
+
+      // Handle specific error cases
+      if (error.message?.includes('Email not confirmed')) {
+        console.error('❌ Email confirmation required. Please disable email confirmation in Supabase Dashboard → Authentication → Settings');
+        throw new Error('Email confirmation is required. Please check your email or contact support to disable email confirmation.');
+      }
+
+      if (error.message?.includes('Invalid login credentials')) {
+        throw new Error('Invalid email or password. Please check your credentials and try again.');
+      }
+
+      // Re-throw the error so it can be handled by the UI
+      throw error;
     }
   };
 
@@ -450,6 +461,25 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Registration failed. Please try again.');
     } catch (error: any) {
       console.error('❌ Registration error:', error);
+
+      // Handle specific error cases
+      if (error.message?.includes('Email not confirmed')) {
+        throw new Error('Email confirmation is enabled in Supabase. Please disable it in Authentication → Settings or check your email.');
+      }
+
+      if (error.message?.includes('User already registered')) {
+        throw new Error('An account with this email already exists. Please sign in instead.');
+      }
+
+      if (error.message?.includes('Invalid email')) {
+        throw new Error('Please enter a valid email address.');
+      }
+
+      if (error.message?.includes('Password')) {
+        throw new Error('Password must be at least 6 characters long.');
+      }
+
+      // Re-throw the original error
       throw error;
     }
   };

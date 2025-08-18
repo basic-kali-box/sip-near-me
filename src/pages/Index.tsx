@@ -7,7 +7,7 @@ import { UserMenu } from "@/components/UserMenu";
 
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/components/ui/sidebar";
-import type { SellerCardSeller } from "@/components/SellerCard";
+import type { ItemCardItem } from "@/components/ItemCard";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@/contexts/UserContext";
 import { getCurrentLocation, reverseGeocode } from "@/utils/geocoding";
@@ -82,8 +82,8 @@ const Index = () => {
 
 
 
-  const handleStartOrder = (seller: SellerCardSeller) => {
-    navigate(`/order/${seller.id}`);
+  const handleStartOrder = (item: ItemCardItem) => {
+    navigate(`/order/${item.seller_id}?item=${item.id}`);
   };
 
   const renderActiveView = () => {
@@ -337,8 +337,19 @@ const Index = () => {
       </header>
 
       {/* Main content */}
-      <main className="flex flex-col h-screen md:h-[calc(100vh-80px)]">
+      <main className="flex flex-col h-screen md:h-[calc(100vh-80px)] relative">
         {renderActiveView()}
+
+        {/* Floating Action Button for Sellers in List View */}
+        {isAuthenticated && user?.userType === 'seller' && activeTab === 'list' && (
+          <Button
+            onClick={() => navigate('/add-listing')}
+            className="fixed bottom-20 md:bottom-6 right-6 h-14 px-6 rounded-full bg-emerald-500 hover:bg-emerald-600 shadow-xl text-white flex items-center justify-center gap-2 z-30 transform transition-transform hover:scale-105"
+          >
+            <Plus className="w-5 h-5" />
+            <span className="font-medium">Add Item</span>
+          </Button>
+        )}
       </main>
 
       {/* Bottom navigation for mobile */}

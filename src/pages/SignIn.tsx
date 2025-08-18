@@ -90,11 +90,11 @@ const SignIn = () => {
           description: `Signed in as ${formData.userType === 'seller' ? 'seller' : 'buyer'}.`,
         });
 
-        // Navigate to returnTo URL if provided, otherwise use default navigation
+        // Navigate to returnTo URL if provided, otherwise redirect to /app for all users
         if (returnTo) {
           navigate(decodeURIComponent(returnTo));
         } else {
-          navigate(formData.userType === 'seller' ? '/seller-dashboard' : '/app');
+          navigate('/app');
         }
       } else {
         console.log('❌ SignIn: Login failed');

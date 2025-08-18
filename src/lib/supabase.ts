@@ -8,6 +8,7 @@ const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '750298159534-05
 console.log('🔧 Supabase Config Check:');
 console.log('  URL:', supabaseUrl ? '✅ Set' : '❌ Missing');
 console.log('  Key:', supabaseAnonKey ? '✅ Set' : '❌ Missing');
+console.log('⚠️ Email Confirmation: Should be DISABLED in Supabase Dashboard → Authentication → Settings');
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('❌ Missing Supabase environment variables!');
@@ -45,8 +46,13 @@ export const signUp = async (email: string, password: string, userData?: {
     password,
     options: {
       ...(userData && { data: userData }),
-      // Remove email confirmation requirement
-      // emailRedirectTo: `${window.location.origin}/auth/callback?userType=${userType}`
+      // Disable email confirmation requirement
+      emailRedirectTo: undefined,
+      // This will skip email confirmation if the Supabase project allows it
+      data: {
+        ...userData,
+        email_confirm: false
+      }
     }
   });
 
@@ -60,7 +66,17 @@ export const signIn = async (email: string, password: string) => {
     password
   });
 
-  if (error) throw error;
+  // Handle email not confirmed error
+  if (error) {
+    if (error.message.includes('Email not confirmed')) {
+      console.error('❌ EMAIL CONFIRMATION ERROR');
+      console.error('📋 TO FIX: Go to Supabase Dashboard → Authentication → Settings');
+      console.error('🔧 DISABLE: "Enable email confirmations" toggle');
+      console.error('📖 DOCS: See docs/DISABLE_EMAIL_CONFIRMATION.md for detailed steps');
+      throw new Error('Email confirmation is required. Please check your email or contact support.');
+    }
+    throw error;
+  }
   return data;
 };
 

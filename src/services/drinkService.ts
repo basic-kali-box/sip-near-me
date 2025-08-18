@@ -110,7 +110,8 @@ export class DrinkService {
   static async uploadDrinkPhoto(drinkId: string, file: File): Promise<string> {
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${drinkId}.${fileExt}`;
+      const timestamp = Date.now();
+      const fileName = `${drinkId}-${timestamp}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('drink-photos')
@@ -122,10 +123,13 @@ export class DrinkService {
         .from('drink-photos')
         .getPublicUrl(fileName);
 
-      // Update drink with photo URL
-      await this.updateDrink(drinkId, { photo_url: data.publicUrl });
+      // Add cache-busting parameter to the URL
+      const photoUrlWithCacheBust = `${data.publicUrl}?t=${timestamp}`;
 
-      return data.publicUrl;
+      // Update drink with photo URL
+      await this.updateDrink(drinkId, { photo_url: photoUrlWithCacheBust });
+
+      return photoUrlWithCacheBust;
     } catch (error) {
       throw new Error(handleSupabaseError(error));
     }

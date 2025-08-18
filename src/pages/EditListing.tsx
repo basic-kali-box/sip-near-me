@@ -219,9 +219,21 @@ const EditListing = () => {
       await DrinkService.updateDrink(itemId, drinkData);
       console.log('✅ Menu item updated successfully');
 
-      // TODO: Upload new image if provided
+      // Upload new image if provided
       if (formData.image) {
-        console.log('📸 Image upload will be implemented in future update');
+        try {
+          console.log('📸 Uploading new image...');
+          const photoUrl = await DrinkService.uploadDrinkPhoto(itemId, formData.image);
+          console.log('✅ Image uploaded successfully:', photoUrl);
+        } catch (imageError) {
+          console.error('❌ Image upload failed:', imageError);
+          // Don't fail the entire operation if image upload fails
+          toast({
+            title: "⚠️ Image Upload Warning",
+            description: "Menu item updated but image upload failed. Please try again.",
+            variant: "destructive",
+          });
+        }
       }
 
       toast({

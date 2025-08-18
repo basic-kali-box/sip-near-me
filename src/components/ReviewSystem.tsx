@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Star, User, ThumbsUp, MessageSquare, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/contexts/UserContext";
+import { RatingService } from "@/services/ratingService";
 
 interface Review {
   id: string;
@@ -43,6 +44,8 @@ export const ReviewSystem = ({
     comment: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [actualReviews, setActualReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Mock reviews for demonstration
   const mockReviews: Review[] = [
@@ -78,7 +81,36 @@ export const ReviewSystem = ({
     }
   ];
 
-  const displayReviews = reviews.length > 0 ? reviews : mockReviews;
+  // Load reviews on component mount
+  useEffect(() => {
+    const loadReviews = async () => {
+      try {
+        setLoading(true);
+        const ratings = await RatingService.getSellerRatings(sellerId);
+        const formattedReviews: Review[] = ratings.map(rating => ({
+          id: rating.id,
+          userId: rating.buyer_id,
+          userName: rating.buyer?.name || 'Anonymous',
+          rating: rating.rating,
+          comment: rating.comment || '',
+          date: rating.created_at.split('T')[0],
+          helpful: 0, // This would need to be implemented separately
+          orderItems: rating.order_items || []
+        }));
+        setActualReviews(formattedReviews);
+      } catch (error) {
+        console.error('Failed to load reviews:', error);
+        // Fall back to mock reviews if there's an error
+        setActualReviews(mockReviews);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadReviews();
+  }, [sellerId]);
+
+  const displayReviews = actualReviews.length > 0 ? actualReviews : mockReviews;
 
   const handleStarClick = (rating: number) => {
     setNewReview(prev => ({ ...prev, rating }));
@@ -106,11 +138,20 @@ export const ReviewSystem = ({
     setIsSubmitting(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Submit review to database
+      const ratingData = {
+        buyer_id: user.id,
+        seller_id: sellerId,
+        rating: newReview.rating,
+        comment: newReview.comment,
+        order_items: [] // This could be populated if we track order items
+      };
 
+      const savedRating = await RatingService.submitRating(ratingData);
+
+      // Create review object for local state
       const review: Review = {
-        id: Date.now().toString(),
+        id: savedRating.id,
         userId: user.id,
         userName: user.name,
         rating: newReview.rating,
@@ -118,6 +159,9 @@ export const ReviewSystem = ({
         date: new Date().toISOString().split('T')[0],
         helpful: 0
       };
+
+      // Add to local state immediately
+      setActualReviews(prev => [review, ...prev]);
 
       onReviewSubmitted?.(review);
 
@@ -129,6 +173,7 @@ export const ReviewSystem = ({
       setNewReview({ rating: 0, comment: '' });
       setShowReviewForm(false);
     } catch (error) {
+      console.error('Failed to submit review:', error);
       toast({
         title: "Failed to submit review",
         description: "Please try again later",

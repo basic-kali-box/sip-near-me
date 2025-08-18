@@ -223,7 +223,7 @@ const CompleteProfile: React.FC = () => {
             specialty: formData.specialty,
             hours: formData.businessHours?.trim() || 'Mon-Fri: 9AM-5PM',
             description: formData.description?.trim() || null,
-            is_available: false, // Start as offline
+            is_available: true, // Start as available
             rating_average: 0,
             rating_count: 0,
             // Use coordinates from address input or fallback to geocoding
@@ -256,12 +256,8 @@ const CompleteProfile: React.FC = () => {
 
       // Small delay to show the toast before navigation
       setTimeout(() => {
-        // Redirect based on user type
-        if (userType === 'seller') {
-          navigate('/seller-dashboard');
-        } else {
-          navigate('/app'); // Redirect buyers to /app instead of landing page
-        }
+        // Redirect both sellers and buyers to /app with list view as default
+        navigate('/app');
       }, 1000);
 
     } catch (error: any) {

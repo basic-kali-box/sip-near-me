@@ -52,6 +52,17 @@ export class RatingService {
   // Create or update rating
   static async submitRating(ratingData: RatingInsert): Promise<Rating> {
     try {
+      // Ensure we have a valid authenticated user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        throw new Error('Authentication required to submit rating');
+      }
+
+      // Verify the buyer_id matches the authenticated user
+      if (ratingData.buyer_id !== user.id) {
+        throw new Error('You can only submit ratings for yourself');
+      }
+
       // Check if rating already exists
       const existingRating = await this.getRatingByBuyerAndSeller(
         ratingData.buyer_id,
@@ -65,19 +76,26 @@ export class RatingService {
           .update({
             rating: ratingData.rating,
             comment: ratingData.comment,
-            order_items: ratingData.order_items
+            order_items: ratingData.order_items,
+            created_at: new Date().toISOString() // Update timestamp
           })
           .eq('id', existingRating.id)
+          .eq('buyer_id', user.id) // Additional security check
           .select()
           .single();
 
         if (error) throw error;
         return data;
       } else {
-        // Create new rating
+        // Create new rating with explicit timestamp
+        const insertData = {
+          ...ratingData,
+          created_at: new Date().toISOString()
+        };
+
         const { data, error } = await supabase
           .from('ratings')
-          .insert(ratingData)
+          .insert(insertData)
           .select()
           .single();
 

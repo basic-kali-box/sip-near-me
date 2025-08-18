@@ -85,11 +85,9 @@ const AuthCallback: React.FC = () => {
               return;
             }
 
-            // Redirect to stored returnTo URL if available, otherwise use default navigation
+            // Redirect to stored returnTo URL if available, otherwise redirect to /app for all users
             if (storedReturnTo) {
               navigate(decodeURIComponent(storedReturnTo));
-            } else if (userProfile.user_type === 'seller') {
-              navigate('/seller-dashboard');
             } else {
               navigate('/app');
             }

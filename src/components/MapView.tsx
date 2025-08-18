@@ -718,8 +718,8 @@ export const MapView = ({ className }: MapViewProps) => {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  // Open in external maps app
-                  const url = `https://www.google.com/maps/dir/?api=1&destination=${selectedSeller.name}`;
+                  // Open in external maps app with exact coordinates
+                  const url = `https://www.google.com/maps/dir/?api=1&destination=${selectedSeller.latitude},${selectedSeller.longitude}`;
                   window.open(url, '_blank');
                 }}
                 className="text-xs"

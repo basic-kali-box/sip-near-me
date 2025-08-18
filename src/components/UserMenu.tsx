@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LogOut, User, Settings, ChevronDown, Coffee, LayoutDashboard, Leaf } from 'lucide-react';
+import { LogOut, User, Settings, ChevronDown, Coffee, LayoutDashboard, Leaf, ArrowRightLeft, Store, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -43,7 +43,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ variant = 'desktop', classNa
       if (newUserType === 'seller') {
         navigate('/seller-dashboard');
       } else {
-        navigate('/');
+        navigate('/app');
       }
     } catch (error: any) {
       toast({
@@ -154,24 +154,38 @@ export const UserMenu: React.FC<UserMenuProps> = ({ variant = 'desktop', classNa
           </Button>
         </div>
 
-        {/* User Type Switch Button */}
+        {/* Enhanced User Type Switch Button */}
         <div className="pt-2 border-t border-border/50">
           <Button
             variant="ghost"
             onClick={handleSwitchUserType}
-            className="w-full justify-start py-3 font-medium hover:bg-primary/10 transition-all duration-300"
+            className="w-full justify-start py-4 font-semibold text-left group relative overflow-hidden bg-gradient-to-r from-transparent via-primary/5 to-transparent hover:from-primary/10 hover:via-primary/15 hover:to-primary/10 border border-primary/20 hover:border-primary/40 transition-all duration-500 hover:shadow-lg hover:scale-[1.02]"
           >
-            {user.userType === 'buyer' ? (
-              <>
-                <Leaf className="w-4 h-4 mr-3" />
-                Switch to Seller
-              </>
-            ) : (
-              <>
-                <Coffee className="w-4 h-4 mr-3" />
-                Switch to Buyer
-              </>
-            )}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <div className="relative flex items-center w-full">
+              <div className="flex items-center gap-3 flex-1">
+                <div className={`p-2 rounded-lg transition-all duration-300 ${
+                  user.userType === 'buyer'
+                    ? 'bg-green-100 text-green-700 group-hover:bg-green-200'
+                    : 'bg-amber-100 text-amber-700 group-hover:bg-amber-200'
+                }`}>
+                  {user.userType === 'buyer' ? (
+                    <Store className="w-4 h-4" />
+                  ) : (
+                    <ShoppingBag className="w-4 h-4" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-semibold">
+                    {user.userType === 'buyer' ? 'Switch to Seller' : 'Switch to Buyer'}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {user.userType === 'buyer' ? 'Start selling your drinks' : 'Browse and order drinks'}
+                  </div>
+                </div>
+              </div>
+              <ArrowRightLeft className="w-4 h-4 text-primary group-hover:scale-110 transition-transform duration-300" />
+            </div>
           </Button>
         </div>
 
@@ -251,18 +265,32 @@ export const UserMenu: React.FC<UserMenuProps> = ({ variant = 'desktop', classNa
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem onClick={handleSwitchUserType} className="cursor-pointer">
-          {user.userType === 'buyer' ? (
-            <>
-              <Leaf className="w-4 h-4 mr-2" />
-              Switch to Seller
-            </>
-          ) : (
-            <>
-              <Coffee className="w-4 h-4 mr-2" />
-              Switch to Buyer
-            </>
-          )}
+        <DropdownMenuItem
+          onClick={handleSwitchUserType}
+          className="cursor-pointer p-3 group hover:bg-gradient-to-r hover:from-primary/10 hover:to-primary/5 transition-all duration-300"
+        >
+          <div className="flex items-center w-full">
+            <div className={`p-1.5 rounded-md mr-3 transition-all duration-300 ${
+              user.userType === 'buyer'
+                ? 'bg-green-100 text-green-700 group-hover:bg-green-200'
+                : 'bg-amber-100 text-amber-700 group-hover:bg-amber-200'
+            }`}>
+              {user.userType === 'buyer' ? (
+                <Store className="w-4 h-4" />
+              ) : (
+                <ShoppingBag className="w-4 h-4" />
+              )}
+            </div>
+            <div className="flex-1">
+              <div className="font-medium">
+                {user.userType === 'buyer' ? 'Switch to Seller' : 'Switch to Buyer'}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {user.userType === 'buyer' ? 'Start selling your drinks' : 'Browse and order drinks'}
+              </div>
+            </div>
+            <ArrowRightLeft className="w-4 h-4 text-primary group-hover:scale-110 transition-transform duration-300" />
+          </div>
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />

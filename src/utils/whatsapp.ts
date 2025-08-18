@@ -107,6 +107,36 @@ export const createQuickContactMessage = (seller: Seller, customerName?: string)
 };
 
 /**
+ * Creates a product interest message for specific items
+ */
+export const createProductInterestMessage = (
+  productName: string,
+  price: number,
+  sellerSpecialty: string,
+  customerName?: string
+): string => {
+  const lines = [
+    `🍵 Hi! I'm interested in ordering "${productName}" (${price.toFixed(2)} Dh) from your ${sellerSpecialty} business.`,
+    ``,
+    `Could you please confirm:`,
+    `• Current availability`,
+    `• Pickup/delivery options`,
+    `• Estimated preparation time`,
+    ``,
+  ];
+
+  if (customerName) {
+    lines.push(`My name is ${customerName}.`);
+    lines.push(``);
+  }
+
+  lines.push(`Thanks!`);
+  lines.push(`_Sent via BrewNear_`);
+
+  return lines.join('\n');
+};
+
+/**
  * Creates an order inquiry message
  */
 export const createOrderInquiryMessage = (seller: Seller, drinkName: string, customerName?: string): string => {

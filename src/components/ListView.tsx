@@ -2,18 +2,22 @@ import { useState, useEffect, useMemo } from "react";
 import { Search, Filter, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { SellerCard, SellerCardSeller } from "./SellerCard";
-import { SellerService } from "@/services/sellerService";
-import { subscribeToSellerAvailability, subscribeToNewSellers } from "@/lib/supabase";
+import { ItemCard, ItemCardItem } from "./ItemCard";
+import { DrinkService } from "@/services/drinkService";
+import { supabase } from "@/lib/supabase";
+import { useNavigate } from "react-router-dom";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface ListViewProps {
-  onStartOrder: (seller: SellerCardSeller) => void;
+  onStartOrder?: (item: ItemCardItem) => void;
   className?: string;
 }
 
 export const ListView = ({ onStartOrder, className }: ListViewProps) => {
+  const navigate = useNavigate();
+  const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState("");
-  const [sellers, setSellers] = useState<SellerCardSeller[]>([]);
+  const [items, setItems] = useState<ItemCardItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,96 +27,91 @@ export const ListView = ({ onStartOrder, className }: ListViewProps) => {
       try {
         setLoading(true);
         setError(null);
-        // Try to get geolocation for better results; if not available, fallback to a default
-        const getLocation = () => new Promise<{lat: number; lng: number}>(resolve => {
-          if (!navigator.geolocation) return resolve({ lat: 40.7128, lng: -74.0060 });
-          navigator.geolocation.getCurrentPosition(
-            pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-            () => resolve({ lat: 40.7128, lng: -74.0060 })
-          );
-        });
-        const { lat, lng } = await getLocation();
-        const results = await SellerService.getNearbySellers(lat, lng, { radiusKm: 25, isAvailable: true });
+        // Get all available drinks with seller information
+        const { data: drinksData, error: drinksError } = await supabase
+          .from('drinks')
+          .select(`
+            *,
+            seller:sellers(
+              id,
+              business_name,
+              address,
+              phone,
+              specialty,
+              rating_average,
+              rating_count,
+              is_available
+            )
+          `)
+          .eq('is_available', true)
+          .eq('seller.is_available', true)
+          .order('created_at', { ascending: false });
+
+        if (drinksError) throw drinksError;
         if (!mounted) return;
-        // Map RPC shape to SellerCardSeller
-        const mapped: SellerCardSeller[] = (results || []).map((s: any) => ({
-          id: s.id,
-          name: s.business_name,
-          phone: s.phone,
-          specialty: s.specialty,
-          photo_url: s.photo_url,
-          rating: Number(s.rating_average || 0),
-          reviewCount: Number(s.rating_count || 0),
-          isVerified: true,
-          drinks: [],
+
+        // Map to ItemCardItem format
+        const mapped: ItemCardItem[] = (drinksData || []).map((drink: any) => ({
+          id: drink.id,
+          name: drink.name,
+          description: drink.description,
+          price: drink.price,
+          photo_url: drink.photo_url,
+          category: drink.category,
+          is_available: drink.is_available,
+          seller_id: drink.seller_id,
+          seller: drink.seller ? {
+            id: drink.seller.id,
+            business_name: drink.seller.business_name,
+            address: drink.seller.address,
+            phone: drink.seller.phone,
+            specialty: drink.seller.specialty,
+            rating_average: drink.seller.rating_average,
+            rating_count: drink.seller.rating_count,
+          } : undefined,
         }));
-        setSellers(mapped);
+
+        setItems(mapped);
       } catch (e: any) {
-        setError(e.message || 'Failed to load sellers');
+        if (mounted) {
+          setError(e.message || 'Failed to load items');
+        }
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
     load();
     return () => { mounted = false; };
   }, []);
 
-  const filteredSellers = useMemo(() => {
+  const filteredItems = useMemo(() => {
     const q = searchQuery.toLowerCase();
-    return sellers.filter(seller =>
-      seller.name.toLowerCase().includes(q) ||
-      (seller.specialty?.toLowerCase() || '').includes(q)
+    return items.filter(item =>
+      item.name.toLowerCase().includes(q) ||
+      (item.description?.toLowerCase() || '').includes(q) ||
+      (item.category?.toLowerCase() || '').includes(q) ||
+      (item.seller?.business_name.toLowerCase() || '').includes(q) ||
+      (item.seller?.specialty?.toLowerCase() || '').includes(q)
     );
-  }, [sellers, searchQuery]);
-  // Real-time: refresh on availability changes and new seller inserts
+  }, [items, searchQuery]);
+  // Real-time: refresh on availability changes and new drinks
   useEffect(() => {
-    const availability = subscribeToSellerAvailability(() => {
-      // Simple refresh
-      (async () => {
-        try {
-          const lat = 40.7128, lng = -74.0060; // could reuse geoloc state if lifted
-          const results = await SellerService.getNearbySellers(lat, lng, { radiusKm: 25, isAvailable: true });
-          const mapped: SellerCardSeller[] = (results || []).map((s: any) => ({
-            id: s.id,
-            name: s.business_name,
-            phone: s.phone,
-            specialty: s.specialty,
-            photo_url: s.photo_url,
-            rating: Number(s.rating_average || 0),
-            reviewCount: Number(s.rating_count || 0),
-            isVerified: true,
-            drinks: [],
-          }));
-          setSellers(mapped);
-        } catch (e) {
-          // ignore
-        }
-      })();
-    });
-    const newSellers = subscribeToNewSellers(() => {
-      // Refresh similarly
-      (async () => {
-        try {
-          const lat = 40.7128, lng = -74.0060;
-          const results = await SellerService.getNearbySellers(lat, lng, { radiusKm: 25, isAvailable: true });
-          const mapped: SellerCardSeller[] = (results || []).map((s: any) => ({
-            id: s.id,
-            name: s.business_name,
-            phone: s.phone,
-            specialty: s.specialty,
-            photo_url: s.photo_url,
-            rating: Number(s.rating_average || 0),
-            reviewCount: Number(s.rating_count || 0),
-            isVerified: true,
-            drinks: [],
-          }));
-          setSellers(mapped);
-        } catch (e) {}
-      })();
-    });
+    const drinksChannel = supabase
+      .channel('drinks-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'drinks'
+      }, () => {
+        // Refresh items when drinks change
+        window.location.reload(); // Simple refresh for now
+      })
+      .subscribe();
+
     return () => {
-      try { availability.unsubscribe?.(); } catch {}
-      try { newSellers.unsubscribe?.(); } catch {}
+      supabase.removeChannel(drinksChannel);
     };
   }, []);
 
@@ -124,7 +123,7 @@ export const ListView = ({ onStartOrder, className }: ListViewProps) => {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
-              placeholder="Search drinks, sellers..."
+              placeholder={t('search.placeholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 bg-card/50 border-border/30 focus:border-primary/50 transition-colors duration-200"
@@ -136,22 +135,23 @@ export const ListView = ({ onStartOrder, className }: ListViewProps) => {
         </div>
       </div>
 
-      {/* Sellers list */}
+      {/* Items list */}
       <div className="flex-1 overflow-y-auto">
         <div className="p-4">
           {loading && (
-              <div className="text-center text-sm text-muted-foreground">Loading nearby sellers...</div>
+              <div className="text-center text-sm text-muted-foreground">Loading available items...</div>
             )}
             {error && (
               <div className="text-center text-sm text-red-600">{error}</div>
             )}
-            {!loading && !error && (filteredSellers.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredSellers.map((seller) => (
-                  <SellerCard
-                    key={seller.id}
-                    seller={seller}
-                    onStartOrder={onStartOrder}
+            {!loading && !error && (filteredItems.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredItems.map((item) => (
+                  <ItemCard
+                    key={item.id}
+                    item={item}
+                    onAddToCart={(item) => onStartOrder?.(item)}
+                    onViewSeller={(sellerId) => navigate(`/seller/${sellerId}`)}
                     className="w-full"
                   />
                 ))}
@@ -162,10 +162,10 @@ export const ListView = ({ onStartOrder, className }: ListViewProps) => {
                   <Search className="w-8 h-8 text-muted-foreground" />
                 </div>
                 <h3 className="text-lg font-medium text-foreground mb-2">
-                  No sellers found
+                  {t('search.noResults')}
                 </h3>
                 <p className="text-muted-foreground">
-                  Try adjusting your search or check back later for new listings.
+                  {t('search.noResultsDesc')}
                 </p>
               </div>
             ))}

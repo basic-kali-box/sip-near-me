@@ -1,3 +1,6 @@
+/* RTL Support */
+@import './styles/rtl.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

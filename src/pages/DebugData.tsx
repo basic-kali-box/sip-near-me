@@ -159,6 +159,33 @@ const DebugData: React.FC = () => {
             </div>
           </Card>
 
+          {/* Debug Tools */}
+          <Card className="p-6">
+            <h2 className="text-lg font-semibold mb-4">Debug Tools</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Button
+                variant="outline"
+                onClick={() => navigate('/image-debug')}
+                className="flex items-center justify-center gap-2 h-auto py-4"
+              >
+                <div className="text-center">
+                  <div className="text-lg font-medium">Image Upload Debug</div>
+                  <div className="text-sm text-muted-foreground">Test image upload functionality</div>
+                </div>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate('/itemcard-demo')}
+                className="flex items-center justify-center gap-2 h-auto py-4"
+              >
+                <div className="text-center">
+                  <div className="text-lg font-medium">ItemCard Demo</div>
+                  <div className="text-sm text-muted-foreground">Test product card actions</div>
+                </div>
+              </Button>
+            </div>
+          </Card>
+
           {/* Debug Component */}
           <UserDataDebug />
 

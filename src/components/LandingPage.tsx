@@ -6,6 +6,8 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/contexts/UserContext";
 import { createNavigationHelpers, trackNavigation } from "@/utils/navigationHelpers";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useLanguage } from "@/contexts/LanguageContext";
 import heroImage from "@/assets/hero-matcha-coffee.jpg";
 import matchaBarista from "@/assets/matcha-barista.jpg";
 import coffeeBrewing from "@/assets/coffee-brewing.jpg";
@@ -19,6 +21,7 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, isAuthenticated, isLoading } = useUser();
+  const { setLanguage } = useLanguage();
 
   // Debug logging to see what the component receives
   console.log('🏠 LandingPage render:', {
@@ -98,6 +101,11 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
             </div>
             
             <div className="flex items-center gap-3">
+              <LanguageSwitcher
+                variant="ghost"
+                size="sm"
+                showText={false}
+              />
               {isLoading ? (
                 // Loading state - show placeholder
                 <div className="flex items-center gap-4">

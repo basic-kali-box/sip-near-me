@@ -16,6 +16,7 @@ import { SellerService } from "@/services/sellerService";
 import { BuyerService } from "@/services/buyerService";
 import { AddressInput } from "@/components/AddressInput";
 import { BusinessHoursInput } from "@/components/BusinessHoursInput";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 import { type Coordinates } from "@/utils/geocoding";
 
@@ -104,7 +105,8 @@ const Profile = () => {
                 isAvailable: sellerDetails.is_available || false,
                 rating: sellerDetails.rating_average || 0,
                 reviewCount: sellerDetails.rating_count || 0,
-                phone: sellerDetails.phone || prev.phone
+                phone: sellerDetails.phone || prev.phone,
+                avatar: sellerDetails.photo_url || prev.avatar // Load seller photo from sellers table
               }));
               console.log('✅ Profile updated with business hours:', sellerDetails.hours || prev.businessHours);
             }
@@ -262,14 +264,20 @@ const Profile = () => {
     setUploadingPhoto(true);
     try {
       const photoUrl = await SellerService.uploadSellerPhoto(user.id, file);
+
+      // Add cache-busting parameter to ensure fresh image load
+      const cacheBustedUrl = `${photoUrl}${photoUrl.includes('?') ? '&' : '?'}cb=${Date.now()}`;
+
+      // Update local state immediately
       setProfile(prev => ({
         ...prev,
-        avatar: photoUrl
+        avatar: cacheBustedUrl
       }));
 
-      // Update user context
+      // Update user context with the new photo URL
       await updateUser({
-        profileImage: photoUrl
+        profileImage: cacheBustedUrl,
+        photo_url: cacheBustedUrl // Also update photo_url field
       });
 
       toast({
@@ -304,9 +312,9 @@ const Profile = () => {
     { label: "Contact Requests", value: "23", icon: Phone },
     { label: "Menu Items", value: "8", icon: Coffee },
   ] : [
-    { label: "Orders Placed", value: buyerStats.totalOrders.toString(), icon: ShoppingBag },
-    { label: "Favorites", value: buyerStats.favoriteCount.toString(), icon: Heart },
-    { label: "Reviews", value: buyerStats.reviewCount.toString(), icon: User },
+    { label: "Orders Placed", value: (buyerStats?.totalOrders || 0).toString(), icon: ShoppingBag },
+    { label: "Favorites", value: (buyerStats?.favoriteCount || 0).toString(), icon: Heart },
+    { label: "Reviews", value: (buyerStats?.reviewCount || 0).toString(), icon: User },
   ];
 
   return (
@@ -325,6 +333,11 @@ const Profile = () => {
           </Button>
           <h1 className="text-lg font-semibold">Profile</h1>
           <div className="ml-auto flex items-center gap-3">
+            <LanguageSwitcher
+              variant="ghost"
+              size="sm"
+              showText={false}
+            />
             {isEditing ? (
               <div className="flex gap-2">
                 <Button
@@ -392,8 +405,8 @@ const Profile = () => {
         <Card className="p-8 bg-gradient-to-r from-matcha-50 to-coffee-50 border-0 shadow-lg">
           <div className="flex flex-col md:flex-row items-center gap-8">
             <div className="relative">
-              <Avatar className="w-32 h-32 border-4 border-white shadow-xl">
-                <AvatarImage src={profile.avatar} />
+              <Avatar className="w-32 h-32 border-4 border-white shadow-xl" key={profile.avatar}>
+                <AvatarImage src={profile.avatar} key={profile.avatar} />
                 <AvatarFallback className="text-3xl bg-gradient-to-br from-matcha-600 to-coffee-600 text-white">
                   {profile.name ? profile.name.split(' ').map(n => n[0]).join('') : 'U'}
                 </AvatarFallback>

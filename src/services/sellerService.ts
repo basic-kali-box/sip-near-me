@@ -91,7 +91,7 @@ export class SellerService {
         specialty: sellerData.specialty || 'coffee',
         hours: sellerData.hours || 'Mon-Fri: 9AM-5PM',
         description: sellerData.description || null,
-        is_available: sellerData.is_available ?? false,
+        is_available: sellerData.is_available ?? true,
         rating_average: sellerData.rating_average ?? 0,
         rating_count: sellerData.rating_count ?? 0,
         // Provide coordinates based on address or use defaults
@@ -221,7 +221,8 @@ export class SellerService {
   static async uploadSellerPhoto(sellerId: string, file: File): Promise<string> {
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${sellerId}/profile.${fileExt}`;
+      const timestamp = Date.now();
+      const fileName = `${sellerId}/profile-${timestamp}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('seller-photos')
@@ -233,10 +234,13 @@ export class SellerService {
         .from('seller-photos')
         .getPublicUrl(fileName);
 
-      // Update seller profile with photo URL
-      await this.updateSellerProfile(sellerId, { photo_url: data.publicUrl });
+      // Add cache-busting parameter to the URL
+      const photoUrlWithCacheBust = `${data.publicUrl}?t=${timestamp}`;
 
-      return data.publicUrl;
+      // Update seller profile with photo URL
+      await this.updateSellerProfile(sellerId, { photo_url: photoUrlWithCacheBust });
+
+      return photoUrlWithCacheBust;
     } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
