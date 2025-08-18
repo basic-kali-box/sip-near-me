@@ -1,12 +1,12 @@
-import { useState, useEffect } from "react";
-import { ArrowLeft, User, Mail, Phone, MapPin, Edit, Settings, Heart, ShoppingBag, Coffee, Leaf, Plus, LayoutDashboard, Star, Save, X, Camera, Upload } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { ArrowLeft, User, Phone, Heart, ShoppingBag, Coffee, Star, Camera, Edit, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserMenu } from "@/components/UserMenu";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -14,368 +14,516 @@ import { useUser } from "@/contexts/UserContext";
 import { UserService } from "@/services/userService";
 import { SellerService } from "@/services/sellerService";
 import { BuyerService } from "@/services/buyerService";
-import { AddressInput } from "@/components/AddressInput";
-import { BusinessHoursInput } from "@/components/BusinessHoursInput";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { supabase } from "@/lib/supabase";
 
 import { type Coordinates } from "@/utils/geocoding";
+
+// Types
+interface ProfileData {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  coordinates: Coordinates | null;
+  avatar: string;
+  memberSince: string;
+  businessName: string;
+  businessHours: string;
+  specialty: "coffee" | "matcha" | "both";
+  description: string;
+  isAvailable: boolean;
+  rating: number;
+  reviewCount: number;
+}
+
+interface BuyerStats {
+  totalOrders: number;
+  totalSpent: number;
+  favoriteCount: number;
+  reviewCount: number;
+}
+
+interface SellerStats {
+  profileViews: number;
+  contactRequests: number;
+  totalOrders: number;
+  revenue: number;
+  averageRating: number;
+  menuItems: number;
+}
 
 const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, updateUser } = useUser();
-  const [isEditing, setIsEditing] = useState(false);
-  const [loading, setLoading] = useState(false);
+  
+  // UI State
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [profile, setProfile] = useState({
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+  const [profileDataLoaded, setProfileDataLoaded] = useState(false);
+  const [sellerProfileExists, setSellerProfileExists] = useState<boolean | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Profile Data
+  const [profile, setProfile] = useState<ProfileData>({
     name: "",
     email: "",
     phone: "",
     address: "",
-    coordinates: null as Coordinates | null,
+    coordinates: null,
     avatar: "",
     memberSince: "",
-    // Seller-specific fields
     businessName: "",
     businessHours: "",
-    specialty: "coffee" as "coffee" | "matcha" | "both",
+    specialty: "coffee",
     description: "",
     isAvailable: false,
     rating: 0,
     reviewCount: 0
   });
 
-  const [buyerStats, setBuyerStats] = useState({
+  // Form Data for editing
+  const [formData, setFormData] = useState({
+    name: "",
+    phone: "",
+    businessName: "",
+    address: "",
+    businessHours: "",
+    specialty: "coffee" as "coffee" | "matcha" | "both",
+    description: ""
+  });
+
+  // Analytics Data
+  const [buyerStats, setBuyerStats] = useState<BuyerStats>({
     totalOrders: 0,
     totalSpent: 0,
     favoriteCount: 0,
     reviewCount: 0
   });
 
+  const [sellerStats, setSellerStats] = useState<SellerStats>({
+    profileViews: 0,
+    contactRequests: 0,
+    totalOrders: 0,
+    revenue: 0,
+    averageRating: 0,
+    menuItems: 0
+  });
+
+  // Initialize profile with user data
+  const initializeProfile = useCallback((userData: typeof user): ProfileData => {
+    return {
+      name: userData?.name || "",
+      email: userData?.email || "",
+      phone: userData?.phone || "",
+      address: userData?.userType === 'seller' ? (userData.businessAddress || "") : "",
+      coordinates: null,
+      avatar: userData?.profileImage || "",
+      memberSince: userData?.id ? new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Recently',
+      businessName: userData?.userType === 'seller' ? (userData.businessName || "") : "",
+      businessHours: userData?.userType === 'seller' ? (userData.businessHours || "") : "",
+      specialty: userData?.userType === 'seller' ? ((userData.specialty as any) || "coffee") : "coffee",
+      description: "",
+      isAvailable: userData?.userType === 'seller' ? (userData.isOnline || false) : false,
+      rating: userData?.userType === 'seller' ? (userData.rating || 0) : 0,
+      reviewCount: userData?.userType === 'seller' ? (userData.reviewCount || 0) : 0
+    };
+  }, []);
+
+  // Load seller analytics
+  const loadSellerAnalytics = useCallback(async (sellerId: string) => {
+    setLoadingAnalytics(true);
+    try {
+      const analytics = await SellerService.getSellerAnalytics(sellerId);
+      
+      // Get menu items count
+      const { data: menuItems } = await supabase
+        .from('drinks')
+        .select('id')
+        .eq('seller_id', sellerId);
+      
+      setSellerStats({
+        profileViews: analytics.profileViews,
+        contactRequests: analytics.contactRequests,
+        totalOrders: analytics.totalOrders,
+        revenue: analytics.revenue,
+        averageRating: analytics.averageRating,
+        menuItems: menuItems?.length || 0
+      });
+    } catch (analyticsError) {
+      console.warn('Failed to load seller analytics:', analyticsError);
+    } finally {
+      setLoadingAnalytics(false);
+    }
+  }, []);
+
+  // Load seller profile data
+  const loadSellerProfile = useCallback(async (userId: string) => {
+    try {
+      const sellerDetails = await SellerService.getSellerById(userId);
+      console.log('🔍 Seller details from database:', sellerDetails);
+      
+      if (sellerDetails) {
+        setSellerProfileExists(true);
+        console.log('🔍 Seller details breakdown:', {
+          business_name: sellerDetails.business_name,
+          address: sellerDetails.address,
+          hours: sellerDetails.hours,
+          phone: sellerDetails.phone
+        });
+
+        // Update profile with seller details
+        setProfile(prevProfile => {
+          const updatedProfile = {
+            ...prevProfile,
+            businessName: sellerDetails.business_name || prevProfile.businessName,
+            address: sellerDetails.address || prevProfile.address,
+            businessHours: sellerDetails.hours || prevProfile.businessHours,
+            specialty: sellerDetails.specialty || prevProfile.specialty,
+            description: sellerDetails.description || "",
+            isAvailable: sellerDetails.is_available || false,
+            rating: sellerDetails.rating_average || 0,
+            reviewCount: sellerDetails.rating_count || 0,
+            phone: sellerDetails.phone || prevProfile.phone,
+            avatar: sellerDetails.photo_url || prevProfile.avatar,
+            coordinates: sellerDetails.latitude && sellerDetails.longitude ? {
+              latitude: parseFloat(String(sellerDetails.latitude)),
+              longitude: parseFloat(String(sellerDetails.longitude))
+            } : prevProfile.coordinates
+          };
+          
+          console.log('✅ Profile updated with seller details:', {
+            businessName: updatedProfile.businessName,
+            address: updatedProfile.address,
+            businessHours: updatedProfile.businessHours,
+            phone: updatedProfile.phone
+          });
+          
+          return updatedProfile;
+        });
+
+        // Load seller analytics
+        await loadSellerAnalytics(userId);
+      } else {
+        setSellerProfileExists(false);
+        console.warn('⚠️ No seller details found in database for user:', userId);
+      }
+    } catch (error) {
+      console.warn('Failed to load seller details:', error);
+      setSellerProfileExists(false);
+    }
+  }, [loadSellerAnalytics]);
+
+  // Load buyer profile data
+  const loadBuyerProfile = useCallback(async (userId: string) => {
+    try {
+      const buyerProfile = await BuyerService.getBuyerProfile(userId);
+      if (buyerProfile) {
+        setBuyerStats({
+          totalOrders: buyerProfile.stats.totalOrders || 0,
+          totalSpent: buyerProfile.stats.totalSpent || 0,
+          favoriteCount: 0, // Will be implemented later
+          reviewCount: buyerProfile.stats.reviewCount || 0
+        });
+        setProfile(prevProfile => ({
+          ...prevProfile,
+          name: buyerProfile.user.name || prevProfile.name,
+          email: buyerProfile.user.email || prevProfile.email,
+          phone: buyerProfile.user.phone || prevProfile.phone,
+          avatar: buyerProfile.user.avatar_url || prevProfile.avatar
+        }));
+      }
+    } catch (error) {
+      console.warn('Failed to load buyer details:', error);
+    }
+  }, []);
+
   // Load user data and seller/buyer details on component mount
   useEffect(() => {
     const loadProfileData = async () => {
-      if (user) {
-        // Load basic user data
-        setProfile({
-          name: user.name || "",
-          email: user.email || "",
-          phone: user.phone || "",
-          address: user.userType === 'seller' ? (user.businessAddress || "") : "",
-          avatar: user.profileImage || "",
-          memberSince: user.id ? new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Recently',
-          businessName: user.userType === 'seller' ? (user.businessName || "") : "",
-          businessHours: user.userType === 'seller' ? (user.businessHours || "") : "",
-          specialty: user.userType === 'seller' ? ((user.specialty as any) || "coffee") : "coffee",
-          description: "", // Will be loaded from seller details if available
-          isAvailable: user.userType === 'seller' ? (user.isOnline || false) : false,
-          rating: user.userType === 'seller' ? (user.rating || 0) : 0,
-          reviewCount: user.userType === 'seller' ? (user.reviewCount || 0) : 0
-        });
+      if (!user) return;
 
-        // Fetch user creation date from database
-        try {
-          const userDetails = await UserService.getUserProfileById(user.id);
-          if (userDetails?.created_at) {
-            setProfile(prev => ({
-              ...prev,
-              memberSince: new Date(userDetails.created_at).toLocaleDateString('en-US', {
-                month: 'long',
-                year: 'numeric'
-              })
-            }));
-          }
-        } catch (error) {
-          console.warn('Failed to load user creation date:', error);
-        }
+      // Initialize profile with user data
+      const initialProfile = initializeProfile(user);
+      setProfile(initialProfile);
+      console.log('🔍 Initial profile state:', {
+        businessName: initialProfile.businessName,
+        address: initialProfile.address,
+        businessHours: initialProfile.businessHours,
+        phone: initialProfile.phone,
+        userBusinessHours: user.businessHours
+      });
 
-        // Load user-type specific data
-        if (user.userType === 'seller') {
-          try {
-            const sellerDetails = await SellerService.getSellerById(user.id);
-            if (sellerDetails) {
-              console.log('🔍 Loading seller details - hours from DB:', sellerDetails.hours);
-              setProfile(prev => ({
-                ...prev,
-                businessName: sellerDetails.business_name || user.businessName || "",
-                address: sellerDetails.address || prev.address,
-                businessHours: sellerDetails.hours || prev.businessHours,
-                specialty: sellerDetails.specialty || prev.specialty,
-                description: sellerDetails.description || "",
-                isAvailable: sellerDetails.is_available || false,
-                rating: sellerDetails.rating_average || 0,
-                reviewCount: sellerDetails.rating_count || 0,
-                phone: sellerDetails.phone || prev.phone,
-                avatar: sellerDetails.photo_url || prev.avatar // Load seller photo from sellers table
-              }));
-              console.log('✅ Profile updated with business hours:', sellerDetails.hours || prev.businessHours);
-            }
-          } catch (error) {
-            console.warn('Failed to load seller details:', error);
-          }
-        } else if (user.userType === 'buyer') {
-          try {
-            const buyerProfile = await BuyerService.getBuyerProfile(user.id);
-            if (buyerProfile) {
-              setBuyerStats(buyerProfile.stats);
-              // Update profile with any additional buyer data
-              setProfile(prev => ({
-                ...prev,
-                name: buyerProfile.user.name || prev.name,
-                email: buyerProfile.user.email || prev.email,
-                phone: buyerProfile.user.phone || prev.phone,
-                avatar: buyerProfile.user.avatar_url || prev.avatar
-              }));
-            }
-          } catch (error) {
-            console.warn('Failed to load buyer details:', error);
-          }
+      // Fetch user creation date from database
+      try {
+        const userDetails = await UserService.getUserProfileById(user.id);
+        if (userDetails?.created_at) {
+          setProfile(prev => ({
+            ...prev,
+            memberSince: new Date(userDetails.created_at).toLocaleDateString('en-US', {
+              month: 'long',
+              year: 'numeric'
+            })
+          }));
         }
+      } catch (error) {
+        console.warn('Failed to load user creation date:', error);
       }
+
+      // Load user-type specific data
+      if (user.userType === 'seller') {
+        await loadSellerProfile(user.id);
+      } else if (user.userType === 'buyer') {
+        await loadBuyerProfile(user.id);
+      }
+      
+      // Mark profile data as loaded
+      setProfileDataLoaded(true);
     };
 
     loadProfileData();
-  }, [user]);
+  }, [user, initializeProfile, loadSellerProfile, loadBuyerProfile]);
 
   // Check if seller profile is complete
-  const isSellerProfileComplete = () => {
+  const isSellerProfileComplete = useCallback(() => {
     if (user?.userType !== 'seller') return true;
-    return !!(
-      profile.businessName &&
-      profile.address &&
-      profile.businessHours &&
-      profile.phone
+    const isComplete = !!(
+      profile.businessName?.trim() &&
+      profile.address?.trim() &&
+      profile.businessHours?.trim() &&
+      profile.businessHours !== 'null' &&
+      profile.phone?.trim()
     );
-  };
+
+    if (!isComplete) {
+      console.log('🔍 Profile completeness check failed:', {
+        businessName: !!profile.businessName?.trim(),
+        address: !!profile.address?.trim(),
+        businessHours: !!profile.businessHours?.trim(),
+        businessHoursValue: profile.businessHours,
+        phone: !!profile.phone?.trim(),
+        profileDataLoaded,
+        sellerProfileExists
+      });
+    }
+
+    return isComplete;
+  }, [profile, user, profileDataLoaded, sellerProfileExists]);
 
   // Get missing information for incomplete profiles
-  const getMissingInfo = () => {
+  const getMissingInfo = useCallback(() => {
     if (user?.userType !== 'seller') return [];
     const missing = [];
-    if (!profile.businessName) missing.push('Business name');
-    if (!profile.address) missing.push('Business address');
-    if (!profile.businessHours) missing.push('Business hours');
-    if (!profile.phone) missing.push('Phone number');
+    if (!profile.businessName?.trim()) missing.push('Business name');
+    if (!profile.address?.trim()) missing.push('Business address');
+    if (!profile.businessHours?.trim() || profile.businessHours === 'null') {
+      console.log('🔍 Business hours missing check:', {
+        businessHours: profile.businessHours,
+        businessHoursTrimmed: profile.businessHours?.trim(),
+        isNull: profile.businessHours === 'null',
+        profileDataLoaded,
+        userBusinessHours: user?.businessHours
+      });
+      missing.push('Business hours');
+    }
+    if (!profile.phone?.trim()) missing.push('Phone number');
     return missing;
-  };
+  }, [profile, user, profileDataLoaded]);
 
-  const handleSave = async () => {
-    if (!user) return;
 
-    // Validate phone number if provided
-    if (profile.phone.trim()) {
-      const cleanPhone = profile.phone.replace(/[\s\-\(\)\+]/g, '');
-      if (!/^\d{10,14}$/.test(cleanPhone)) {
-        toast({
-          title: "Invalid Phone Number",
-          description: "Phone number must be 10-14 digits",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
 
-    setLoading(true);
-    try {
-      if (user.userType === 'buyer') {
-        // For buyers, update user profile directly
-        await BuyerService.updateBuyerProfile(user.id, {
-          name: profile.name,
-          phone: profile.phone,
-          avatar_url: profile.avatar
-        });
-
-        // Also update the user context
-        await updateUser({
-          name: profile.name,
-          phone: profile.phone,
-          profileImage: profile.avatar
-        });
-      } else {
-        // For sellers, update both user profile and seller-specific fields
-        await updateUser({
-          name: profile.name,
-          phone: profile.phone,
-          profileImage: profile.avatar
-        });
-
-        console.log('💾 Saving business hours:', profile.businessHours);
-        await SellerService.updateSellerProfile(user.id, {
-          name: profile.name, // Use the person's actual name, not business name
-          business_name: profile.businessName,
-          address: profile.address,
-          latitude: profile.coordinates?.latitude,
-          longitude: profile.coordinates?.longitude,
-          hours: profile.businessHours,
-          specialty: profile.specialty,
-          phone: profile.phone,
-          description: profile.description
-        });
-        console.log('✅ Business hours saved successfully');
-      }
-
-      setIsEditing(false);
-      toast({
-        title: "Profile updated",
-        description: "Your profile information has been saved successfully.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Update failed",
-        description: error.message || "Failed to update profile. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleInputChange = (field: string, value: string) => {
-    setProfile(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
+  // Handle photo upload
   const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !user || user.userType !== 'seller') return;
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Invalid file type",
-        description: "Please select an image file.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Please select an image smaller than 5MB.",
-        variant: "destructive"
-      });
-      return;
-    }
+    if (!file || !user) return;
 
     setUploadingPhoto(true);
     try {
-      const photoUrl = await SellerService.uploadSellerPhoto(user.id, file);
+      let photoUrl: string;
 
-      // Add cache-busting parameter to ensure fresh image load
-      const cacheBustedUrl = `${photoUrl}${photoUrl.includes('?') ? '&' : '?'}cb=${Date.now()}`;
+      if (user.userType === 'seller') {
+        photoUrl = await SellerService.uploadSellerPhoto(user.id, file);
+      } else {
+        photoUrl = await UserService.uploadAvatar(user.id, file);
+      }
 
-      // Update local state immediately
-      setProfile(prev => ({
-        ...prev,
-        avatar: cacheBustedUrl
-      }));
-
-      // Update user context with the new photo URL
-      await updateUser({
-        profileImage: cacheBustedUrl,
-        photo_url: cacheBustedUrl // Also update photo_url field
-      });
+      setProfile(prev => ({ ...prev, avatar: photoUrl }));
+      await updateUser({ profileImage: photoUrl });
 
       toast({
-        title: "Photo uploaded",
-        description: "Your profile picture has been updated successfully.",
+        title: "Photo updated",
+        description: "Your profile photo has been updated successfully.",
       });
-    } catch (error: any) {
+    } catch (error) {
+      console.error('Photo upload failed:', error);
       toast({
         title: "Upload failed",
-        description: error.message || "Failed to upload photo. Please try again.",
-        variant: "destructive"
+        description: "Failed to upload photo. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setUploadingPhoto(false);
     }
   };
 
-  // Show loading if no user data
+  // Handle edit mode
+  const handleEditClick = () => {
+    setFormData({
+      name: profile.name,
+      phone: profile.phone,
+      businessName: profile.businessName,
+      address: profile.address,
+      businessHours: profile.businessHours,
+      specialty: profile.specialty,
+      description: profile.description
+    });
+    setIsEditing(true);
+  };
+
+  // Handle cancel edit
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setFormData({
+      name: "",
+      phone: "",
+      businessName: "",
+      address: "",
+      businessHours: "",
+      specialty: "coffee",
+      description: ""
+    });
+  };
+
+  // Handle save profile
+  const handleSaveProfile = async () => {
+    if (!user) return;
+
+    setIsSaving(true);
+    try {
+      if (user.userType === 'seller') {
+        // Update seller profile
+        await SellerService.updateSellerProfile(user.id, {
+          name: formData.name,
+          business_name: formData.businessName,
+          address: formData.address,
+          phone: formData.phone,
+          hours: formData.businessHours,
+          specialty: formData.specialty,
+          description: formData.description
+        });
+
+        // Update local profile state
+        setProfile(prev => ({
+          ...prev,
+          name: formData.name,
+          phone: formData.phone,
+          businessName: formData.businessName,
+          address: formData.address,
+          businessHours: formData.businessHours,
+          specialty: formData.specialty,
+          description: formData.description
+        }));
+
+        // Update user context
+        await updateUser({
+          name: formData.name,
+          phone: formData.phone,
+          businessName: formData.businessName,
+          businessAddress: formData.address,
+          businessHours: formData.businessHours,
+          specialty: formData.specialty
+        });
+      } else {
+        // Update buyer profile
+        await BuyerService.updateBuyerProfile(user.id, {
+          name: formData.name,
+          phone: formData.phone
+        });
+
+        // Update local profile state
+        setProfile(prev => ({
+          ...prev,
+          name: formData.name,
+          phone: formData.phone
+        }));
+
+        // Update user context
+        await updateUser({
+          name: formData.name,
+          phone: formData.phone
+        });
+      }
+
+      setIsEditing(false);
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been updated successfully.",
+      });
+    } catch (error) {
+      console.error('Profile update failed:', error);
+      toast({
+        title: "Update failed",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+
+
+  // Stats for display
+  const stats = user?.userType === 'seller' ? [
+    { label: "Profile Views", value: sellerStats.profileViews.toString(), icon: User },
+    { label: "Contact Requests", value: sellerStats.contactRequests.toString(), icon: Phone },
+    { label: "Menu Items", value: sellerStats.menuItems.toString(), icon: Coffee },
+  ] : [
+    { label: "Orders Placed", value: buyerStats.totalOrders.toString(), icon: ShoppingBag },
+    { label: "Favorites", value: buyerStats.favoriteCount.toString(), icon: Heart },
+    { label: "Reviews", value: buyerStats.reviewCount.toString(), icon: User },
+  ];
+
   if (!user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading profile...</p>
+          <h2 className="text-2xl font-bold mb-4">Please log in to view your profile</h2>
+          <Button onClick={() => navigate('/login')}>Go to Login</Button>
         </div>
       </div>
     );
   }
 
-  const stats = user.userType === 'seller' ? [
-    { label: "Profile Views", value: "127", icon: User },
-    { label: "Contact Requests", value: "23", icon: Phone },
-    { label: "Menu Items", value: "8", icon: Coffee },
-  ] : [
-    { label: "Orders Placed", value: (buyerStats?.totalOrders || 0).toString(), icon: ShoppingBag },
-    { label: "Favorites", value: (buyerStats?.favoriteCount || 0).toString(), icon: Heart },
-    { label: "Reviews", value: (buyerStats?.reviewCount || 0).toString(), icon: User },
-  ];
-
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border/50">
-        <div className="container mx-auto px-4 h-16 flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </Button>
-          <h1 className="text-lg font-semibold">Profile</h1>
-          <div className="ml-auto flex items-center gap-3">
-            <LanguageSwitcher
+      <div className="bg-white border-b">
+        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button
               variant="ghost"
               size="sm"
-              showText={false}
-            />
-            {isEditing ? (
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsEditing(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleSave}
-                  disabled={loading}
-                  className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 border-0"
-                >
-                  {loading ? "Saving..." : "Save"}
-                </Button>
-              </div>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsEditing(true)}
-                className="flex items-center gap-2"
-              >
-                <Edit className="w-4 h-4" />
-                Edit
-              </Button>
-            )}
-            <UserMenu variant="desktop" />
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </Button>
+            <h1 className="text-2xl font-bold">Profile</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
+            <UserMenu />
           </div>
         </div>
-      </header>
+      </div>
 
-      <div className="container mx-auto px-4 py-6 space-y-6">
-
+      <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
         {/* Profile Incomplete Alert */}
-        {user?.userType === 'seller' && !isSellerProfileComplete() && (
+        {user?.userType === 'seller' && profileDataLoaded && (sellerProfileExists === false || !isSellerProfileComplete()) && (
           <Card className="p-4 border-yellow-200 bg-yellow-50">
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -387,7 +535,7 @@ const Profile = () => {
                   Your profile is missing some important information. Complete it to start appearing in search results and accepting orders.
                 </p>
                 <div className="text-xs text-yellow-600 mb-3">
-                  <strong>Missing:</strong> {getMissingInfo().join(', ')}
+                  <strong>Missing:</strong> {sellerProfileExists === false ? 'Complete seller profile setup' : getMissingInfo().join(', ')}
                 </div>
                 <Button
                   onClick={() => navigate('/complete-profile')}
@@ -402,45 +550,34 @@ const Profile = () => {
         )}
 
         {/* Profile Header */}
-        <Card className="p-8 bg-gradient-to-r from-matcha-50 to-coffee-50 border-0 shadow-lg">
-          <div className="flex flex-col md:flex-row items-center gap-8">
+        <Card className="p-6 bg-gradient-to-r from-matcha-50 to-coffee-50">
+          <div className="flex flex-col md:flex-row items-center gap-6">
             <div className="relative">
-              <Avatar className="w-32 h-32 border-4 border-white shadow-xl" key={profile.avatar}>
-                <AvatarImage src={profile.avatar} key={profile.avatar} />
-                <AvatarFallback className="text-3xl bg-gradient-to-br from-matcha-600 to-coffee-600 text-white">
-                  {profile.name ? profile.name.split(' ').map(n => n[0]).join('') : 'U'}
+              <Avatar className="w-32 h-32">
+                <AvatarImage src={profile.avatar} alt={profile.name} />
+                <AvatarFallback className="text-2xl">
+                  {profile.name.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
-
-              {/* Photo upload button for sellers */}
-              {user?.userType === 'seller' && (
-                <>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                    className="hidden"
-                    id="photo-upload"
-                  />
-                  <label
-                    htmlFor="photo-upload"
-                    className="absolute top-2 right-2 bg-white/90 hover:bg-white text-gray-700 p-2 rounded-full shadow-lg cursor-pointer transition-all duration-200 hover:scale-105"
-                  >
+              <div className="absolute -bottom-2 -right-2">
+                <label htmlFor="photo-upload" className="cursor-pointer">
+                  <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white hover:bg-primary/90 transition-colors">
                     {uploadingPhoto ? (
-                      <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     ) : (
                       <Camera className="w-4 h-4" />
                     )}
-                  </label>
-                </>
-              )}
-
-              {user?.userType === 'seller' && (
-                <div className="absolute -bottom-2 -right-2 bg-matcha-600 text-white px-3 py-1 rounded-full text-xs font-medium shadow-lg">
-                  <Coffee className="w-3 h-3 inline mr-1" />
-                  Seller
-                </div>
-              )}
+                  </div>
+                </label>
+                <input
+                  id="photo-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  className="hidden"
+                  disabled={uploadingPhoto}
+                />
+              </div>
             </div>
             <div className="flex-1 text-center md:text-left">
               <h2 className="text-3xl font-bold text-gray-800 mb-2">{profile.name || 'User'}</h2>
@@ -465,297 +602,196 @@ const Profile = () => {
           </div>
         </Card>
 
+        {/* Profile Information */}
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-semibold">Profile Information</h3>
+            {!isEditing ? (
+              <Button
+                onClick={handleEditClick}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Edit className="w-4 h-4" />
+                Edit Profile
+              </Button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={handleCancelEdit}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                  disabled={isSaving}
+                >
+                  <X className="w-4 h-4" />
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSaveProfile}
+                  size="sm"
+                  className="flex items-center gap-2"
+                  disabled={isSaving}
+                >
+                  {isSaving ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  Save
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {!isEditing ? (
+            // View Mode
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Name</Label>
+                  <p className="text-gray-900 mt-1">{profile.name || 'Not set'}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Email</Label>
+                  <p className="text-gray-900 mt-1">{profile.email}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Phone</Label>
+                  <p className="text-gray-900 mt-1">{profile.phone || 'Not set'}</p>
+                </div>
+                {user?.userType === 'seller' && (
+                  <>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">Business Name</Label>
+                      <p className="text-gray-900 mt-1">{profile.businessName || 'Not set'}</p>
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label className="text-sm font-medium text-gray-600">Business Address</Label>
+                      <p className="text-gray-900 mt-1">{profile.address || 'Not set'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">Business Hours</Label>
+                      <p className="text-gray-900 mt-1">{profile.businessHours || 'Not set'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">Specialty</Label>
+                      <p className="text-gray-900 mt-1 capitalize">{profile.specialty}</p>
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label className="text-sm font-medium text-gray-600">Description</Label>
+                      <p className="text-gray-900 mt-1">{profile.description || 'No description provided'}</p>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          ) : (
+            // Edit Mode
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="name">Name</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="Your full name"
+                    disabled={isSaving}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input
+                    id="phone"
+                    value={formData.phone}
+                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                    placeholder="Your phone number"
+                    disabled={isSaving}
+                  />
+                </div>
+                {user?.userType === 'seller' && (
+                  <>
+                    <div>
+                      <Label htmlFor="businessName">Business Name</Label>
+                      <Input
+                        id="businessName"
+                        value={formData.businessName}
+                        onChange={(e) => setFormData(prev => ({ ...prev, businessName: e.target.value }))}
+                        placeholder="Your business name"
+                        disabled={isSaving}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="specialty">Specialty</Label>
+                      <Select
+                        value={formData.specialty}
+                        onValueChange={(value: "coffee" | "matcha" | "both") =>
+                          setFormData(prev => ({ ...prev, specialty: value }))
+                        }
+                        disabled={isSaving}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select specialty" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="coffee">☕ Coffee</SelectItem>
+                          <SelectItem value="matcha">🍵 Matcha</SelectItem>
+                          <SelectItem value="both">☕🍵 Both</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label htmlFor="address">Business Address</Label>
+                      <Input
+                        id="address"
+                        value={formData.address}
+                        onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                        placeholder="Your business address"
+                        disabled={isSaving}
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label htmlFor="businessHours">Business Hours</Label>
+                      <Input
+                        id="businessHours"
+                        value={formData.businessHours}
+                        onChange={(e) => setFormData(prev => ({ ...prev, businessHours: e.target.value }))}
+                        placeholder="e.g., Mon-Fri: 8:00 AM - 6:00 PM, Sat-Sun: 9:00 AM - 5:00 PM"
+                        disabled={isSaving}
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea
+                        id="description"
+                        value={formData.description}
+                        onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                        placeholder="Tell customers about your business..."
+                        rows={3}
+                        disabled={isSaving}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+        </Card>
+
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4">
           {stats.map((stat) => (
             <Card key={stat.label} className="p-4 text-center">
               <stat.icon className="w-6 h-6 mx-auto mb-2 text-primary" />
-              <div className="text-2xl font-bold">{stat.value}</div>
+              <div className="text-2xl font-bold">
+                {user?.userType === 'seller' && loadingAnalytics ? '...' : stat.value}
+              </div>
               <div className="text-sm text-muted-foreground">{stat.label}</div>
             </Card>
           ))}
         </div>
-
-        {/* Profile Information */}
-        <Card className="p-8 shadow-lg border-0">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 bg-gradient-to-br from-matcha-500 to-matcha-600 rounded-lg flex items-center justify-center">
-              <User className="w-5 h-5 text-white" />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-800">Personal Information</h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <Label htmlFor="name" className="text-sm font-medium text-gray-700">Full Name</Label>
-              {isEditing ? (
-                <Input
-                  id="name"
-                  value={profile.name}
-                  onChange={(e) => handleInputChange("name", e.target.value)}
-                  className="h-12 border-gray-300 focus:border-matcha-500 focus:ring-matcha-500"
-                  placeholder="Enter your full name"
-                />
-              ) : (
-                <div className="flex items-center gap-3 p-4 rounded-xl bg-gray-50 border border-gray-200">
-                  <User className="w-5 h-5 text-matcha-600" />
-                  <span className="text-gray-800 font-medium">{profile.name}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-3">
-              <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email Address</Label>
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-gray-50 border border-gray-200">
-                <Mail className="w-5 h-5 text-matcha-600" />
-                <span className="text-gray-800 font-medium">{profile.email}</span>
-                <span className="text-xs text-gray-500 ml-auto">Cannot be changed</span>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
-              {isEditing ? (
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={profile.phone}
-                  onChange={(e) => handleInputChange("phone", e.target.value)}
-                />
-              ) : (
-                <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
-                  <Phone className="w-4 h-4 text-muted-foreground" />
-                  <span>{profile.phone}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Business Address - Only for sellers */}
-            {user?.userType === 'seller' && (
-              <div className="space-y-2">
-                <Label htmlFor="address">Business Address</Label>
-                {isEditing ? (
-                  <AddressInput
-                    value={profile.address}
-                    coordinates={profile.coordinates}
-                    onChange={(address, coordinates) => {
-                      setProfile(prev => ({
-                        ...prev,
-                        address,
-                        coordinates: coordinates || null
-                      }));
-                    }}
-                    placeholder="Enter your business address"
-                    className="w-full"
-                  />
-                ) : (
-                  <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
-                    <MapPin className="w-4 h-4 text-muted-foreground" />
-                    <span>{profile.address || "No address set"}</span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Seller-specific fields */}
-            {user.userType === 'seller' && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="businessName">Business Name</Label>
-                  {isEditing ? (
-                    <Input
-                      id="businessName"
-                      value={profile.businessName}
-                      onChange={(e) => handleInputChange("businessName", e.target.value)}
-                      placeholder="Enter your business name (e.g., Café Central, Bean & Brew)"
-                    />
-                  ) : (
-                    <div className={`flex items-center gap-2 p-2 rounded-md ${
-                      profile.businessName
-                        ? 'bg-muted/50'
-                        : 'bg-yellow-50 border border-yellow-200'
-                    }`}>
-                      <Coffee className={`w-4 h-4 ${
-                        profile.businessName
-                          ? 'text-muted-foreground'
-                          : 'text-yellow-600'
-                      }`} />
-                      <span className={profile.businessName ? '' : 'text-yellow-800 font-medium'}>
-                        {profile.businessName || "⚠️ Business name required"}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="businessHours">Business Hours</Label>
-                  {isEditing ? (
-                    <BusinessHoursInput
-                      value={profile.businessHours}
-                      onChange={(value) => handleInputChange("businessHours", value)}
-                    />
-                  ) : (
-                    <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
-                      <MapPin className="w-4 h-4 text-muted-foreground" />
-                      <span>{profile.businessHours || "Not set"}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="specialty">Specialty</Label>
-                  {isEditing ? (
-                    <select
-                      id="specialty"
-                      value={profile.specialty}
-                      onChange={(e) => handleInputChange("specialty", e.target.value)}
-                      className="w-full p-2 border border-input rounded-md bg-background"
-                    >
-                      <option value="coffee">Coffee</option>
-                      <option value="matcha">Matcha</option>
-                      <option value="both">Both</option>
-                    </select>
-                  ) : (
-                    <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
-                      {profile.specialty === 'matcha' ? (
-                        <Leaf className="w-4 h-4 text-muted-foreground" />
-                      ) : (
-                        <Coffee className="w-4 h-4 text-muted-foreground" />
-                      )}
-                      <span className="capitalize">{profile.specialty}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">Business Description</Label>
-                  {isEditing ? (
-                    <textarea
-                      id="description"
-                      value={profile.description}
-                      onChange={(e) => handleInputChange("description", e.target.value)}
-                      placeholder="Tell customers about your business..."
-                      className="w-full p-2 border border-input rounded-md bg-background min-h-[80px] resize-none"
-                    />
-                  ) : (
-                    <div className="p-2 rounded-md bg-muted/50 min-h-[60px]">
-                      <span className="text-sm">{profile.description || "No description provided"}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Seller Status */}
-                <div className="space-y-2">
-                  <Label>Business Status</Label>
-                  <div className="flex items-center gap-4 p-3 rounded-md bg-muted/50">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${profile.isAvailable ? 'bg-green-500' : 'bg-gray-400'}`}></div>
-                      <span className="text-sm font-medium">
-                        {profile.isAvailable ? 'Online' : 'Offline'}
-                      </span>
-                    </div>
-                    {profile.rating > 0 && (
-                      <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                        <span className="text-sm font-medium">{profile.rating.toFixed(1)}</span>
-                        <span className="text-xs text-muted-foreground">({profile.reviewCount} reviews)</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Profile Completeness */}
-                <div className="space-y-2">
-                  <Label>Profile Status</Label>
-                  <div className={`p-3 rounded-md border ${isSellerProfileComplete() ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
-                    <div className="flex items-center gap-2">
-                      {isSellerProfileComplete() ? (
-                        <>
-                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                          <span className="text-sm font-medium text-green-800">Profile Complete</span>
-                        </>
-                      ) : (
-                        <>
-                          <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                          <span className="text-sm font-medium text-yellow-800">Profile Incomplete</span>
-                        </>
-                      )}
-                    </div>
-                    {!isSellerProfileComplete() && (
-                      <div className="mt-2">
-                        <p className="text-xs text-yellow-700 mb-2">Missing information:</p>
-                        <ul className="text-xs text-yellow-600 space-y-1">
-                          {getMissingInfo().map((item, index) => (
-                            <li key={index}>• {item}</li>
-                          ))}
-                        </ul>
-                        <Button
-                          onClick={() => navigate('/complete-profile')}
-                          size="sm"
-                          className="mt-2"
-                          variant="outline"
-                        >
-                          Complete Profile
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        </Card>
-
-        {/* Quick Actions */}
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
-          <div className="space-y-3">
-            {user.userType === 'seller' ? (
-              <>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => navigate("/seller-dashboard")}
-                >
-                  <LayoutDashboard className="w-4 h-4 mr-2" />
-                  Seller Dashboard
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => navigate("/add-listing")}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Menu Item
-                </Button>
-              </>
-            ) : (
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => navigate("/orders")}
-              >
-                <ShoppingBag className="w-4 h-4 mr-2" />
-                View Order History
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              className="w-full justify-start"
-              onClick={() => navigate("/settings")}
-            >
-              <Settings className="w-4 h-4 mr-2" />
-              App Settings
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-start"
-              onClick={() => navigate("/help")}
-            >
-              <User className="w-4 h-4 mr-2" />
-              Help & Support
-            </Button>
-          </div>
-        </Card>
       </div>
     </div>
   );

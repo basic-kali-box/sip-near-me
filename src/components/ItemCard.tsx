@@ -4,7 +4,8 @@ import { Star, MapPin, Clock, ShoppingCart, Coffee, Leaf, Store, ExternalLink } 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { sendWhatsAppMessage, createProductInterestMessage, trackContactAttempt } from "@/utils/whatsapp";
+import { sendWhatsAppMessage, createProductInterestMessage, trackContactAttempt, createWhatsAppOrder } from "@/utils/whatsapp";
+import { useUser } from "@/contexts/UserContext";
 
 export interface ItemCardItem {
   id: string;
@@ -37,6 +38,7 @@ interface ItemCardProps {
 
 export const ItemCard = ({ item, onAddToCart, onViewSeller, className }: ItemCardProps) => {
   const navigate = useNavigate();
+  const { user } = useUser();
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
 
@@ -75,13 +77,33 @@ export const ItemCard = ({ item, onAddToCart, onViewSeller, className }: ItemCar
     }
   };
 
-  const handleWhatsAppOrder = (e: React.MouseEvent) => {
+  const handleWhatsAppOrder = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (item.seller?.phone) {
+    if (item.seller?.phone && user) {
+      // Create order record in database for single item
+      const orderItems = [{
+        name: item.name,
+        price: item.price,
+        quantity: 1,
+        notes: item.description
+      }];
+
+      const orderId = await createWhatsAppOrder(
+        user.id,
+        item.seller.id,
+        orderItems,
+        item.price,
+        {
+          name: user.name,
+          phone: user.phone
+        }
+      );
+
       const message = createProductInterestMessage(
         item.name,
         item.price,
-        item.seller.specialty
+        item.seller.specialty,
+        user.name
       );
       sendWhatsAppMessage(item.seller.phone, message);
       trackContactAttempt(item.seller.id, 'whatsapp');

@@ -72,7 +72,7 @@ function SidebarNavContent() {
     try {
       await logout()
       if (isMobile) setOpenMobile(false)
-      // Redirect will be handled by the logout function
+      // Navigation is now handled by the logout function in UserContext
     } catch (error) {
       console.error('Signout error:', error)
     }
@@ -259,6 +259,37 @@ const App = () => {
     initGA();
     trackWebVitals();
     initScrollTracking();
+
+    // Global error handlers for unhandled errors
+    const handleUnhandledError = (event: ErrorEvent) => {
+      console.error('Unhandled error:', event.error);
+      console.error('Error details:', {
+        message: event.message,
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno,
+        error: event.error,
+        timestamp: new Date().toISOString(),
+        url: window.location.href,
+      });
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.error('Unhandled promise rejection:', event.reason);
+      console.error('Rejection details:', {
+        reason: event.reason,
+        timestamp: new Date().toISOString(),
+        url: window.location.href,
+      });
+    };
+
+    window.addEventListener('error', handleUnhandledError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('error', handleUnhandledError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
   }, []);
 
   return (
@@ -266,82 +297,82 @@ const App = () => {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <LanguageProvider>
-            <UserProvider>
-              <Toaster />
-              <Sonner />
-              <Analytics />
-              <BrowserRouter>
-            <ErrorBoundary>
-              <SidebarProvider defaultOpen={false}>
-                <Sidebar collapsible="offcanvas">
-                  <SidebarContent>
-                    <SidebarNavContent />
-                  </SidebarContent>
-                </Sidebar>
-                <SidebarInset>
-                  <Routes>
-                    <Route path="/" element={<Landing />} />
-                    <Route path="/landing" element={<Landing />} />
-                    <Route path="/app" element={
-                      <ProtectedRoute requireAuth={true} showLoginPrompt={true}>
-                        <Index />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/auth" element={<Auth />} />
-                    <Route path="/signin" element={<SignIn />} />
-                    <Route path="/signup" element={<SignUp />} />
-                    <Route path="/auth/callback" element={<AuthCallback />} />
-                    <Route path="/email-confirmation" element={<EmailConfirmation />} />
-                    <Route path="/reset-password" element={<ResetPassword />} />
-                    <Route path="/complete-profile" element={<CompleteProfile />} />
-                    <Route path="/add-listing" element={
-                      <ProtectedRoute requireAuth={true} requireUserType="seller">
-                        <AddListing />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/edit-listing/:itemId" element={
-                      <ProtectedRoute requireAuth={true} requireUserType="seller">
-                        <EditListing />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/seller/:id" element={<SellerDetails />} />
-                    <Route path="/item/:itemId" element={<ItemDetail />} />
-                    <Route path="/seller-dashboard" element={
-                      <ProtectedRoute requireAuth={true} requireUserType="seller">
-                        <SellerDashboard />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/order/:sellerId" element={
-                      <ProtectedRoute requireAuth={true}>
-                        <OrderFlow />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/profile" element={
-                      <ProtectedRoute requireAuth={true}>
-                        <Profile />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/orders" element={
-                      <ProtectedRoute requireAuth={true}>
-                        <OrderHistory />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/settings" element={<SettingsPage />} />
-                    <Route path="/help" element={<Help />} />
-                    <Route path="/terms" element={<Terms />} />
-                    <Route path="/privacy" element={<Privacy />} />
-                    <Route path="/location-demo" element={<LocationPickerDemo />} />
-                    <Route path="/itemcard-demo" element={<ItemCardDemo />} />
-                    <Route path="/image-debug" element={<ImageUploadDebug />} />
-                    <Route path="/debug-data" element={<DebugData />} />
-                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </SidebarInset>
-              </SidebarProvider>
-            </ErrorBoundary>
-          </BrowserRouter>
-            </UserProvider>
+            <BrowserRouter>
+              <UserProvider>
+                <Toaster />
+                <Sonner />
+                <Analytics />
+                <ErrorBoundary>
+                  <SidebarProvider defaultOpen={false}>
+                    <Sidebar collapsible="offcanvas">
+                      <SidebarContent>
+                        <SidebarNavContent />
+                      </SidebarContent>
+                    </Sidebar>
+                    <SidebarInset>
+                      <Routes>
+                        <Route path="/" element={<Landing />} />
+                        <Route path="/landing" element={<Landing />} />
+                        <Route path="/app" element={
+                          <ProtectedRoute requireAuth={true} showLoginPrompt={false} fallbackPath="/signin">
+                            <Index />
+                          </ProtectedRoute>
+                        } />
+                        <Route path="/auth" element={<Auth />} />
+                        <Route path="/signin" element={<SignIn />} />
+                        <Route path="/signup" element={<SignUp />} />
+                        <Route path="/auth/callback" element={<AuthCallback />} />
+                        <Route path="/email-confirmation" element={<EmailConfirmation />} />
+                        <Route path="/reset-password" element={<ResetPassword />} />
+                        <Route path="/complete-profile" element={<CompleteProfile />} />
+                        <Route path="/add-listing" element={
+                          <ProtectedRoute requireAuth={true} requireUserType="seller">
+                            <AddListing />
+                          </ProtectedRoute>
+                        } />
+                        <Route path="/edit-listing/:itemId" element={
+                          <ProtectedRoute requireAuth={true} requireUserType="seller">
+                            <EditListing />
+                          </ProtectedRoute>
+                        } />
+                        <Route path="/seller/:id" element={<SellerDetails />} />
+                        <Route path="/item/:itemId" element={<ItemDetail />} />
+                        <Route path="/seller-dashboard" element={
+                          <ProtectedRoute requireAuth={true} requireUserType="seller">
+                            <SellerDashboard />
+                          </ProtectedRoute>
+                        } />
+                        <Route path="/order/:sellerId" element={
+                          <ProtectedRoute requireAuth={true}>
+                            <OrderFlow />
+                          </ProtectedRoute>
+                        } />
+                        <Route path="/profile" element={
+                          <ProtectedRoute requireAuth={true}>
+                            <Profile />
+                          </ProtectedRoute>
+                        } />
+                        <Route path="/orders" element={
+                          <ProtectedRoute requireAuth={true}>
+                            <OrderHistory />
+                          </ProtectedRoute>
+                        } />
+                        <Route path="/settings" element={<SettingsPage />} />
+                        <Route path="/help" element={<Help />} />
+                        <Route path="/terms" element={<Terms />} />
+                        <Route path="/privacy" element={<Privacy />} />
+                        <Route path="/location-demo" element={<LocationPickerDemo />} />
+                        <Route path="/itemcard-demo" element={<ItemCardDemo />} />
+                        <Route path="/image-debug" element={<ImageUploadDebug />} />
+                        <Route path="/debug-data" element={<DebugData />} />
+                        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </SidebarInset>
+                  </SidebarProvider>
+                </ErrorBoundary>
+              </UserProvider>
+            </BrowserRouter>
           </LanguageProvider>
         </TooltipProvider>
       </QueryClientProvider>

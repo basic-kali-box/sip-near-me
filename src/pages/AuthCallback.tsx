@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { UserService } from '@/services/userService';
+import { SellerService } from '@/services/sellerService';
 import { useUser } from '@/contexts/UserContext';
 
 const AuthCallback: React.FC = () => {
@@ -64,32 +65,85 @@ const AuthCallback: React.FC = () => {
             const storedOAuthUserType = localStorage.getItem('pending_oauth_userType');
             if (storedOAuthUserType) {
               localStorage.removeItem('pending_oauth_userType');
-            }
 
-            // For new sellers coming from email confirmation, redirect to complete profile
-            if (userProfile.user_type === 'seller' && userTypeParam === 'seller') {
-              // Check if seller profile is complete
-              const hasBusinessName = userProfile.businessName && userProfile.businessName.trim() !== '';
-              if (!hasBusinessName) {
-                navigate('/complete-profile');
-                return;
+              // If user signed up as seller via OAuth, update their profile type
+              if (storedOAuthUserType === 'seller' && userProfile.user_type !== 'seller') {
+                console.log('🔄 Updating OAuth user type from buyer to seller...');
+                try {
+                  await UserService.updateUserProfile(userProfile.id, {
+                    user_type: 'seller'
+                  });
+                  // Update the local userProfile object to reflect the change
+                  userProfile = { ...userProfile, user_type: 'seller' };
+                  console.log('✅ Successfully updated user type to seller');
+
+                  // Refresh user data in UserContext to reflect the change
+                  try {
+                    await refreshUserData();
+                    console.log('✅ User data refreshed after type update');
+                  } catch (refreshError) {
+                    console.warn('⚠️ Failed to refresh user data after type update:', refreshError);
+                  }
+                } catch (error) {
+                  console.error('❌ Failed to update user type to seller:', error);
+                }
               }
             }
 
-            // Check if user needs to complete profile
+            // Check if user needs to complete basic profile
             const needsProfileCompletion = !userProfile.name || !userProfile.phone || !userProfile.user_type;
 
-            if (needsProfileCompletion || storedOAuthUserType) {
+            // For sellers, check if they have a complete seller profile in the database
+            if (userProfile.user_type === 'seller') {
+              try {
+                const sellerProfile = await SellerService.getSellerById(userProfile.id);
+                if (sellerProfile) {
+                  // Check if seller profile is complete
+                  const isComplete = !!(
+                    sellerProfile.business_name &&
+                    sellerProfile.address &&
+                    sellerProfile.hours &&
+                    sellerProfile.phone
+                  );
+
+                  if (!isComplete || needsProfileCompletion) {
+                    console.log('🔄 Seller profile incomplete, redirecting to complete profile...');
+                    setLoading(false);
+                    navigate('/complete-profile');
+                    return;
+                  } else {
+                    console.log('✅ Seller profile is complete, will redirect to dashboard');
+                  }
+                } else {
+                  // No seller profile exists, need to complete profile
+                  console.log('🔄 No seller profile found, redirecting to complete profile...');
+                  setLoading(false);
+                  navigate('/complete-profile');
+                  return;
+                }
+              } catch (error) {
+                console.log('ℹ️ Error checking seller profile, redirecting to complete profile:', error);
+                setLoading(false);
+                navigate('/complete-profile');
+                return;
+              }
+            } else if (needsProfileCompletion) {
+              // For buyers, just check basic profile completion
               console.log('👤 User needs to complete profile, redirecting...');
               navigate('/complete-profile');
               return;
             }
 
-            // Redirect to stored returnTo URL if available, otherwise redirect to /app for all users
+            // Redirect to stored returnTo URL if available, otherwise redirect based on user type
             if (storedReturnTo) {
               navigate(decodeURIComponent(storedReturnTo));
             } else {
-              navigate('/app');
+              // Redirect sellers to seller dashboard, buyers to app
+              if (userProfile.user_type === 'seller') {
+                navigate('/seller-dashboard');
+              } else {
+                navigate('/app');
+              }
             }
           } else {
             // If no profile exists, redirect to complete registration

@@ -30,7 +30,7 @@ const SellerDetails = () => {
       try {
         setLoading(true);
         setError(null);
-        const s = await SellerService.getSellerById(id);
+        const s = await SellerService.getSellerById(id, user?.id);
         setSeller(s);
       } catch (e: any) {
         setError(e.message || 'Failed to load seller details');

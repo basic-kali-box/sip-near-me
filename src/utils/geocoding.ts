@@ -16,17 +16,17 @@ export interface GeocodeResult {
  * Default coordinates for major cities (fallback values)
  */
 export const DEFAULT_COORDINATES: Record<string, Coordinates> = {
-  'new_york': { latitude: 40.7128, longitude: -74.0060 },
-  'los_angeles': { latitude: 34.0522, longitude: -118.2437 },
-  'chicago': { latitude: 41.8781, longitude: -87.6298 },
-  'houston': { latitude: 29.7604, longitude: -95.3698 },
-  'phoenix': { latitude: 33.4484, longitude: -112.0740 },
-  'philadelphia': { latitude: 39.9526, longitude: -75.1652 },
-  'san_antonio': { latitude: 29.4241, longitude: -98.4936 },
-  'san_diego': { latitude: 32.7157, longitude: -117.1611 },
-  'dallas': { latitude: 32.7767, longitude: -96.7970 },
-  'san_jose': { latitude: 37.3382, longitude: -121.8863 },
-  'default': { latitude: 40.7128, longitude: -74.0060 } // NYC as default
+  'casablanca': { latitude: 33.5731, longitude: -7.5898 },
+  'rabat': { latitude: 34.0209, longitude: -6.8416 },
+  'marrakech': { latitude: 31.6295, longitude: -7.9811 },
+  'fes': { latitude: 34.0181, longitude: -5.0078 },
+  'tangier': { latitude: 35.7595, longitude: -5.8340 },
+  'agadir': { latitude: 30.4278, longitude: -9.5981 },
+  'meknes': { latitude: 33.8935, longitude: -5.5473 },
+  'oujda': { latitude: 34.6814, longitude: -1.9086 },
+  'kenitra': { latitude: 34.2610, longitude: -6.5802 },
+  'tetouan': { latitude: 35.5889, longitude: -5.3626 },
+  'default': { latitude: 33.5731, longitude: -7.5898 } // Casablanca as default
 };
 
 /**

@@ -17,7 +17,7 @@ const SignIn = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const { login, loginWithGoogle } = useUser();
+  const { login, loginWithAutoDetect, loginWithGoogle } = useUser();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -75,26 +75,31 @@ const SignIn = () => {
     try {
       console.log('🔐 SignIn: Starting login process...');
 
-      // Add a timeout to the entire login process
-      const loginPromise = login(formData.email, formData.password, 'buyer');
-      const timeoutPromise = new Promise<boolean>((_, reject) => {
+      // Use auto-detect login to determine user type from database
+      const loginPromise = loginWithAutoDetect(formData.email, formData.password);
+      const timeoutPromise = new Promise<{ success: boolean; userType?: 'buyer' | 'seller' }>((_, reject) => {
         setTimeout(() => reject(new Error('Login process timeout')), 15000); // 15 second timeout
       });
 
-      const success = await Promise.race([loginPromise, timeoutPromise]);
+      const result = await Promise.race([loginPromise, timeoutPromise]);
 
-      if (success) {
+      if (result.success && result.userType) {
         console.log('✅ SignIn: Login successful, navigating...');
         toast({
           title: "Welcome back!",
-          description: `Signed in as ${formData.userType === 'seller' ? 'seller' : 'buyer'}.`,
+          description: `Signed in as ${result.userType}.`,
         });
 
-        // Navigate to returnTo URL if provided, otherwise redirect to /app for all users
+        // Navigate to returnTo URL if provided, otherwise redirect based on user type
         if (returnTo) {
           navigate(decodeURIComponent(returnTo));
         } else {
-          navigate('/app');
+          // Redirect sellers to seller dashboard, buyers to app
+          if (result.userType === 'seller') {
+            navigate('/seller-dashboard');
+          } else {
+            navigate('/app');
+          }
         }
       } else {
         console.log('❌ SignIn: Login failed');

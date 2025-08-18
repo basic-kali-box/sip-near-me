@@ -14,7 +14,15 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 export function useLanguage() {
   const context = useContext(LanguageContext);
   if (context === undefined) {
-    throw new Error('useLanguage must be used within a LanguageProvider');
+    // Enhanced error logging for debugging
+    console.error('useLanguage hook called outside of LanguageProvider context');
+    console.error('Current location:', window.location.href);
+
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Make sure your component is wrapped with LanguageProvider');
+    }
+
+    throw new Error('useLanguage must be used within a LanguageProvider. Check that your component is properly wrapped with LanguageProvider.');
   }
   return context;
 }

@@ -22,7 +22,7 @@ export const BottomNavigation = ({ activeTab, onTabChange, className }: BottomNa
         title: "Signed out successfully",
         description: "You have been logged out.",
       });
-      navigate('/landing', { replace: true });
+      // Navigation is now handled by the logout function in UserContext
     } catch (error: any) {
       toast({
         title: "Sign out failed",

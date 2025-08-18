@@ -19,7 +19,7 @@ interface UserMenuProps {
   className?: string;
 }
 
-export const UserMenu: React.FC<UserMenuProps> = ({ variant = 'desktop', className = '' }) => {
+const UserMenuContent: React.FC<UserMenuProps> = ({ variant = 'desktop', className = '' }) => {
   const { user, logout, isAuthenticated, switchUserType } = useUser();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -58,22 +58,21 @@ export const UserMenu: React.FC<UserMenuProps> = ({ variant = 'desktop', classNa
     try {
       setIsLoggingOut(true);
       console.log('🔄 UserMenu: Starting sign out process...');
-      
+
       await logout();
-      
+
       console.log('✅ UserMenu: Sign out successful');
-      
+
       toast({
         title: "Signed out successfully",
         description: "You have been logged out. See you next time!",
       });
 
-      // Redirect to landing page
-      navigate('/landing', { replace: true });
-      
+      // Navigation is now handled by the logout function in UserContext
+
     } catch (error: any) {
       console.error('❌ UserMenu: Sign out error:', error);
-      
+
       toast({
         title: "Sign out failed",
         description: error.message || "Please try again.",
@@ -85,19 +84,29 @@ export const UserMenu: React.FC<UserMenuProps> = ({ variant = 'desktop', classNa
   };
 
   const getUserInitials = () => {
-    if (!user.name) return 'U';
-    return user.name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+    try {
+      if (!user?.name || typeof user.name !== 'string') return 'U';
+      return user.name
+        .split(' ')
+        .map(n => n?.[0] || '')
+        .join('')
+        .toUpperCase()
+        .slice(0, 2) || 'U';
+    } catch (error) {
+      console.error('Error getting user initials:', error);
+      return 'U';
+    }
   };
 
   const getUserDisplayName = () => {
-    if (user.name) return user.name;
-    if (user.email) return user.email.split('@')[0];
-    return 'User';
+    try {
+      if (user?.name && typeof user.name === 'string') return user.name;
+      if (user?.email && typeof user.email === 'string') return user.email.split('@')[0];
+      return 'User';
+    } catch (error) {
+      console.error('Error getting user display name:', error);
+      return 'User';
+    }
   };
 
   if (variant === 'mobile') {
@@ -306,4 +315,19 @@ export const UserMenu: React.FC<UserMenuProps> = ({ variant = 'desktop', classNa
       </DropdownMenuContent>
     </DropdownMenu>
   );
+};
+
+// Wrapper component with error boundary
+export const UserMenu: React.FC<UserMenuProps> = (props) => {
+  try {
+    return <UserMenuContent {...props} />;
+  } catch (error) {
+    console.error('Error in UserMenu component:', error);
+    // Return a fallback UI instead of crashing
+    return (
+      <div className={`text-sm text-muted-foreground ${props.className || ''}`}>
+        User menu unavailable
+      </div>
+    );
+  }
 };

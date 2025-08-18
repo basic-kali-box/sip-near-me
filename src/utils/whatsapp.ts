@@ -228,11 +228,49 @@ export const trackContactAttempt = (sellerId: string, contactType: 'whatsapp' | 
     timestamp: new Date().toISOString(),
     source: 'brewnear_app'
   };
-  
+
   // Store locally for now (in real app, send to analytics service)
   const existingContacts = JSON.parse(localStorage.getItem('brewnear_contacts') || '[]');
   existingContacts.push(contactData);
   localStorage.setItem('brewnear_contacts', JSON.stringify(existingContacts));
-  
+
   console.log('Contact attempt tracked:', contactData);
+};
+
+/**
+ * Creates a WhatsApp order and tracks it in the database
+ */
+export const createWhatsAppOrder = async (
+  buyerId: string,
+  sellerId: string,
+  items: OrderItem[],
+  totalAmount: number,
+  customerInfo?: {
+    name?: string;
+    phone?: string;
+    pickupTime?: string;
+    specialInstructions?: string;
+  }
+): Promise<string | null> => {
+  try {
+    // Import OrderService dynamically to avoid circular dependencies
+    const { OrderService } = await import('@/services/orderService');
+
+    const orderData = {
+      buyerId,
+      sellerId,
+      items,
+      totalAmount,
+      contactMethod: 'whatsapp' as const,
+      pickupTime: customerInfo?.pickupTime,
+      specialInstructions: customerInfo?.specialInstructions
+    };
+
+    const order = await OrderService.createOrder(orderData);
+    console.log('WhatsApp order created:', order.id);
+    return order.id;
+  } catch (error) {
+    console.error('Failed to create WhatsApp order:', error);
+    return null;
+  }
 };

@@ -4,6 +4,7 @@ import { BottomNavigation } from "@/components/BottomNavigation";
 import { ListView } from "@/components/ListView";
 import { MapView } from "@/components/MapView";
 import { UserMenu } from "@/components/UserMenu";
+import { ListViewErrorBoundary } from "@/components/ListViewErrorBoundary";
 
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/components/ui/sidebar";
@@ -91,7 +92,11 @@ const Index = () => {
       case "map":
         return <MapView className="flex-1" />;
       default:
-        return <ListView onStartOrder={handleStartOrder} className="flex-1" />;
+        return (
+          <ListViewErrorBoundary>
+            <ListView onStartOrder={handleStartOrder} className="flex-1" />
+          </ListViewErrorBoundary>
+        );
     }
   };
 
@@ -107,6 +112,17 @@ const Index = () => {
       {/* Mobile Header with Hamburger Menu */}
       <header className="md:hidden bg-background/95 backdrop-blur-md border-b border-border/50 sticky top-0 z-[100]" data-mobile-menu>
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+          {/* Hamburger Menu Button on the left */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => toggleSidebar()}
+            className="h-9 w-9 hover:bg-primary/10 transition-colors duration-200 relative z-[101]"
+          >
+            <Menu className="w-5 h-5 text-foreground" />
+            <span className="sr-only">Toggle menu</span>
+          </Button>
+
           {/* Logo and Location */}
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-gradient-matcha rounded-lg flex items-center justify-center">
@@ -122,17 +138,6 @@ const Index = () => {
               </div>
             </div>
           </div>
-
-          {/* Hamburger Menu Button now toggles the Sidebar */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => toggleSidebar()}
-            className="h-9 w-9 hover:bg-primary/10 transition-colors duration-200 relative z-[101]"
-          >
-            <Menu className="w-5 h-5 text-foreground" />
-            <span className="sr-only">Toggle menu</span>
-          </Button>
         </div>
 
         {/* Mobile Menu Dropdown */}

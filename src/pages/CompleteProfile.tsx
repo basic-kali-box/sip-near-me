@@ -7,9 +7,8 @@ import { getDefaultCoordinates, type Coordinates } from '@/utils/geocoding';
 import { useUser } from '@/contexts/UserContext';
 import { useToast } from '@/hooks/use-toast';
 import { UserMenu } from '@/components/UserMenu';
-import { Button } from '@/components/ui/button';
 import { AddressInput } from '@/components/AddressInput';
-import { BusinessHoursInput } from '@/components/BusinessHoursInput';
+
 
 const CompleteProfile: React.FC = () => {
   const navigate = useNavigate();
@@ -20,11 +19,12 @@ const CompleteProfile: React.FC = () => {
     throw new Error('CompleteProfile must be used within UserProvider');
   }
 
-  const { user, updateUser, logout } = userContext;
+  const { user, updateUser } = userContext;
   const [loading, setLoading] = useState(false);
   const [userType, setUserType] = useState<'buyer' | 'seller'>('buyer');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isCheckingProfile, setIsCheckingProfile] = useState(true);
+  const [shouldRedirectToDashboard, setShouldRedirectToDashboard] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -32,7 +32,6 @@ const CompleteProfile: React.FC = () => {
     businessName: '',
     businessAddress: '',
     businessCoordinates: null as Coordinates | null,
-    businessHours: 'Mon-Fri: 8:00 AM - 6:00 PM, Sat-Sun: 9:00 AM - 5:00 PM',
     specialty: 'coffee' as 'coffee' | 'matcha' | 'both',
     description: ''
   });
@@ -71,32 +70,28 @@ const CompleteProfile: React.FC = () => {
               );
 
               if (isComplete) {
-                console.log('🔄 Profile already complete, allowing updates...');
-                // Don't redirect immediately - allow users to update their profile
-                // Just show a message that the profile is complete
+                console.log('🔄 Profile already complete, will redirect to seller dashboard...');
                 toast({
-                  title: "Profile Complete",
-                  description: "Your seller profile is set up. You can update it here if needed.",
+                  title: "Welcome back!",
+                  description: "Your seller profile is already set up. Redirecting to dashboard...",
                 });
+                setShouldRedirectToDashboard(true);
+              } else {
+                // Pre-populate form with existing seller data
+                setFormData(prev => ({
+                  ...prev,
+                  name: user.name || sellerProfile.name || '',
+                  phone: user.phone || sellerProfile.phone || '',
+                  businessName: sellerProfile.business_name || '',
+                  businessAddress: sellerProfile.address || '',
+                  specialty: sellerProfile.specialty || prev.specialty,
+                  description: sellerProfile.description || ''
+                }));
+                console.log('✅ Pre-populated form with existing seller data');
               }
-
-              // Pre-populate form with existing seller data
-              setFormData(prev => ({
-                ...prev,
-                name: user.name || sellerProfile.name || '',
-                phone: user.phone || sellerProfile.phone || '',
-                businessName: sellerProfile.business_name || '',
-                businessAddress: sellerProfile.address || '',
-                businessHours: sellerProfile.hours || prev.businessHours,
-                specialty: sellerProfile.specialty || prev.specialty,
-                description: sellerProfile.description || ''
-              }));
-
-              console.log('✅ Pre-populated form with existing seller data');
             }
           } catch (error) {
             console.log('ℹ️ No existing seller profile found, starting fresh');
-            // This is expected for new sellers, so we don't show an error
           }
         }
       }
@@ -112,9 +107,21 @@ const CompleteProfile: React.FC = () => {
       }
     };
 
-    checkAuth();
-    setIsCheckingProfile(false);
+    checkAuth().finally(() => {
+      setIsCheckingProfile(false);
+    });
   }, [navigate, user, toast]);
+
+  // Handle redirect to dashboard for complete seller profiles
+  useEffect(() => {
+    if (shouldRedirectToDashboard) {
+      const timer = setTimeout(() => {
+        navigate('/seller-dashboard');
+      }, 1500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [shouldRedirectToDashboard, navigate]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -131,17 +138,15 @@ const CompleteProfile: React.FC = () => {
         newErrors.businessAddress = 'Business address is required';
       }
       if (!formData.phone.trim()) {
-        newErrors.phone = 'Phone number is required for sellers';
+        newErrors.phone = '📞 Phone number is mandatory for sellers - customers need to contact you!';
       } else {
         // Validate phone number format (10-14 digits)
         const cleanPhone = formData.phone.replace(/[\s\-\(\)\+]/g, '');
         if (!/^\d{10,14}$/.test(cleanPhone)) {
-          newErrors.phone = 'Phone number must be 10-14 digits';
+          newErrors.phone = '📱 Please enter a valid phone number (10-14 digits)';
         }
       }
-      if (!formData.businessHours.trim()) {
-        newErrors.businessHours = 'Business hours are required';
-      }
+
     }
 
     setErrors(newErrors);
@@ -198,8 +203,7 @@ const CompleteProfile: React.FC = () => {
           businessName: formData.businessName,
           businessAddress: formData.businessAddress,
           phone: formData.phone,
-          specialty: formData.specialty,
-          businessHours: formData.businessHours
+          specialty: formData.specialty
         });
 
         // Validate required fields before creating seller profile
@@ -221,7 +225,7 @@ const CompleteProfile: React.FC = () => {
             address: formData.businessAddress.trim(),
             phone: formData.phone.trim(),
             specialty: formData.specialty,
-            hours: formData.businessHours?.trim() || 'Mon-Fri: 9AM-5PM',
+            hours: 'Mon-Fri: 8:00 AM - 6:00 PM, Sat-Sun: 9:00 AM - 5:00 PM',
             description: formData.description?.trim() || null,
             is_available: true, // Start as available
             rating_average: 0,
@@ -256,8 +260,12 @@ const CompleteProfile: React.FC = () => {
 
       // Small delay to show the toast before navigation
       setTimeout(() => {
-        // Redirect both sellers and buyers to /app with list view as default
-        navigate('/app');
+        // Redirect sellers to add listing page, buyers to app
+        if (userType === 'seller') {
+          navigate('/add-listing');
+        } else {
+          navigate('/app');
+        }
       }, 1000);
 
     } catch (error: any) {
@@ -303,6 +311,19 @@ const CompleteProfile: React.FC = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-coffee-600 mx-auto mb-4"></div>
           <h2 className="text-xl font-semibold text-gray-800 mb-2">Checking Profile...</h2>
           <p className="text-gray-600">Please wait while we verify your profile status.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show redirect loading state
+  if (shouldRedirectToDashboard) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-coffee-50 via-white to-matcha-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-matcha-600 mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Welcome Back!</h2>
+          <p className="text-gray-600">Redirecting to your seller dashboard...</p>
         </div>
       </div>
     );
@@ -440,7 +461,8 @@ const CompleteProfile: React.FC = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Phone Number {userType === 'seller' && '*'}
+              Phone Number {userType === 'seller' && <span className="text-red-500">*</span>}
+              {userType === 'seller' && <span className="text-xs text-gray-500 ml-1">(Required for customer contact)</span>}
             </label>
             <input
               type="tel"
@@ -450,14 +472,29 @@ const CompleteProfile: React.FC = () => {
                 setFormData(prev => ({ ...prev, phone: e.target.value }));
                 if (errors.phone) setErrors(prev => ({ ...prev, phone: '' }));
               }}
-              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:border-transparent ${
+              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:border-transparent transition-all duration-200 ${
                 errors.phone
-                  ? 'border-red-300 focus:ring-red-500'
+                  ? 'border-red-400 focus:ring-red-500 bg-red-50'
                   : 'border-gray-300 focus:ring-coffee-500'
               }`}
-              placeholder="+1 (555) 123-4567"
+              placeholder={userType === 'seller' ? "+212 6XX XXX XXX (Required)" : "+1 (555) 123-4567"}
             />
-            {errors.phone && <p className="text-red-600 text-sm mt-1">{errors.phone}</p>}
+            {errors.phone && (
+              <div className="flex items-center gap-2 mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-white text-xs">!</span>
+                </div>
+                <p className="text-red-700 text-sm font-medium">{errors.phone}</p>
+              </div>
+            )}
+            {userType === 'seller' && !errors.phone && (
+              <p className="text-green-600 text-xs mt-1 flex items-center gap-1">
+                <span className="w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs">✓</span>
+                </span>
+                Customers will use this number to contact you
+              </p>
+            )}
           </div>
 
           {/* Seller-specific fields */}
@@ -534,15 +571,6 @@ const CompleteProfile: React.FC = () => {
                     </select>
                   </div>
 
-                  <BusinessHoursInput
-                    value={formData.businessHours}
-                    onChange={(value) => {
-                      setFormData(prev => ({ ...prev, businessHours: value }));
-                      if (errors.businessHours) setErrors(prev => ({ ...prev, businessHours: '' }));
-                    }}
-                    error={errors.businessHours}
-                  />
-
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Business Description
@@ -564,6 +592,7 @@ const CompleteProfile: React.FC = () => {
                     <ul className="text-sm text-blue-700 space-y-1">
                       <li>• Use a clear, descriptive business name</li>
                       <li>• Include your full address for accurate location</li>
+                      <li>• <strong>📞 Phone number is mandatory</strong> - customers need to contact you for orders</li>
                       <li>• Set realistic hours that you can maintain</li>
                       <li>• Write a compelling description to attract customers</li>
                     </ul>
@@ -597,7 +626,7 @@ const CompleteProfile: React.FC = () => {
         {/* Footer */}
         <div className="text-center mt-8">
           <p className="text-sm text-gray-500">
-            Need help? <a href="mailto:support@brewnear.com" className="text-coffee-600 hover:text-coffee-700 font-medium">Contact Support</a>
+            Need help? <a href="mailto:mehdibenlekhale@gmail.com" className="text-coffee-600 hover:text-coffee-700 font-medium">Contact Support</a>
           </p>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, Minus, ShoppingCart, Clock, MapPin, Star, Truck, Phone, MessageCircle, User } from "lucide-react";
-import { sendWhatsAppMessage, formatOrderMessage, trackContactAttempt, OrderItem, OrderDetails } from "@/utils/whatsapp";
+import { sendWhatsAppMessage, formatOrderMessage, trackContactAttempt, createWhatsAppOrder, OrderItem, OrderDetails } from "@/utils/whatsapp";
 import { useUser } from "@/contexts/UserContext";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -116,8 +116,8 @@ const OrderFlow = () => {
     return cart.reduce((total, item) => total + item.quantity, 0);
   };
 
-  const handleWhatsAppOrder = () => {
-    if (!seller) return;
+  const handleWhatsAppOrder = async () => {
+    if (!seller || !user) return;
 
     const orderItems: OrderItem[] = cart.map(item => ({
       name: item.name,
@@ -135,13 +135,29 @@ const OrderFlow = () => {
       specialInstructions: customerInfo.specialInstructions
     };
 
+    // Create order record in database
+    const orderId = await createWhatsAppOrder(
+      user.id,
+      seller.id,
+      orderItems,
+      getTotalPrice(),
+      {
+        name: customerInfo.name,
+        phone: customerInfo.phone,
+        pickupTime: customerInfo.pickupTime,
+        specialInstructions: customerInfo.specialInstructions
+      }
+    );
+
     const message = formatOrderMessage(seller, orderDetails);
     sendWhatsAppMessage(seller.phone, message);
     trackContactAttempt(seller.id.toString(), 'whatsapp');
 
     toast({
       title: "Order sent via WhatsApp!",
-      description: `Your order has been sent to ${seller.name}`,
+      description: orderId
+        ? `Your order (#${orderId.slice(-6)}) has been sent to ${seller.name}`
+        : `Your order has been sent to ${seller.name}`,
     });
 
     setStep("confirmed");

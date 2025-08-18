@@ -69,7 +69,7 @@ export const MapView = ({ className }: MapViewProps) => {
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
-  const [mapCenter, setMapCenter] = useState({ lat: 40.7128, lng: -74.0060 }); // Default to NYC
+  const [mapCenter, setMapCenter] = useState({ lat: 33.5731, lng: -7.5898 }); // Default to Casablanca, Morocco
   const [locationStatus, setLocationStatus] = useState<'loading' | 'granted' | 'denied' | 'unavailable'>('loading');
   const [mapInstance, setMapInstance] = useState<any>(null);
   const [mapReady, setMapReady] = useState(false);
@@ -104,10 +104,6 @@ export const MapView = ({ className }: MapViewProps) => {
           setUserLocation(location);
           setMapCenter(location);
           setLocationStatus('granted');
-          toast({
-            title: "Location Found",
-            description: `Located at ${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`,
-          });
         },
         (error) => {
           let errorMessage = "Unable to get your location. Using default location.";
@@ -140,8 +136,8 @@ export const MapView = ({ className }: MapViewProps) => {
             variant: "destructive",
           });
 
-          // Set a default location (New York City)
-          const defaultLocation = { lat: 40.7128, lng: -74.0060 };
+          // Set a default location (Casablanca, Morocco)
+          const defaultLocation = { lat: 33.5731, lng: -7.5898 };
           setMapCenter(defaultLocation);
         },
         options
@@ -156,9 +152,9 @@ export const MapView = ({ className }: MapViewProps) => {
     let mounted = true;
     const load = async () => {
       try {
-        // If we have user location, use it; otherwise default to NYC
-        const lat = userLocation?.lat ?? 40.7128;
-        const lng = userLocation?.lng ?? -74.0060;
+        // If we have user location, use it; otherwise default to Casablanca, Morocco
+        const lat = userLocation?.lat ?? 33.5731;
+        const lng = userLocation?.lng ?? -7.5898;
         const results = await SellerService.getNearbySellers(lat, lng, { radiusKm: 25, isAvailable: true });
         if (!mounted) return;
         const mapped = (results || []).map((s: any) => ({
@@ -527,18 +523,9 @@ export const MapView = ({ className }: MapViewProps) => {
   const handleCenterOnUser = () => {
     if (userLocation && mapInstance) {
       mapInstance.setView([userLocation.lat, userLocation.lng], 15);
-      toast({
-        title: "Location Updated",
-        description: "Map centered on your current location.",
-      });
     } else if (!userLocation) {
       // Try to get location again
       if (navigator.geolocation) {
-        toast({
-          title: "Getting Location",
-          description: "Attempting to locate you...",
-        });
-
         const options = {
           enableHighAccuracy: true,
           timeout: 5000,
@@ -553,10 +540,6 @@ export const MapView = ({ className }: MapViewProps) => {
             };
             setUserLocation(location);
             setMapCenter(location);
-            toast({
-              title: "Location Found",
-              description: "Map centered on your current location.",
-            });
           },
           (error) => {
             toast({

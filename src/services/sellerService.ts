@@ -40,6 +40,7 @@ export class SellerService {
         await trackSellerView(sellerId, viewerId);
       }
 
+      console.log('🔍 SellerService: Querying seller with ID:', sellerId);
       const { data: seller, error: sellerError } = await supabase
         .from('sellers')
         .select(`
@@ -49,11 +50,17 @@ export class SellerService {
         .eq('id', sellerId)
         .single();
 
-      if (sellerError) throw sellerError;
+      console.log('🔍 SellerService: Query result:', { seller, error: sellerError });
 
+      if (sellerError) {
+        console.error('🔍 SellerService: Database error:', sellerError);
+        throw sellerError;
+      }
+
+      console.log('🔍 SellerService: Returning seller data:', seller);
       return seller;
     } catch (error) {
-      console.error('Error fetching seller:', error);
+      console.error('🔍 SellerService: Error fetching seller:', error);
       return null;
     }
   }

@@ -50,26 +50,44 @@ export const ListView = ({ onStartOrder, className }: ListViewProps) => {
         if (drinksError) throw drinksError;
         if (!mounted) return;
 
-        // Map to ItemCardItem format
-        const mapped: ItemCardItem[] = (drinksData || []).map((drink: any) => ({
-          id: drink.id,
-          name: drink.name,
-          description: drink.description,
-          price: drink.price,
-          photo_url: drink.photo_url,
-          category: drink.category,
-          is_available: drink.is_available,
-          seller_id: drink.seller_id,
-          seller: drink.seller ? {
-            id: drink.seller.id,
-            business_name: drink.seller.business_name,
-            address: drink.seller.address,
-            phone: drink.seller.phone,
-            specialty: drink.seller.specialty,
-            rating_average: drink.seller.rating_average,
-            rating_count: drink.seller.rating_count,
-          } : undefined,
-        }));
+        // Map to ItemCardItem format with defensive programming
+        const mapped: ItemCardItem[] = (drinksData || []).map((drink: any) => {
+          try {
+            return {
+              id: drink?.id || '',
+              name: drink?.name || 'Unknown Item',
+              description: drink?.description || null,
+              price: typeof drink?.price === 'number' ? drink.price : 0,
+              photo_url: drink?.photo_url || null,
+              category: drink?.category || null,
+              is_available: drink?.is_available !== false, // Default to true if undefined
+              seller_id: drink?.seller_id || '',
+              seller: drink?.seller ? {
+                id: drink.seller.id || '',
+                business_name: drink.seller.business_name || 'Unknown Business',
+                address: drink.seller.address || '',
+                phone: drink.seller.phone || '',
+                specialty: drink.seller.specialty || 'both',
+                rating_average: typeof drink.seller.rating_average === 'number' ? drink.seller.rating_average : 0,
+                rating_count: typeof drink.seller.rating_count === 'number' ? drink.seller.rating_count : 0,
+              } : undefined,
+            };
+          } catch (error) {
+            console.error('Error mapping drink data:', error, drink);
+            // Return a safe fallback object
+            return {
+              id: drink?.id || `error-${Math.random()}`,
+              name: 'Error loading item',
+              description: null,
+              price: 0,
+              photo_url: null,
+              category: null,
+              is_available: false,
+              seller_id: '',
+              seller: undefined,
+            };
+          }
+        }).filter(item => item.id); // Remove any items without valid IDs
 
         setItems(mapped);
       } catch (e: any) {
@@ -87,14 +105,28 @@ export const ListView = ({ onStartOrder, className }: ListViewProps) => {
   }, []);
 
   const filteredItems = useMemo(() => {
-    const q = searchQuery.toLowerCase();
-    return items.filter(item =>
-      item.name.toLowerCase().includes(q) ||
-      (item.description?.toLowerCase() || '').includes(q) ||
-      (item.category?.toLowerCase() || '').includes(q) ||
-      (item.seller?.business_name.toLowerCase() || '').includes(q) ||
-      (item.seller?.specialty?.toLowerCase() || '').includes(q)
-    );
+    try {
+      const q = searchQuery.toLowerCase();
+      return items.filter(item => {
+        // Add defensive checks to prevent runtime errors
+        if (!item || typeof item !== 'object') return false;
+
+        const name = item.name || '';
+        const description = item.description || '';
+        const category = item.category || '';
+        const businessName = item.seller?.business_name || '';
+        const specialty = item.seller?.specialty || '';
+
+        return name.toLowerCase().includes(q) ||
+               description.toLowerCase().includes(q) ||
+               category.toLowerCase().includes(q) ||
+               businessName.toLowerCase().includes(q) ||
+               specialty.toLowerCase().includes(q);
+      });
+    } catch (error) {
+      console.error('Error filtering items:', error);
+      return items; // Return unfiltered items as fallback
+    }
   }, [items, searchQuery]);
   // Real-time: refresh on availability changes and new drinks
   useEffect(() => {

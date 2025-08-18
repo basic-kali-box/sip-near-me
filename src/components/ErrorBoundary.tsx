@@ -26,7 +26,44 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
+
+    // Enhanced error logging for production debugging
+    const errorDetails = {
+      message: error.message,
+      stack: error.stack,
+      componentStack: errorInfo.componentStack,
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent,
+      url: window.location.href,
+      // Add any additional context that might be helpful
+      localStorage: this.getLocalStorageInfo(),
+    };
+
+    console.error('Detailed error information:', errorDetails);
+
+    // In production, you might want to send this to an error reporting service
+    if (process.env.NODE_ENV === 'production') {
+      this.reportErrorToService(errorDetails);
+    }
+
     this.setState({ error, errorInfo });
+  }
+
+  private getLocalStorageInfo() {
+    try {
+      return {
+        userEssentials: localStorage.getItem('brewnear_user_essentials'),
+        hasUserData: !!localStorage.getItem('brewnear_user_essentials'),
+      };
+    } catch (e) {
+      return { error: 'Could not access localStorage' };
+    }
+  }
+
+  private reportErrorToService(errorDetails: any) {
+    // Placeholder for error reporting service integration
+    // You could integrate with services like Sentry, LogRocket, etc.
+    console.warn('Error reporting service not configured:', errorDetails);
   }
 
   handleRetry = () => {

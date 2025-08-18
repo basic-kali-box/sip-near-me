@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase, signUp, signIn, signOut, signInWithGoogle } from '@/lib/supabase';
 import { UserService } from '@/services/userService';
 import { SellerService } from '@/services/sellerService';
@@ -28,6 +29,7 @@ interface UserContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string, userType: 'buyer' | 'seller') => Promise<boolean>;
+  loginWithAutoDetect: (email: string, password: string) => Promise<{ success: boolean; userType?: 'buyer' | 'seller' }>;
   loginWithGoogle: () => Promise<boolean>;
   register: (userData: Partial<User>, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
@@ -42,12 +44,24 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export function useUser() {
   const context = useContext(UserContext);
   if (context === undefined) {
-    throw new Error('useUser must be used within a UserProvider');
+    // Enhanced error logging for debugging
+    console.error('useUser hook called outside of UserProvider context');
+    console.error('Current location:', window.location.href);
+    console.error('Component stack trace will be available in React DevTools');
+
+    // In development, provide more helpful error information
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Make sure your component is wrapped with UserProvider');
+      console.error('Check the App.tsx provider hierarchy');
+    }
+
+    throw new Error('useUser must be used within a UserProvider. Check that your component is properly wrapped with UserProvider.');
   }
   return context;
 }
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -303,6 +317,102 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
+  const loginWithAutoDetect = async (email: string, password: string): Promise<{ success: boolean; userType?: 'buyer' | 'seller' }> => {
+    try {
+      console.log('🔐 Starting auto-detect login process for:', email);
+      const { user: authUser, session } = await signIn(email, password);
+
+      if (authUser && session) {
+        console.log('✅ Authentication successful for user:', authUser.id);
+
+        // First, try to get existing user profile to determine user type
+        let detectedUserType: 'buyer' | 'seller' = 'buyer';
+        try {
+          const existingProfile = await UserService.getUserProfileById(authUser.id);
+          if (existingProfile && existingProfile.user_type) {
+            detectedUserType = existingProfile.user_type;
+            console.log('✅ Detected user type from existing profile:', detectedUserType);
+          }
+        } catch (error) {
+          console.log('📝 No existing profile found, defaulting to buyer');
+        }
+
+        // Set the session first
+        setIsAuthenticated(true);
+
+        // Try to create/update the database profile with detected user type
+        console.log('🔄 Creating/updating database profile...');
+        try {
+          const profilePromise = UserService.createUserProfile({
+            id: authUser.id,
+            email: authUser.email!,
+            name: authUser.user_metadata?.name || authUser.email!.split('@')[0],
+            user_type: detectedUserType,
+            phone: authUser.phone,
+            avatar_url: authUser.user_metadata?.avatar_url
+          });
+
+          // Shorter timeout for profile creation
+          await Promise.race([
+            profilePromise,
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Profile creation timeout')), 8000)
+            )
+          ]);
+
+          console.log('✅ Database profile created/updated successfully');
+        } catch (dbError) {
+          // Database profile creation failed, but we can still proceed with auth data
+          console.warn('⚠️ Database profile creation failed, proceeding with auth data:', dbError);
+        }
+
+        // Store essentials immediately and build user object
+        console.log('🔄 Building user object with stored essentials...');
+        storeUserEssentials({
+          id: authUser.id,
+          email: authUser.email!,
+          name: authUser.user_metadata?.name || authUser.email!.split('@')[0],
+          user_type: detectedUserType,
+          avatar_url: authUser.user_metadata?.avatar_url
+        });
+
+        // Build user object directly without database fetch during login
+        const appUser = await buildUserWithSellerDetails({
+          id: authUser.id,
+          email: authUser.email!,
+          name: authUser.user_metadata?.name || authUser.email!.split('@')[0],
+          user_type: detectedUserType,
+          phone: authUser.phone,
+          avatar_url: authUser.user_metadata?.avatar_url
+        });
+
+        setUser(appUser);
+        console.log('✅ User set successfully');
+
+        console.log('✅ Auto-detect login process completed successfully');
+        return { success: true, userType: detectedUserType };
+      }
+
+      console.log('❌ No auth user or session received');
+      return { success: false };
+    } catch (error: any) {
+      console.error('❌ Auto-detect login error:', error);
+
+      // Handle specific error cases
+      if (error.message?.includes('Email not confirmed')) {
+        console.error('❌ Email confirmation required. Please disable email confirmation in Supabase Dashboard → Authentication → Settings');
+        throw new Error('Email confirmation is required. Please check your email or contact support to disable email confirmation.');
+      }
+
+      if (error.message?.includes('Invalid login credentials')) {
+        throw new Error('Invalid email or password. Please check your credentials and try again.');
+      }
+
+      // Re-throw the error so it can be handled by the UI
+      throw error;
+    }
+  };
+
   const login = async (email: string, password: string, userType: 'buyer' | 'seller'): Promise<boolean> => {
     try {
       console.log('🔐 Starting login process for:', email);
@@ -486,12 +596,19 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
+      console.log('🔄 UserContext: Starting logout process...');
       await signOut();
       setUser(null);
       setIsAuthenticated(false);
       clearStoredData(); // Clear localStorage on logout
+
+      console.log('✅ UserContext: Logout successful, redirecting to landing page...');
+      // Always redirect to landing page after logout
+      navigate('/', { replace: true });
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('❌ UserContext: Logout error:', error);
+      // Even if logout fails, redirect to landing page for security
+      navigate('/', { replace: true });
     }
   };
 
@@ -608,6 +725,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthenticated,
     isLoading,
     login,
+    loginWithAutoDetect,
     loginWithGoogle,
     register,
     logout,

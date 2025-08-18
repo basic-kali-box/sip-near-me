@@ -51,7 +51,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
     } : null
   );
   const [mapCenter, setMapCenter] = useState<Coordinates>(
-    initialCoordinates || { latitude: 40.7128, longitude: -74.0060 }
+    initialCoordinates || { latitude: 33.5731, longitude: -7.5898 }
   );
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [showResults, setShowResults] = useState(false);
