@@ -15,14 +15,14 @@ interface SEOProps {
 }
 
 const DEFAULT_SEO = {
-  siteName: 'BrewNear',
-  title: 'BrewNear - Find Amazing Coffee & Matcha Near You',
+  siteName: 'Machroub',
+  title: 'Machroub - Find Amazing Coffee & Matcha Near You',
   description: 'Discover local artisan coffee roasters and authentic matcha makers in Morocco. Find premium coffee shops, specialty matcha cafes, and order directly from local sellers near you.',
   keywords: 'coffee near me, matcha near me, coffee shops Morocco, matcha cafe, local coffee roasters, specialty coffee, premium matcha, coffee delivery, matcha delivery, artisan coffee',
   image: '/og-image.jpg',
   type: 'website' as const,
   locale: 'en_US',
-  twitterHandle: '@brewnear_app'
+  twitterHandle: '@machroub_ma'
 };
 
 export const SEO: React.FC<SEOProps> = ({
@@ -40,7 +40,7 @@ export const SEO: React.FC<SEOProps> = ({
   const location = useLocation();
   
   // Construct full URL
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://brewnear.app';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://machroub.ma';
   const fullUrl = url || `${baseUrl}${location.pathname}`;
   
   // Use defaults if not provided
@@ -92,7 +92,7 @@ export const SEO: React.FC<SEOProps> = ({
 
     // Additional SEO tags
     updateMetaTag('robots', 'index, follow');
-    updateMetaTag('author', 'BrewNear Team');
+    updateMetaTag('author', 'Machroub Team');
     updateMetaTag('viewport', 'width=device-width, initial-scale=1.0');
 
     // Canonical URL
@@ -150,14 +150,14 @@ export const SEO_CONFIGS = {
   },
   
   auth: {
-    title: 'Sign In to BrewNear',
-    description: 'Sign in to your BrewNear account to discover amazing coffee and matcha near you. Join our community of coffee and matcha lovers.',
+    title: 'Sign In to Machroub',
+    description: 'Sign in to your Machroub account to discover amazing coffee and matcha near you. Join our community of coffee and matcha lovers.',
     keywords: 'sign in, login, coffee community, matcha community'
   },
-  
+
   signup: {
-    title: 'Join BrewNear - Coffee & Matcha Community',
-    description: 'Join BrewNear to discover local coffee roasters and matcha makers. Sign up as a buyer to find amazing drinks or as a seller to share your craft.',
+    title: 'Join Machroub - Coffee & Matcha Community',
+    description: 'Join Machroub to discover local coffee roasters and matcha makers. Sign up as a buyer to find amazing drinks or as a seller to share your craft.',
     keywords: 'sign up, join, coffee community, matcha sellers, local business'
   }
 };

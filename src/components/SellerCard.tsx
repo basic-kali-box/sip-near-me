@@ -24,11 +24,10 @@ export interface SellerCardSeller {
 
 interface SellerCardProps {
   seller: SellerCardSeller;
-  onStartOrder: (seller: SellerCardSeller) => void;
   className?: string;
 }
 
-export const SellerCard = ({ seller, onStartOrder, className = "" }: SellerCardProps) => {
+export const SellerCard = ({ seller, className = "" }: SellerCardProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isImageLoaded, setIsImageLoaded] = useState(false);
@@ -183,7 +182,7 @@ export const SellerCard = ({ seller, onStartOrder, className = "" }: SellerCardP
                   className="group/drink relative overflow-hidden glass-card rounded-2xl p-3 cursor-pointer hover:glass-strong hover:border-primary/50 hover:shadow-soft hover:scale-[1.02] transition-all duration-300 border border-border/30"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onStartOrder(seller);
+                    navigate(`/seller/${seller.id}`);
                   }}
                 >
                   {/* Drink image */}

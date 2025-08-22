@@ -1,0 +1,221 @@
+{
+  "nav": {
+    "home": "Home",
+    "sellers": "Sellers",
+    "orders": "Orders",
+    "profile": "Profile",
+    "settings": "Settings",
+    "help": "Help",
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "becomeSeller": "Become a Seller",
+    "addListing": "Add Listing",
+    "sellerDashboard": "Seller Dashboard"
+  },
+  "common": {
+    "search": "Search",
+    "filter": "Filter",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "view": "View",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "close": "Close",
+    "open": "Open",
+    "available": "Available",
+    "unavailable": "Unavailable",
+    "hidden": "Hidden",
+    "price": "Price",
+    "description": "Description",
+    "category": "Category",
+    "location": "Location",
+    "phone": "Phone",
+    "email": "Email",
+    "name": "Name",
+    "address": "Address",
+    "hours": "Hours",
+    "rating": "Rating",
+    "reviews": "Reviews"
+  },
+  "search": {
+    "placeholder": "Search drinks, categories, sellers...",
+    "noResults": "No items found",
+    "noResultsDesc": "Try adjusting your search or check back later for new items."
+  },
+  "filter": {
+    "title": "Filters",
+    "clearAll": "Clear All",
+    "sortBy": "Sort By",
+    "categories": "Categories",
+    "specialties": "Seller Specialties",
+    "priceRange": "Price Range",
+    "sort": {
+      "newest": "Newest First",
+      "priceLow": "Price: Low to High",
+      "priceHigh": "Price: High to Low",
+      "rating": "Highest Rated"
+    },
+    "specialty": {
+      "coffee": "☕ Coffee",
+      "matcha": "🍵 Matcha",
+      "both": "🌟 Both Coffee & Matcha"
+    }
+  },
+  "dashboard": {
+    "welcome": "Hey, {{name}}!",
+    "todayIs": "Today is {{date}}.",
+    "analytics": "Analytics",
+    "menu": "Menu",
+    "searchMenu": "Search your menu...",
+    "noItems": "No items found.",
+    "recentActivity": "Recent Activity",
+    "noActivity": "No recent activity to show."
+  },
+  "item": {
+    "orderViaWhatsApp": "Order via WhatsApp",
+    "call": "Call",
+    "viewLocation": "Location",
+    "viewShop": "View Shop",
+    "sellerInfo": "Seller Information",
+    "orderNow": "Order Now",
+    "moreFrom": "More from {{sellerName}}",
+    "moreFromDesc": "Discover other delicious items from this seller",
+    "viewDetails": "View Details"
+  },
+  "seller": {
+    "menu": "Menu",
+    "items": "{{count}} items",
+    "noMenu": "No menu items available",
+    "contactWhatsApp": "Contact via WhatsApp"
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "forgotPassword": "Forgot Password?",
+    "dontHaveAccount": "Don't have an account?",
+    "alreadyHaveAccount": "Already have an account?",
+    "signInWithGoogle": "Sign in with Google",
+    "signUpWithGoogle": "Sign up with Google",
+    "acceptTerms": "I accept the Terms of Service and Privacy Policy",
+    "userType": "I am a",
+    "buyer": "Buyer",
+    "seller": "Seller"
+  },
+  "profile": {
+    "complete": "Complete Profile",
+    "businessName": "Business Name",
+    "businessAddress": "Business Address",
+    "businessHours": "Business Hours",
+    "specialty": "Specialty",
+    "coffee": "Coffee",
+    "matcha": "Matcha",
+    "both": "Both"
+  },
+  "settings": {
+    "language": "Language",
+    "english": "English",
+    "french": "Français",
+    "notifications": "Notifications",
+    "appearance": "Appearance",
+    "privacy": "Privacy"
+  },
+  "message": {
+    "welcomeBack": "Welcome back!",
+    "signInSuccess": "Signed in as {{userType}}.",
+    "profileComplete": "Profile completed successfully!",
+    "welcomeSeller": "Welcome to Machroub as a seller! Your profile has been set up.",
+    "welcomeBuyer": "Welcome to Machroub! Your profile has been set up.",
+    "linkCopied": "Link copied",
+    "linkCopiedDesc": "Item link copied to clipboard",
+    "addedToFavorites": "Added to favorites",
+    "removedFromFavorites": "Removed from favorites",
+    "itemAddedToFavorites": "Item added to your favorites",
+    "itemRemovedFromFavorites": "Item removed from your favorites",
+    "openingWhatsApp": "Opening WhatsApp",
+    "contactingSeller": "Contacting {{sellerName}} about {{itemName}}"
+  },
+  "landing": {
+    "welcomeBackUser": "Welcome back, {{name}}!",
+    "readyToDiscover": "Ready to discover amazing drinks?",
+    "readyToManage": "Ready to manage your business?",
+    "signInToAccount": "Sign In to Your Account",
+    "signUpForAccount": "Sign Up for Account",
+    "backToHome": "Back to Home",
+    "welcomeBackContinue": "Welcome back! Continue your Machroub journey",
+    "newToMachroub": "New to Machroub? Join our community today",
+    "getStarted": "Get Started",
+    "premiumQuality": "Premium Quality Guaranteed",
+    "findAmazing": "Find Amazing",
+    "coffeeMatcha": "Coffee & Matcha",
+    "nearYou": "Near You",
+    "heroDescription": "Discover local artisan coffee roasters and authentic matcha makers. Order premium drinks from verified sellers and enjoy fast delivery.",
+    "exploreNearby": "Explore Nearby",
+    "myDashboard": "My Dashboard",
+    "whyChoose": "Why Choose Machroub?",
+    "whyChooseDescription": "Connect with passionate local sellers who craft exceptional coffee and matcha experiences",
+    "features": {
+      "premiumCoffee": {
+        "title": "Premium Coffee",
+        "description": "Discover artisan coffee roasters and specialty brews in your neighborhood"
+      },
+      "authenticMatcha": {
+        "title": "Authentic Matcha",
+        "description": "Find ceremonial grade matcha and traditional tea experiences"
+      },
+      "quickDelivery": {
+        "title": "Quick Delivery",
+        "description": "Fresh drinks delivered in 15-30 minutes from local sellers"
+      },
+      "qualityVerified": {
+        "title": "Quality Verified",
+        "description": "All sellers are verified and rated by the community"
+      }
+    },
+    "stats": {
+      "localSellers": "Local Sellers",
+      "happyCustomers": "Happy Customers",
+      "averageRating": "Average Rating",
+      "avgDelivery": "Avg Delivery"
+    }
+  },
+  "navigation": {
+    "map": "Map",
+    "list": "List",
+    "addListing": "Add Listing",
+    "signOut": "Sign Out"
+  },
+  "userMenu": {
+    "profile": "Profile",
+    "dashboard": "Dashboard",
+    "settings": "Settings",
+    "signOut": "Sign Out"
+  },
+  "errors": {
+    "somethingWentWrong": "Something went wrong",
+    "unexpectedError": "We encountered an unexpected error. Please try again or return to the home page.",
+    "tryAgain": "Try Again",
+    "goHome": "Go Home",
+    "navigationError": "Navigation Error",
+    "unableToNavigate": "Unable to navigate. Please try again.",
+    "signInFailed": "Sign in failed",
+    "invalidCredentials": "Invalid email or password. Please try again.",
+    "signOutFailed": "Sign out failed",
+    "signOutSuccess": "Signed out successfully",
+    "signOutDescription": "You have been logged out.",
+    "emailRequired": "Email required",
+    "enterEmailFirst": "Please enter your email address first.",
+    "resetEmailSent": "Reset Email Sent",
+    "checkInboxReset": "Check your inbox for a password reset link.",
+    "resetFailed": "Reset Failed",
+    "unableToSendReset": "Unable to send reset email. Please try again."
+  }
+}

@@ -1,6 +1,6 @@
 {
-  "name": "BrewNear - Find Amazing Coffee & Matcha Near You",
-  "short_name": "BrewNear",
+  "name": "Machroub - Find Amazing Coffee & Matcha Near You",
+  "short_name": "Machroub",
   "description": "Discover local artisan coffee roasters and authentic matcha makers in Morocco. Find premium coffee shops, specialty matcha cafes, and order directly from local sellers.",
   "start_url": "/",
   "display": "standalone",
@@ -10,6 +10,13 @@
   "scope": "/",
   "lang": "en",
   "categories": ["food", "lifestyle", "shopping"],
+  "localized": {
+    "fr": {
+      "name": "Machroub - Trouvez d'incroyables cafés et matchas près de chez vous",
+      "short_name": "Machroub",
+      "description": "Découvrez des torréfacteurs de café artisanaux locaux et des fabricants de matcha authentiques au Maroc. Trouvez des cafés haut de gamme, des cafés spécialisés en matcha et commandez directement auprès des vendeurs locaux."
+    }
+  },
   "icons": [
     {
       "src": "/favicon-16x16.png",
@@ -72,7 +79,7 @@
     {
       "name": "Sign In",
       "short_name": "Sign In",
-      "description": "Sign in to your BrewNear account",
+      "description": "Sign in to your Machroub account",
       "url": "/signin",
       "icons": [
         {

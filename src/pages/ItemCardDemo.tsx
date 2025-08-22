@@ -31,6 +31,8 @@ const ItemCardDemo = () => {
         rating_average: 4.8,
         rating_count: 127,
         distance_km: 1.2,
+        latitude: 33.5731,
+        longitude: -7.5898,
       },
     },
     {
@@ -51,6 +53,8 @@ const ItemCardDemo = () => {
         rating_average: 4.5,
         rating_count: 89,
         distance_km: 2.8,
+        latitude: 33.5892,
+        longitude: -7.6031,
       },
     },
     {
@@ -71,6 +75,8 @@ const ItemCardDemo = () => {
         rating_average: 4.2,
         rating_count: 56,
         distance_km: 45.3,
+        latitude: 34.0209,
+        longitude: -6.8416,
       },
     },
     {
@@ -85,12 +91,35 @@ const ItemCardDemo = () => {
       seller: {
         id: "seller-4",
         business_name: "Artisan Coffee Co.",
-        address: "", // No address for testing
-        phone: "", // No phone for testing
+        address: "321 Corniche Ain Diab, Casablanca, Morocco",
+        phone: "+212655443322",
         specialty: "coffee" as const,
         rating_average: 4.9,
         rating_count: 203,
         distance_km: 0.8,
+        latitude: 33.5731,
+        longitude: -7.6298,
+      },
+    },
+    {
+      id: "item-5",
+      name: "Traditional Mint Tea",
+      description: "Authentic Moroccan mint tea served in traditional glasses",
+      price: 15.00,
+      photo_url: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&h=300&fit=crop",
+      category: "hot_drinks",
+      is_available: true,
+      seller_id: "seller-5",
+      seller: {
+        id: "seller-5",
+        business_name: "Traditional Tea House",
+        address: "Old Medina, Fez, Morocco",
+        phone: "+212677889900",
+        specialty: "both" as const,
+        rating_average: 4.3,
+        rating_count: 78,
+        distance_km: 120.5,
+        // No GPS coordinates - will fallback to address-based location
       },
     },
   ];
@@ -129,7 +158,7 @@ const ItemCardDemo = () => {
             <div>
               <h1 className="text-2xl font-bold text-foreground">ItemCard Demo</h1>
               <p className="text-sm text-muted-foreground">
-                Showcasing the new three-action product cards
+                Showcasing product cards with precise GPS location functionality
               </p>
             </div>
           </div>
@@ -173,8 +202,8 @@ const ItemCardDemo = () => {
                 </svg>
               </div>
               <div>
-                <h3 className="font-medium text-foreground">Location Access</h3>
-                <p className="text-muted-foreground">Open Google Maps with seller's location for easy navigation</p>
+                <h3 className="font-medium text-foreground">Precise GPS Location</h3>
+                <p className="text-muted-foreground">Uses exact GPS coordinates when available, falls back to address-based location</p>
               </div>
             </div>
           </div>
@@ -185,7 +214,9 @@ const ItemCardDemo = () => {
           <div>
             <h2 className="text-xl font-semibold mb-4">Interactive Demo</h2>
             <p className="text-muted-foreground mb-6">
-              Try the different actions on each product card. Notice how the buttons adapt to different states:
+              Try the different actions on each product card. The location button now uses precise GPS coordinates when available.
+              Click the location button to see how it opens Google Maps with exact coordinates for the first 4 items,
+              and falls back to address-based location for the last item.
             </p>
           </div>
 
@@ -198,6 +229,15 @@ const ItemCardDemo = () => {
                   onViewSeller={handleViewSeller}
                 />
                 <div className="text-xs text-muted-foreground space-y-1 px-2">
+                  {item.seller?.latitude && item.seller?.longitude ? (
+                    <Badge variant="default" className="text-xs bg-green-500 hover:bg-green-600">
+                      GPS Coordinates: {item.seller.latitude.toFixed(4)}, {item.seller.longitude.toFixed(4)}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-xs">
+                      Address-based location only
+                    </Badge>
+                  )}
                   {!item.is_available && (
                     <Badge variant="secondary" className="text-xs">
                       Unavailable - WhatsApp disabled

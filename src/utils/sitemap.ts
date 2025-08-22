@@ -23,7 +23,7 @@ ${urlElements}
 };
 
 export const getStaticSitemapUrls = (): SitemapUrl[] => {
-  const baseUrl = 'https://brewnear.app';
+  const baseUrl = 'https://machroub.ma';
   const currentDate = new Date().toISOString().split('T')[0];
 
   return [
@@ -80,7 +80,7 @@ export const getStaticSitemapUrls = (): SitemapUrl[] => {
 
 // Generate dynamic URLs for sellers
 export const getSellerSitemapUrls = (sellers: any[]): SitemapUrl[] => {
-  const baseUrl = 'https://brewnear.app';
+  const baseUrl = 'https://machroub.ma';
   const currentDate = new Date().toISOString().split('T')[0];
 
   return sellers.map(seller => ({
@@ -93,7 +93,7 @@ export const getSellerSitemapUrls = (sellers: any[]): SitemapUrl[] => {
 
 // Generate robots.txt content
 export const generateRobotsTxt = (): string => {
-  const baseUrl = 'https://brewnear.app';
+  const baseUrl = 'https://machroub.ma';
   
   return `User-agent: *
 Allow: /
@@ -178,7 +178,7 @@ export const generateMetaDescription = (
 export const generatePageTitle = (
   type: 'seller' | 'product' | 'location' | 'category',
   data: any,
-  siteName: string = 'BrewNear'
+  siteName: string = 'Machroub'
 ): string => {
   switch (type) {
     case 'seller':

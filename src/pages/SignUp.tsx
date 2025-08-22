@@ -95,10 +95,46 @@ const SignUp = () => {
 
     if (!formData.password) {
       newErrors.password = "Password is required";
-    } else if (formData.password.length < 8) {
-      newErrors.password = "Password must be at least 8 characters";
-    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
-      newErrors.password = "Password must contain uppercase, lowercase, and number";
+    } else {
+      // SECURITY FIX: Enhanced password validation
+      const password = formData.password;
+      const errors = [];
+
+      if (password.length < 12) {
+        errors.push("at least 12 characters");
+      }
+      if (!/(?=.*[a-z])/.test(password)) {
+        errors.push("a lowercase letter");
+      }
+      if (!/(?=.*[A-Z])/.test(password)) {
+        errors.push("an uppercase letter");
+      }
+      if (!/(?=.*\d)/.test(password)) {
+        errors.push("a number");
+      }
+      if (!/(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/.test(password)) {
+        errors.push("a special character");
+      }
+
+      // Check for common weak passwords
+      const commonPasswords = [
+        'password', '123456', '123456789', 'qwerty', 'abc123',
+        'password123', 'admin', 'letmein', 'welcome', 'monkey',
+        'dragon', 'master', 'shadow', 'football', 'baseball'
+      ];
+
+      if (commonPasswords.some(common => password.toLowerCase().includes(common))) {
+        errors.push("avoid common passwords");
+      }
+
+      // Check for repeated characters
+      if (/(.)\1{2,}/.test(password)) {
+        errors.push("avoid repeated characters");
+      }
+
+      if (errors.length > 0) {
+        newErrors.password = `Password must contain ${errors.join(', ')}`;
+      }
     }
 
     if (!formData.confirmPassword) {
@@ -233,9 +269,12 @@ const SignUp = () => {
             <ArrowLeft className="w-4 h-4" />
             Back
           </Button>
-          <div className="flex items-center gap-2">
+          <div
+            className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity duration-200"
+            onClick={() => navigate('/')}
+          >
             <Coffee className="w-5 h-5 text-primary" />
-            <h1 className="text-lg font-semibold">Sip Near Me</h1>
+            <h1 className="text-lg font-semibold">Machroub</h1>
           </div>
         </div>
       </header>
@@ -328,43 +367,43 @@ const SignUp = () => {
               </div>
 
               {/* User Type Selection */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">
+              <div className="space-y-3 sm:space-y-4">
+                <Label className="text-sm sm:text-base font-medium">
                   I want to
                   {location.state?.source === "landing_become_seller" && (
                     <span className="ml-2 text-xs text-primary font-normal">(Pre-selected as Seller)</span>
                   )}
                 </Label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <Button
                     type="button"
                     variant={formData.userType === 'buyer' ? 'default' : 'outline'}
                     onClick={() => handleInputChange('userType', 'buyer')}
-                    className={`justify-start h-12 transition-all duration-300 ${
+                    className={`justify-start min-h-[56px] sm:min-h-[52px] h-auto py-4 sm:py-3 px-4 sm:px-5 transition-all duration-300 touch-manipulation ${
                       formData.userType === 'buyer'
-                        ? 'bg-gradient-coffee shadow-glow hover:scale-105'
-                        : 'hover:bg-primary/10 hover:border-primary/50 hover:scale-105'
+                        ? 'bg-gradient-coffee shadow-glow hover:scale-105 active:scale-[0.98] ring-2 ring-coffee-200'
+                        : 'hover:bg-primary/10 hover:border-primary/50 hover:scale-105 active:scale-[0.98] focus:ring-2 focus:ring-coffee-200'
                     }`}
                     disabled={isLoading}
                     aria-label="Sign up as a buyer to discover and order drinks"
                   >
-                    <Coffee className="w-4 h-4 mr-2" />
-                    Buy Drinks
+                    <Coffee className="w-6 h-6 sm:w-5 sm:h-5 mr-3 sm:mr-4 flex-shrink-0" />
+                    <span className="text-base sm:text-sm font-semibold sm:font-medium">Buy Drinks</span>
                   </Button>
                   <Button
                     type="button"
                     variant={formData.userType === 'seller' ? 'default' : 'outline'}
                     onClick={() => handleInputChange('userType', 'seller')}
-                    className={`justify-start h-12 transition-all duration-300 ${
+                    className={`justify-start min-h-[56px] sm:min-h-[52px] h-auto py-4 sm:py-3 px-4 sm:px-5 transition-all duration-300 touch-manipulation ${
                       formData.userType === 'seller'
-                        ? 'bg-gradient-matcha shadow-glow hover:scale-105'
-                        : 'hover:bg-primary/10 hover:border-primary/50 hover:scale-105'
+                        ? 'bg-gradient-matcha shadow-glow hover:scale-105 active:scale-[0.98] ring-2 ring-matcha-200'
+                        : 'hover:bg-primary/10 hover:border-primary/50 hover:scale-105 active:scale-[0.98] focus:ring-2 focus:ring-matcha-200'
                     }`}
                     disabled={isLoading}
                     aria-label="Sign up as a seller to start selling drinks"
                   >
-                    <Leaf className="w-4 h-4 mr-2" />
-                    Sell Drinks
+                    <Leaf className="w-6 h-6 sm:w-5 sm:h-5 mr-3 sm:mr-4 flex-shrink-0" />
+                    <span className="text-base sm:text-sm font-semibold sm:font-medium">Sell Drinks</span>
                   </Button>
                 </div>
               </div>

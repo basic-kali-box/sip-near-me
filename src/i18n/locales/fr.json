@@ -1,0 +1,221 @@
+{
+  "nav": {
+    "home": "Accueil",
+    "sellers": "Vendeurs",
+    "orders": "Commandes",
+    "profile": "Profil",
+    "settings": "Paramètres",
+    "help": "Aide",
+    "signIn": "Se connecter",
+    "signUp": "S'inscrire",
+    "becomeSeller": "Devenir vendeur",
+    "addListing": "Ajouter une annonce",
+    "sellerDashboard": "Tableau de bord vendeur"
+  },
+  "common": {
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "view": "Voir",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "close": "Fermer",
+    "open": "Ouvrir",
+    "available": "Disponible",
+    "unavailable": "Indisponible",
+    "hidden": "Masqué",
+    "price": "Prix",
+    "description": "Description",
+    "category": "Catégorie",
+    "location": "Localisation",
+    "phone": "Téléphone",
+    "email": "Email",
+    "name": "Nom",
+    "address": "Adresse",
+    "hours": "Horaires",
+    "rating": "Note",
+    "reviews": "Avis"
+  },
+  "search": {
+    "placeholder": "Rechercher des boissons, catégories, vendeurs...",
+    "noResults": "Aucun élément trouvé",
+    "noResultsDesc": "Essayez d'ajuster votre recherche ou revenez plus tard pour de nouveaux éléments."
+  },
+  "filter": {
+    "title": "Filtres",
+    "clearAll": "Tout effacer",
+    "sortBy": "Trier par",
+    "categories": "Catégories",
+    "specialties": "Spécialités du vendeur",
+    "priceRange": "Gamme de prix",
+    "sort": {
+      "newest": "Plus récent d'abord",
+      "priceLow": "Prix : du plus bas au plus élevé",
+      "priceHigh": "Prix : du plus élevé au plus bas",
+      "rating": "Mieux noté"
+    },
+    "specialty": {
+      "coffee": "☕ Café",
+      "matcha": "🍵 Matcha",
+      "both": "🌟 Café et Matcha"
+    }
+  },
+  "dashboard": {
+    "welcome": "Salut, {{name}} !",
+    "todayIs": "Nous sommes le {{date}}.",
+    "analytics": "Analyses",
+    "menu": "Menu",
+    "searchMenu": "Rechercher dans votre menu...",
+    "noItems": "Aucun élément trouvé.",
+    "recentActivity": "Activité récente",
+    "noActivity": "Aucune activité récente à afficher."
+  },
+  "item": {
+    "orderViaWhatsApp": "Commander via WhatsApp",
+    "call": "Appeler",
+    "viewLocation": "Localisation",
+    "viewShop": "Voir la boutique",
+    "sellerInfo": "Informations du vendeur",
+    "orderNow": "Commander maintenant",
+    "moreFrom": "Plus de {{sellerName}}",
+    "moreFromDesc": "Découvrez d'autres délicieux articles de ce vendeur",
+    "viewDetails": "Voir les détails"
+  },
+  "seller": {
+    "menu": "Menu",
+    "items": "{{count}} articles",
+    "noMenu": "Aucun article de menu disponible",
+    "contactWhatsApp": "Contacter via WhatsApp"
+  },
+  "auth": {
+    "signIn": "Se connecter",
+    "signUp": "S'inscrire",
+    "email": "Email",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "forgotPassword": "Mot de passe oublié ?",
+    "dontHaveAccount": "Vous n'avez pas de compte ?",
+    "alreadyHaveAccount": "Vous avez déjà un compte ?",
+    "signInWithGoogle": "Se connecter avec Google",
+    "signUpWithGoogle": "S'inscrire avec Google",
+    "acceptTerms": "J'accepte les Conditions d'utilisation et la Politique de confidentialité",
+    "userType": "Je suis un",
+    "buyer": "Acheteur",
+    "seller": "Vendeur"
+  },
+  "profile": {
+    "complete": "Compléter le profil",
+    "businessName": "Nom de l'entreprise",
+    "businessAddress": "Adresse de l'entreprise",
+    "businessHours": "Heures d'ouverture",
+    "specialty": "Spécialité",
+    "coffee": "Café",
+    "matcha": "Matcha",
+    "both": "Les deux"
+  },
+  "settings": {
+    "language": "Langue",
+    "english": "English",
+    "french": "Français",
+    "notifications": "Notifications",
+    "appearance": "Apparence",
+    "privacy": "Confidentialité"
+  },
+  "message": {
+    "welcomeBack": "Bon retour !",
+    "signInSuccess": "Connecté en tant que {{userType}}.",
+    "profileComplete": "Profil complété avec succès !",
+    "welcomeSeller": "Bienvenue sur Machroub en tant que vendeur ! Votre profil a été configuré.",
+    "welcomeBuyer": "Bienvenue sur Machroub ! Votre profil a été configuré.",
+    "linkCopied": "Lien copié",
+    "linkCopiedDesc": "Lien de l'article copié dans le presse-papiers",
+    "addedToFavorites": "Ajouté aux favoris",
+    "removedFromFavorites": "Retiré des favoris",
+    "itemAddedToFavorites": "Article ajouté à vos favoris",
+    "itemRemovedFromFavorites": "Article retiré de vos favoris",
+    "openingWhatsApp": "Ouverture de WhatsApp",
+    "contactingSeller": "Contact avec {{sellerName}} à propos de {{itemName}}"
+  },
+  "landing": {
+    "welcomeBackUser": "Bon retour, {{name}} !",
+    "readyToDiscover": "Prêt à découvrir d'incroyables boissons ?",
+    "readyToManage": "Prêt à gérer votre entreprise ?",
+    "signInToAccount": "Se connecter à votre compte",
+    "signUpForAccount": "Créer un compte",
+    "backToHome": "Retour à l'accueil",
+    "welcomeBackContinue": "Bon retour ! Continuez votre parcours Machroub",
+    "newToMachroub": "Nouveau sur Machroub ? Rejoignez notre communauté aujourd'hui",
+    "getStarted": "Commencer",
+    "premiumQuality": "Qualité premium garantie",
+    "findAmazing": "Trouvez d'incroyables",
+    "coffeeMatcha": "Cafés et Matchas",
+    "nearYou": "Près de chez vous",
+    "heroDescription": "Découvrez des torréfacteurs de café artisanaux locaux et des fabricants de matcha authentiques. Commandez des boissons premium auprès de vendeurs vérifiés et profitez d'une livraison rapide.",
+    "exploreNearby": "Explorer à proximité",
+    "myDashboard": "Mon tableau de bord",
+    "whyChoose": "Pourquoi choisir Machroub ?",
+    "whyChooseDescription": "Connectez-vous avec des vendeurs locaux passionnés qui créent des expériences exceptionnelles de café et de matcha",
+    "features": {
+      "premiumCoffee": {
+        "title": "Café Premium",
+        "description": "Découvrez des torréfacteurs artisanaux et des brassages spécialisés dans votre quartier"
+      },
+      "authenticMatcha": {
+        "title": "Matcha Authentique",
+        "description": "Trouvez du matcha de qualité cérémonielle et des expériences de thé traditionnelles"
+      },
+      "quickDelivery": {
+        "title": "Livraison Rapide",
+        "description": "Boissons fraîches livrées en 15-30 minutes par des vendeurs locaux"
+      },
+      "qualityVerified": {
+        "title": "Qualité Vérifiée",
+        "description": "Tous les vendeurs sont vérifiés et notés par la communauté"
+      }
+    },
+    "stats": {
+      "localSellers": "Vendeurs Locaux",
+      "happyCustomers": "Clients Satisfaits",
+      "averageRating": "Note Moyenne",
+      "avgDelivery": "Livraison Moy."
+    }
+  },
+  "navigation": {
+    "map": "Carte",
+    "list": "Liste",
+    "addListing": "Ajouter une annonce",
+    "signOut": "Se déconnecter"
+  },
+  "userMenu": {
+    "profile": "Profil",
+    "dashboard": "Tableau de bord",
+    "settings": "Paramètres",
+    "signOut": "Se déconnecter"
+  },
+  "errors": {
+    "somethingWentWrong": "Quelque chose s'est mal passé",
+    "unexpectedError": "Nous avons rencontré une erreur inattendue. Veuillez réessayer ou retourner à la page d'accueil.",
+    "tryAgain": "Réessayer",
+    "goHome": "Aller à l'accueil",
+    "navigationError": "Erreur de navigation",
+    "unableToNavigate": "Impossible de naviguer. Veuillez réessayer.",
+    "signInFailed": "Échec de la connexion",
+    "invalidCredentials": "Email ou mot de passe invalide. Veuillez réessayer.",
+    "signOutFailed": "Échec de la déconnexion",
+    "signOutSuccess": "Déconnexion réussie",
+    "signOutDescription": "Vous avez été déconnecté.",
+    "emailRequired": "Email requis",
+    "enterEmailFirst": "Veuillez d'abord saisir votre adresse email.",
+    "resetEmailSent": "Email de réinitialisation envoyé",
+    "checkInboxReset": "Vérifiez votre boîte de réception pour un lien de réinitialisation du mot de passe.",
+    "resetFailed": "Échec de la réinitialisation",
+    "unableToSendReset": "Impossible d'envoyer l'email de réinitialisation. Veuillez réessayer."
+  }
+}

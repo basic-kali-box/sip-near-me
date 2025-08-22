@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/contexts/UserContext";
 import { DrinkService } from "@/services/drinkService";
 import { SellerService } from "@/services/sellerService";
+import { VALID_CATEGORIES, formatCategoryDisplay } from "@/utils/categories";
 
 const EditListing = () => {
   const navigate = useNavigate();
@@ -402,12 +403,11 @@ const EditListing = () => {
                         disabled={isSubmitting}
                       >
                         <option value="">Select a category</option>
-                        <option value="coffee">☕ Coffee</option>
-                        <option value="matcha">🍵 Matcha</option>
-                        <option value="tea">🫖 Tea</option>
-                        <option value="cold-brew">🧊 Cold Brew</option>
-                        <option value="specialty">⭐ Specialty</option>
-                        <option value="seasonal">🍂 Seasonal</option>
+                        {VALID_CATEGORIES.map(category => (
+                          <option key={category.value} value={category.value} className="capitalize">
+                            {formatCategoryDisplay(category.value)}
+                          </option>
+                        ))}
                       </select>
                       {errors.category && (
                         <p className="text-sm text-red-600 flex items-center gap-1">

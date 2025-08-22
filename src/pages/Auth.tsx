@@ -2,9 +2,11 @@ import { ArrowLeft, Coffee, Leaf, Shield, LogIn, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 const Auth = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <div className="min-h-screen bg-gradient-warm flex items-center justify-center p-4">
@@ -25,7 +27,7 @@ const Auth = () => {
             className="absolute -top-2 left-0 flex items-center gap-2 hover:bg-primary/10 transition-colors duration-200"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Home
+            {t('landing.backToHome')}
           </Button>
           
           <div className="w-24 h-24 bg-gradient-matcha rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-elegant hover:shadow-glow transition-all duration-300 hover:scale-105 relative">
@@ -33,7 +35,7 @@ const Auth = () => {
             <Leaf className="w-4 h-4 text-primary-foreground/80 absolute -top-1 -right-1" />
           </div>
           
-          <h1 className="text-4xl font-bold text-foreground mb-3">Welcome to BrewNear</h1>
+          <h1 className="text-4xl font-bold text-foreground mb-3">Welcome to Machroub</h1>
           <p className="text-lg text-muted-foreground mb-2">Your local coffee & matcha marketplace</p>
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground/80 hover:text-primary/80 transition-colors duration-200">
             <Shield className="w-4 h-4 hover:scale-110 transition-transform duration-200" />
@@ -50,9 +52,9 @@ const Auth = () => {
                 <LogIn className="w-8 h-8 text-primary-foreground" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-foreground mb-2">Sign In</h2>
+                <h2 className="text-2xl font-bold text-foreground mb-2">{t('auth.signIn')}</h2>
                 <p className="text-muted-foreground mb-6">
-                  Welcome back! Continue your BrewNear journey
+                  {t('landing.welcomeBackContinue')}
                 </p>
               </div>
               <Button
@@ -73,9 +75,9 @@ const Auth = () => {
                 <UserPlus className="w-8 h-8 text-primary-foreground" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-foreground mb-2">Sign Up</h2>
+                <h2 className="text-2xl font-bold text-foreground mb-2">{t('auth.signUp')}</h2>
                 <p className="text-muted-foreground mb-6">
-                  New to BrewNear? Join our community today
+                  {t('landing.newToMachroub')}
                 </p>
               </div>
               <Button

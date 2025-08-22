@@ -83,10 +83,6 @@ const Index = () => {
 
 
 
-  const handleStartOrder = (item: ItemCardItem) => {
-    navigate(`/order/${item.seller_id}?item=${item.id}`);
-  };
-
   const renderActiveView = () => {
     switch (activeTab) {
       case "map":
@@ -94,7 +90,7 @@ const Index = () => {
       default:
         return (
           <ListViewErrorBoundary>
-            <ListView onStartOrder={handleStartOrder} className="flex-1" />
+            <ListView className="flex-1" />
           </ListViewErrorBoundary>
         );
     }
@@ -124,13 +120,22 @@ const Index = () => {
           </Button>
 
           {/* Logo and Location */}
-          <div className="flex items-center gap-3">
+          <div
+            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity duration-200"
+            onClick={() => {
+              if (isAuthenticated) {
+                navigate('/app');
+              } else {
+                navigate('/signin');
+              }
+            }}
+          >
             <div className="w-8 h-8 bg-gradient-matcha rounded-lg flex items-center justify-center">
               <Droplets className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
               <h1 className="text-lg font-bold text-foreground">
-                {isAuthenticated && user ? `Welcome, ${user.name}` : 'BrewNear'}
+                {isAuthenticated && user ? `Welcome, ${user.name}` : 'Machroub'}
               </h1>
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <MapPin className="w-3 h-3" />
@@ -223,25 +228,25 @@ const Index = () => {
                   <UserMenu variant="mobile" />
                 ) : (
                   // Non-authenticated user options
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-4">
                     <Button
                       variant="outline"
                       onClick={() => {
                         navigate("/signin");
                         closeMenu();
                       }}
-                      className="justify-center py-3 font-semibold bg-white/80 border-gray-300 text-gray-700 hover:bg-coffee-50 hover:border-coffee-400 hover:text-coffee-700 transition-all duration-300"
+                      className="justify-center py-4 min-h-[52px] font-semibold bg-white/80 border-gray-300 text-gray-700 hover:bg-coffee-50 hover:border-coffee-400 hover:text-coffee-700 transition-all duration-300 touch-manipulation focus:ring-2 focus:ring-coffee-200"
                     >
-                      Sign In
+                      <span className="text-base">Sign In</span>
                     </Button>
                     <Button
                       onClick={() => {
                         navigate("/signup");
                         closeMenu();
                       }}
-                      className="bg-gradient-matcha hover:shadow-glow hover:scale-105 transition-all duration-300 justify-center py-3 font-semibold"
+                      className="bg-gradient-matcha hover:shadow-glow hover:scale-105 transition-all duration-300 justify-center py-4 min-h-[52px] font-semibold touch-manipulation focus:ring-2 focus:ring-matcha-200"
                     >
-                      Sign Up
+                      <span className="text-base">Sign Up</span>
                     </Button>
                   </div>
                 )}
@@ -255,13 +260,22 @@ const Index = () => {
       {/* Header - Always visible on desktop, hidden on mobile */}
       <header className="bg-background/95 backdrop-blur-md border-b border-border/50 sticky top-0 z-40 transition-all duration-300 md:block hidden">
         <div className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-3">
+          <div
+            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity duration-200"
+            onClick={() => {
+              if (isAuthenticated) {
+                navigate('/app');
+              } else {
+                navigate('/signin');
+              }
+            }}
+          >
             <div className="w-8 h-8 bg-gradient-matcha rounded-lg flex items-center justify-center">
               <Droplets className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground">
-                {isAuthenticated && user ? `Welcome, ${user.name}` : 'BrewNear'}
+                {isAuthenticated && user ? `Welcome, ${user.name}` : 'Machroub'}
               </h1>
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
                 <MapPin className="w-3 h-3" />
@@ -302,11 +316,11 @@ const Index = () => {
                 ) : (
                   <Button
                     variant="outline"
-                    onClick={() => navigate("/orders")}
+                    onClick={() => navigate("/profile")}
                     className="bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100 hover:border-blue-400 hover:text-blue-800 transition-all duration-300 flex items-center gap-2"
                   >
-                    <ShoppingBag className="w-4 h-4" />
-                    My Orders
+                    <User className="w-4 h-4" />
+                    My Profile
                   </Button>
                 )}
                 <UserMenu variant="desktop" />
@@ -317,23 +331,23 @@ const Index = () => {
                 <Button
                   variant="outline"
                   onClick={() => navigate("/signin")}
-                  className="flex items-center gap-2 bg-white/80 border-gray-300 text-gray-700 hover:bg-coffee-50 hover:border-coffee-400 hover:text-coffee-700"
+                  className="flex items-center gap-2 bg-white/80 border-gray-300 text-gray-700 hover:bg-coffee-50 hover:border-coffee-400 hover:text-coffee-700 min-h-[48px] px-5 py-3 touch-manipulation focus:ring-2 focus:ring-coffee-200"
                 >
-                  Sign In
+                  <span className="text-sm sm:text-base font-medium">Sign In</span>
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => navigate("/signup?userType=seller")}
-                  className="bg-matcha-50 border-matcha-300 text-matcha-700 hover:bg-matcha-100 hover:border-matcha-400 hover:text-matcha-800 transition-all duration-300 flex items-center gap-2"
+                  className="bg-matcha-50 border-matcha-300 text-matcha-700 hover:bg-matcha-100 hover:border-matcha-400 hover:text-matcha-800 transition-all duration-300 flex items-center gap-2 min-h-[48px] px-5 py-3 touch-manipulation focus:ring-2 focus:ring-matcha-200"
                 >
-                  <Leaf className="w-4 h-4" />
-                  Become a Seller
+                  <Leaf className="w-4 h-4 flex-shrink-0" />
+                  <span className="text-sm sm:text-base font-medium">Become a Seller</span>
                 </Button>
                 <Button
                   onClick={() => navigate("/signup")}
-                  className="bg-gradient-sunrise hover:shadow-glow transition-all duration-300 flex items-center gap-2"
+                  className="bg-gradient-sunrise hover:shadow-glow transition-all duration-300 flex items-center gap-2 min-h-[48px] px-5 py-3 touch-manipulation focus:ring-2 focus:ring-orange-200"
                 >
-                  Sign Up
+                  <span className="text-sm sm:text-base font-medium">Sign Up</span>
                 </Button>
               </>
             )}

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/contexts/UserContext";
 import { RatingService } from "@/services/ratingService";
+import { sanitizeComment } from "@/utils/sanitize";
 
 interface Review {
   id: string;
@@ -323,7 +324,12 @@ export const ReviewSystem = ({
               </div>
             )}
 
-            <p className="text-foreground mb-3">{review.comment}</p>
+            <p
+              className="text-foreground mb-3"
+              dangerouslySetInnerHTML={{
+                __html: sanitizeComment(review.comment || '')
+              }}
+            />
 
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <button className="flex items-center gap-1 hover:text-primary transition-colors duration-200">

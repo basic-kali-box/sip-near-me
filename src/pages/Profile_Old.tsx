@@ -17,6 +17,7 @@ import { AddressInput } from "@/components/AddressInput";
 import { BusinessHoursInput } from "@/components/BusinessHoursInput";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { supabase } from "@/lib/supabase";
+import { validateAndNormalizeMoroccanPhone } from "@/utils/moroccanPhoneValidation";
 
 import { type Coordinates } from "@/utils/geocoding";
 
@@ -426,17 +427,19 @@ const Profile = () => {
   const handleSave = async () => {
     if (!user) return;
 
-    // Validate phone number if provided
+    // Validate phone number if provided using Moroccan validation
     if (profile.phone.trim()) {
-      const cleanPhone = profile.phone.replace(/[\s\-\(\)\+]/g, '');
-      if (!/^\d{10,14}$/.test(cleanPhone)) {
+      const phoneValidationResult = validateAndNormalizeMoroccanPhone(profile.phone);
+      if (!phoneValidationResult.isValid) {
         toast({
           title: "Invalid Phone Number",
-          description: "Phone number must be 10-14 digits",
+          description: phoneValidationResult.errorMessage || "Please enter a valid Moroccan mobile number",
           variant: "destructive",
         });
         return;
       }
+      // Use normalized phone number
+      profile.phone = phoneValidationResult.normalizedNumber;
     }
 
     setLoading(true);
@@ -1003,16 +1006,7 @@ const Profile = () => {
                   Refresh Analytics
                 </Button>
               </>
-            ) : (
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => navigate("/orders")}
-              >
-                <ShoppingBag className="w-4 h-4 mr-2" />
-                View Order History
-              </Button>
-            )}
+            ) : null}
             <Button
               variant="outline"
               className="w-full justify-start"

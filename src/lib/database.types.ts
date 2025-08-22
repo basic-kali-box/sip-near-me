@@ -242,47 +242,7 @@ export interface Database {
           created_at?: string
         }
       }
-      order_history: {
-        Row: {
-          id: string
-          buyer_id: string
-          seller_id: string
-          items: Json
-          total_amount: number
-          status: 'pending' | 'confirmed' | 'completed' | 'cancelled'
-          contact_method: 'whatsapp' | 'phone'
-          pickup_time: string | null
-          special_instructions: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          buyer_id: string
-          seller_id: string
-          items: Json
-          total_amount: number
-          status?: 'pending' | 'confirmed' | 'completed' | 'cancelled'
-          contact_method: 'whatsapp' | 'phone'
-          pickup_time?: string | null
-          special_instructions?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          buyer_id?: string
-          seller_id?: string
-          items?: Json
-          total_amount?: number
-          status?: 'pending' | 'confirmed' | 'completed' | 'cancelled'
-          contact_method?: 'whatsapp' | 'phone'
-          pickup_time?: string | null
-          special_instructions?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
+
     }
     Views: {
       [_ in never]: never
@@ -322,7 +282,7 @@ export interface Database {
     Enums: {
       user_type: 'buyer' | 'seller'
       contact_type: 'whatsapp' | 'phone' | 'inquiry'
-      order_status: 'pending' | 'confirmed' | 'completed' | 'cancelled'
+
       specialty_type: 'coffee' | 'matcha' | 'both'
     }
   }

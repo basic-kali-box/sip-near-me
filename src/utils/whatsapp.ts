@@ -1,4 +1,5 @@
 import { Seller } from "@/data/mockSellers";
+import { getMoroccanPhoneForWhatsAppAPI, validateAndNormalizeMoroccanPhone } from "./moroccanPhoneValidation";
 
 export interface OrderItem {
   name: string;
@@ -7,76 +8,34 @@ export interface OrderItem {
   notes?: string;
 }
 
-export interface OrderDetails {
-  items: OrderItem[];
-  total: number;
-  customerName?: string;
-  customerPhone?: string;
-  pickupTime?: string;
-  specialInstructions?: string;
-}
 
-/**
- * Formats an order for WhatsApp message
- */
-export const formatOrderMessage = (seller: Seller, order: OrderDetails): string => {
-  const lines = [
-    `🍵 *Order from BrewNear*`,
-    ``,
-    `📍 *Seller:* ${seller.name}`,
-    `📞 *Business:* ${seller.phone}`,
-    ``,
-    `📋 *Order Details:*`,
-  ];
-
-  // Add order items
-  order.items.forEach((item, index) => {
-    lines.push(`${index + 1}. ${item.name} x${item.quantity} - ${(item.price * item.quantity).toFixed(2)} Dh`);
-    if (item.notes) {
-      lines.push(`   _Note: ${item.notes}_`);
-    }
-  });
-
-  lines.push(``);
-  lines.push(`💰 *Total: ${order.total.toFixed(2)} Dh*`);
-
-  if (order.customerName) {
-    lines.push(`👤 *Customer:* ${order.customerName}`);
-  }
-
-  if (order.customerPhone) {
-    lines.push(`📱 *Phone:* ${order.customerPhone}`);
-  }
-
-  if (order.pickupTime) {
-    lines.push(`⏰ *Pickup Time:* ${order.pickupTime}`);
-  }
-
-  if (order.specialInstructions) {
-    lines.push(``);
-    lines.push(`📝 *Special Instructions:*`);
-    lines.push(order.specialInstructions);
-  }
-
-  lines.push(``);
-  lines.push(`_Sent via BrewNear - Coffee & Matcha Marketplace_`);
-
-  return lines.join('\n');
-};
 
 /**
  * Opens WhatsApp with pre-filled message
+ * Now uses Moroccan phone validation for proper E.164 formatting
  */
 export const sendWhatsAppMessage = (phoneNumber: string, message: string): void => {
-  // Clean phone number (remove non-digits)
-  const cleanPhone = phoneNumber.replace(/\D/g, '');
-  
+  // Normalize phone number for WhatsApp API (Moroccan format)
+  const cleanPhone = getMoroccanPhoneForWhatsAppAPI(phoneNumber);
+
+  if (!cleanPhone) {
+    console.error('Invalid phone number for WhatsApp:', phoneNumber);
+    // Fallback to old behavior for non-Moroccan numbers
+    const fallbackClean = phoneNumber.replace(/\D/g, '');
+    if (fallbackClean.length >= 10) {
+      const encodedMessage = encodeURIComponent(message);
+      const whatsappUrl = `https://wa.me/${fallbackClean}?text=${encodedMessage}`;
+      window.open(whatsappUrl, '_blank');
+    }
+    return;
+  }
+
   // Encode message for URL
   const encodedMessage = encodeURIComponent(message);
-  
-  // Create WhatsApp URL
+
+  // Create WhatsApp URL with properly formatted Moroccan number
   const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
-  
+
   // Open WhatsApp
   window.open(whatsappUrl, '_blank');
 };
@@ -86,7 +45,7 @@ export const sendWhatsAppMessage = (phoneNumber: string, message: string): void 
  */
 export const createQuickContactMessage = (seller: Seller, customerName?: string): string => {
   const lines = [
-    `👋 Hi! I found your ${seller.specialty} business on BrewNear.`,
+    `👋 Hi! I found your ${seller.specialty} business on Machroub.`,
     ``,
     `I'm interested in your drinks menu. Could you please share more details about:`,
     `• Available drinks and prices`,
@@ -101,7 +60,7 @@ export const createQuickContactMessage = (seller: Seller, customerName?: string)
   }
 
   lines.push(`Thanks!`);
-  lines.push(`_Sent via BrewNear_`);
+  lines.push(`_Sent via Machroub_`);
 
   return lines.join('\n');
 };
@@ -131,7 +90,7 @@ export const createProductInterestMessage = (
   }
 
   lines.push(`Thanks!`);
-  lines.push(`_Sent via BrewNear_`);
+  lines.push(`_Sent via Machroub_`);
 
   return lines.join('\n');
 };
@@ -158,31 +117,38 @@ export const createOrderInquiryMessage = (seller: Seller, drinkName: string, cus
   }
 
   lines.push(`Thank you!`);
-  lines.push(`_Sent via BrewNear_`);
+  lines.push(`_Sent via Machroub_`);
 
   return lines.join('\n');
 };
 
 /**
- * Validates phone number format
+ * Validates phone number format (now uses Moroccan validation)
  */
 export const isValidPhoneNumber = (phone: string): boolean => {
-  const cleanPhone = phone.replace(/\D/g, '');
-  return cleanPhone.length >= 10 && cleanPhone.length <= 15;
+  const result = validateAndNormalizeMoroccanPhone(phone);
+  return result.isValid;
 };
 
 /**
- * Formats phone number for display
+ * Formats phone number for display (now uses Moroccan formatting)
  */
 export const formatPhoneNumber = (phone: string): string => {
+  const result = validateAndNormalizeMoroccanPhone(phone);
+
+  if (result.isValid) {
+    return result.displayNumber;
+  }
+
+  // Fallback to original formatting for non-Moroccan numbers
   const cleanPhone = phone.replace(/\D/g, '');
-  
+
   if (cleanPhone.length === 10) {
     return `(${cleanPhone.slice(0, 3)}) ${cleanPhone.slice(3, 6)}-${cleanPhone.slice(6)}`;
   } else if (cleanPhone.length === 11 && cleanPhone.startsWith('1')) {
     return `+1 (${cleanPhone.slice(1, 4)}) ${cleanPhone.slice(4, 7)}-${cleanPhone.slice(7)}`;
   }
-  
+
   return phone; // Return original if can't format
 };
 
@@ -191,12 +157,12 @@ export const formatPhoneNumber = (phone: string): string => {
  */
 export const createBusinessHoursInquiry = (seller: Seller): string => {
   return [
-    `⏰ Hi! I found your ${seller.specialty} business on BrewNear.`,
+    `⏰ Hi! I found your ${seller.specialty} business on Machroub.`,
     ``,
     `Could you please share your current business hours and availability?`,
     ``,
     `Thanks!`,
-    `_Sent via BrewNear_`
+    `_Sent via Machroub_`
   ].join('\n');
 };
 
@@ -213,7 +179,7 @@ export const createLocationInquiry = (seller: Seller): string => {
     `• Best time to visit`,
     ``,
     `Thank you!`,
-    `_Sent via BrewNear_`
+    `_Sent via Machroub_`
   ].join('\n');
 };
 
@@ -226,51 +192,15 @@ export const trackContactAttempt = (sellerId: string, contactType: 'whatsapp' | 
     sellerId,
     contactType,
     timestamp: new Date().toISOString(),
-    source: 'brewnear_app'
+    source: 'machroub_app'
   };
 
   // Store locally for now (in real app, send to analytics service)
-  const existingContacts = JSON.parse(localStorage.getItem('brewnear_contacts') || '[]');
+  const existingContacts = JSON.parse(localStorage.getItem('machroub_contacts') || '[]');
   existingContacts.push(contactData);
-  localStorage.setItem('brewnear_contacts', JSON.stringify(existingContacts));
+  localStorage.setItem('machroub_contacts', JSON.stringify(existingContacts));
 
   console.log('Contact attempt tracked:', contactData);
 };
 
-/**
- * Creates a WhatsApp order and tracks it in the database
- */
-export const createWhatsAppOrder = async (
-  buyerId: string,
-  sellerId: string,
-  items: OrderItem[],
-  totalAmount: number,
-  customerInfo?: {
-    name?: string;
-    phone?: string;
-    pickupTime?: string;
-    specialInstructions?: string;
-  }
-): Promise<string | null> => {
-  try {
-    // Import OrderService dynamically to avoid circular dependencies
-    const { OrderService } = await import('@/services/orderService');
 
-    const orderData = {
-      buyerId,
-      sellerId,
-      items,
-      totalAmount,
-      contactMethod: 'whatsapp' as const,
-      pickupTime: customerInfo?.pickupTime,
-      specialInstructions: customerInfo?.specialInstructions
-    };
-
-    const order = await OrderService.createOrder(orderData);
-    console.log('WhatsApp order created:', order.id);
-    return order.id;
-  } catch (error) {
-    console.error('Failed to create WhatsApp order:', error);
-    return null;
-  }
-};

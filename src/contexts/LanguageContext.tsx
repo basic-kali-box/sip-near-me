@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type Language = 'en' | 'ar';
+export type Language = 'en' | 'fr';
 
 interface LanguageContextType {
   language: Language;
@@ -78,6 +78,19 @@ const translations = {
     'search.placeholder': 'Search drinks, categories, sellers...',
     'search.noResults': 'No items found',
     'search.noResultsDesc': 'Try adjusting your search or check back later for new items.',
+    'filter.title': 'Filters',
+    'filter.clearAll': 'Clear All',
+    'filter.sortBy': 'Sort By',
+    'filter.categories': 'Categories',
+    'filter.specialties': 'Seller Specialties',
+    'filter.priceRange': 'Price Range',
+    'filter.sort.newest': 'Newest First',
+    'filter.sort.priceLow': 'Price: Low to High',
+    'filter.sort.priceHigh': 'Price: High to Low',
+    'filter.sort.rating': 'Highest Rated',
+    'filter.specialty.coffee': '☕ Coffee',
+    'filter.specialty.matcha': '🍵 Matcha',
+    'filter.specialty.both': '🌟 Both Coffee & Matcha',
     
     // Seller Dashboard
     'dashboard.welcome': 'Hey, {name}!',
@@ -144,8 +157,8 @@ const translations = {
     'message.welcomeBack': 'Welcome back!',
     'message.signInSuccess': 'Signed in as {userType}.',
     'message.profileComplete': 'Profile completed successfully!',
-    'message.welcomeSeller': 'Welcome to BrewNear as a seller! Your profile has been set up.',
-    'message.welcomeBuyer': 'Welcome to BrewNear! Your profile has been set up.',
+    'message.welcomeSeller': 'Welcome to Machroub as a seller! Your profile has been set up.',
+    'message.welcomeBuyer': 'Welcome to Machroub! Your profile has been set up.',
     'message.linkCopied': 'Link copied',
     'message.linkCopiedDesc': 'Item link copied to clipboard',
     'message.addedToFavorites': 'Added to favorites',
@@ -155,131 +168,144 @@ const translations = {
     'message.openingWhatsApp': 'Opening WhatsApp',
     'message.contactingSeller': 'Contacting {sellerName} about {itemName}',
   },
-  ar: {
+  fr: {
     // Navigation
-    'nav.home': 'الرئيسية',
-    'nav.sellers': 'البائعون',
-    'nav.orders': 'الطلبات',
-    'nav.profile': 'الملف الشخصي',
-    'nav.settings': 'الإعدادات',
-    'nav.help': 'المساعدة',
-    'nav.signIn': 'تسجيل الدخول',
-    'nav.signUp': 'إنشاء حساب',
-    'nav.becomeSeller': 'كن بائعاً',
-    'nav.addListing': 'إضافة منتج',
-    'nav.sellerDashboard': 'لوحة البائع',
-    
+    'nav.home': 'Accueil',
+    'nav.sellers': 'Vendeurs',
+    'nav.orders': 'Commandes',
+    'nav.profile': 'Profil',
+    'nav.settings': 'Paramètres',
+    'nav.help': 'Aide',
+    'nav.signIn': 'Se connecter',
+    'nav.signUp': 'S\'inscrire',
+    'nav.becomeSeller': 'Devenir vendeur',
+    'nav.addListing': 'Ajouter une annonce',
+    'nav.sellerDashboard': 'Tableau de bord vendeur',
+
     // Common
-    'common.search': 'بحث',
-    'common.filter': 'تصفية',
-    'common.loading': 'جاري التحميل...',
-    'common.error': 'خطأ',
-    'common.success': 'نجح',
-    'common.cancel': 'إلغاء',
-    'common.save': 'حفظ',
-    'common.edit': 'تعديل',
-    'common.delete': 'حذف',
-    'common.view': 'عرض',
-    'common.back': 'رجوع',
-    'common.next': 'التالي',
-    'common.previous': 'السابق',
-    'common.close': 'إغلاق',
-    'common.open': 'فتح',
-    'common.available': 'متوفر',
-    'common.unavailable': 'غير متوفر',
-    'common.hidden': 'مخفي',
-    'common.price': 'السعر',
-    'common.description': 'الوصف',
-    'common.category': 'الفئة',
-    'common.location': 'الموقع',
-    'common.phone': 'الهاتف',
-    'common.email': 'البريد الإلكتروني',
-    'common.name': 'الاسم',
-    'common.address': 'العنوان',
-    'common.hours': 'ساعات العمل',
-    'common.rating': 'التقييم',
-    'common.reviews': 'المراجعات',
-    
+    'common.search': 'Rechercher',
+    'common.filter': 'Filtrer',
+    'common.loading': 'Chargement...',
+    'common.error': 'Erreur',
+    'common.success': 'Succès',
+    'common.cancel': 'Annuler',
+    'common.save': 'Enregistrer',
+    'common.edit': 'Modifier',
+    'common.delete': 'Supprimer',
+    'common.view': 'Voir',
+    'common.back': 'Retour',
+    'common.next': 'Suivant',
+    'common.previous': 'Précédent',
+    'common.close': 'Fermer',
+    'common.open': 'Ouvrir',
+    'common.available': 'Disponible',
+    'common.unavailable': 'Indisponible',
+    'common.hidden': 'Masqué',
+    'common.price': 'Prix',
+    'common.description': 'Description',
+    'common.category': 'Catégorie',
+    'common.location': 'Localisation',
+    'common.phone': 'Téléphone',
+    'common.email': 'Email',
+    'common.name': 'Nom',
+    'common.address': 'Adresse',
+    'common.hours': 'Horaires',
+    'common.rating': 'Note',
+    'common.reviews': 'Avis',
+
     // Search and filters
-    'search.placeholder': 'ابحث عن المشروبات والفئات والبائعين...',
-    'search.noResults': 'لم يتم العثور على عناصر',
-    'search.noResultsDesc': 'حاول تعديل البحث أو تحقق لاحقاً من العناصر الجديدة.',
-    
+    'search.placeholder': 'Rechercher des boissons, catégories, vendeurs...',
+    'search.noResults': 'Aucun élément trouvé',
+    'search.noResultsDesc': 'Essayez d\'ajuster votre recherche ou revenez plus tard pour de nouveaux éléments.',
+    'filter.title': 'Filtres',
+    'filter.clearAll': 'Tout effacer',
+    'filter.sortBy': 'Trier par',
+    'filter.categories': 'Catégories',
+    'filter.specialties': 'Spécialités du vendeur',
+    'filter.priceRange': 'Gamme de prix',
+    'filter.sort.newest': 'Plus récent d\'abord',
+    'filter.sort.priceLow': 'Prix : du plus bas au plus élevé',
+    'filter.sort.priceHigh': 'Prix : du plus élevé au plus bas',
+    'filter.sort.rating': 'Mieux noté',
+    'filter.specialty.coffee': '☕ Café',
+    'filter.specialty.matcha': '🍵 Matcha',
+    'filter.specialty.both': '🌟 Café et Matcha',
+
     // Seller Dashboard
-    'dashboard.welcome': 'مرحباً، {name}!',
-    'dashboard.todayIs': 'اليوم هو {date}.',
-    'dashboard.analytics': 'التحليلات',
-    'dashboard.menu': 'القائمة',
-    'dashboard.searchMenu': 'ابحث في قائمتك...',
-    'dashboard.noItems': 'لم يتم العثور على عناصر.',
-    'dashboard.recentActivity': 'النشاط الأخير',
-    'dashboard.noActivity': 'لا يوجد نشاط حديث للعرض.',
-    
+    'dashboard.welcome': 'Salut, {name} !',
+    'dashboard.todayIs': 'Nous sommes le {date}.',
+    'dashboard.analytics': 'Analyses',
+    'dashboard.menu': 'Menu',
+    'dashboard.searchMenu': 'Rechercher dans votre menu...',
+    'dashboard.noItems': 'Aucun élément trouvé.',
+    'dashboard.recentActivity': 'Activité récente',
+    'dashboard.noActivity': 'Aucune activité récente à afficher.',
+
     // Item details
-    'item.orderViaWhatsApp': 'اطلب عبر واتساب',
-    'item.call': 'اتصال',
-    'item.viewLocation': 'الموقع',
-    'item.viewShop': 'عرض المتجر',
-    'item.sellerInfo': 'معلومات البائع',
-    'item.orderNow': 'اطلب الآن',
-    'item.moreFrom': 'المزيد من {sellerName}',
-    'item.moreFromDesc': 'اكتشف عناصر لذيذة أخرى من هذا البائع',
-    'item.viewDetails': 'عرض التفاصيل',
-    
+    'item.orderViaWhatsApp': 'Commander via WhatsApp',
+    'item.call': 'Appeler',
+    'item.viewLocation': 'Localisation',
+    'item.viewShop': 'Voir la boutique',
+    'item.sellerInfo': 'Informations du vendeur',
+    'item.orderNow': 'Commander maintenant',
+    'item.moreFrom': 'Plus de {sellerName}',
+    'item.moreFromDesc': 'Découvrez d\'autres délicieux articles de ce vendeur',
+    'item.viewDetails': 'Voir les détails',
+
     // Seller page
-    'seller.menu': 'القائمة',
-    'seller.items': '{count} عنصر',
-    'seller.noMenu': 'لا توجد عناصر قائمة متاحة',
-    'seller.contactWhatsApp': 'تواصل عبر واتساب',
-    
+    'seller.menu': 'Menu',
+    'seller.items': '{count} articles',
+    'seller.noMenu': 'Aucun article de menu disponible',
+    'seller.contactWhatsApp': 'Contacter via WhatsApp',
+
     // Authentication
-    'auth.signIn': 'تسجيل الدخول',
-    'auth.signUp': 'إنشاء حساب',
-    'auth.email': 'البريد الإلكتروني',
-    'auth.password': 'كلمة المرور',
-    'auth.confirmPassword': 'تأكيد كلمة المرور',
-    'auth.forgotPassword': 'نسيت كلمة المرور؟',
-    'auth.dontHaveAccount': 'ليس لديك حساب؟',
-    'auth.alreadyHaveAccount': 'لديك حساب بالفعل؟',
-    'auth.signInWithGoogle': 'تسجيل الدخول بجوجل',
-    'auth.signUpWithGoogle': 'إنشاء حساب بجوجل',
-    'auth.acceptTerms': 'أوافق على شروط الخدمة وسياسة الخصوصية',
-    'auth.userType': 'أنا',
-    'auth.buyer': 'مشتري',
-    'auth.seller': 'بائع',
-    
+    'auth.signIn': 'Se connecter',
+    'auth.signUp': 'S\'inscrire',
+    'auth.email': 'Email',
+    'auth.password': 'Mot de passe',
+    'auth.confirmPassword': 'Confirmer le mot de passe',
+    'auth.forgotPassword': 'Mot de passe oublié ?',
+    'auth.dontHaveAccount': 'Vous n\'avez pas de compte ?',
+    'auth.alreadyHaveAccount': 'Vous avez déjà un compte ?',
+    'auth.signInWithGoogle': 'Se connecter avec Google',
+    'auth.signUpWithGoogle': 'S\'inscrire avec Google',
+    'auth.acceptTerms': 'J\'accepte les Conditions d\'utilisation et la Politique de confidentialité',
+    'auth.userType': 'Je suis un',
+    'auth.buyer': 'Acheteur',
+    'auth.seller': 'Vendeur',
+
     // Profile
-    'profile.complete': 'إكمال الملف الشخصي',
-    'profile.businessName': 'اسم النشاط التجاري',
-    'profile.businessAddress': 'عنوان النشاط التجاري',
-    'profile.businessHours': 'ساعات العمل',
-    'profile.specialty': 'التخصص',
-    'profile.coffee': 'قهوة',
-    'profile.matcha': 'ماتشا',
-    'profile.both': 'كلاهما',
-    
+    'profile.complete': 'Compléter le profil',
+    'profile.businessName': 'Nom de l\'entreprise',
+    'profile.businessAddress': 'Adresse de l\'entreprise',
+    'profile.businessHours': 'Heures d\'ouverture',
+    'profile.specialty': 'Spécialité',
+    'profile.coffee': 'Café',
+    'profile.matcha': 'Matcha',
+    'profile.both': 'Les deux',
+
     // Settings
-    'settings.language': 'اللغة',
+    'settings.language': 'Langue',
     'settings.english': 'English',
-    'settings.arabic': 'العربية',
-    'settings.notifications': 'الإشعارات',
-    'settings.appearance': 'المظهر',
-    'settings.privacy': 'الخصوصية',
-    
+    'settings.french': 'Français',
+    'settings.notifications': 'Notifications',
+    'settings.appearance': 'Apparence',
+    'settings.privacy': 'Confidentialité',
+
     // Messages
-    'message.welcomeBack': 'مرحباً بعودتك!',
-    'message.signInSuccess': 'تم تسجيل الدخول كـ {userType}.',
-    'message.profileComplete': 'تم إكمال الملف الشخصي بنجاح!',
-    'message.welcomeSeller': 'مرحباً بك في Sip Near Me كبائع! تم إعداد ملفك الشخصي.',
-    'message.welcomeBuyer': 'مرحباً بك في Sip Near Me! تم إعداد ملفك الشخصي.',
-    'message.linkCopied': 'تم نسخ الرابط',
-    'message.linkCopiedDesc': 'تم نسخ رابط العنصر إلى الحافظة',
-    'message.addedToFavorites': 'تمت الإضافة إلى المفضلة',
-    'message.removedFromFavorites': 'تمت الإزالة من المفضلة',
-    'message.itemAddedToFavorites': 'تمت إضافة العنصر إلى مفضلتك',
-    'message.itemRemovedFromFavorites': 'تمت إزالة العنصر من مفضلتك',
-    'message.openingWhatsApp': 'فتح واتساب',
-    'message.contactingSeller': 'التواصل مع {sellerName} حول {itemName}',
+    'message.welcomeBack': 'Bon retour !',
+    'message.signInSuccess': 'Connecté en tant que {userType}.',
+    'message.profileComplete': 'Profil complété avec succès !',
+    'message.welcomeSeller': 'Bienvenue sur Machroub en tant que vendeur ! Votre profil a été configuré.',
+    'message.welcomeBuyer': 'Bienvenue sur Machroub ! Votre profil a été configuré.',
+    'message.linkCopied': 'Lien copié',
+    'message.linkCopiedDesc': 'Lien de l\'article copié dans le presse-papiers',
+    'message.addedToFavorites': 'Ajouté aux favoris',
+    'message.removedFromFavorites': 'Retiré des favoris',
+    'message.itemAddedToFavorites': 'Article ajouté à vos favoris',
+    'message.itemRemovedFromFavorites': 'Article retiré de vos favoris',
+    'message.openingWhatsApp': 'Ouverture de WhatsApp',
+    'message.contactingSeller': 'Contact avec {sellerName} à propos de {itemName}',
   }
 };
 
@@ -296,32 +322,32 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
     localStorage.setItem('language', lang);
-    
-    // Update document direction and lang attribute
-    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+
+    // Update document lang attribute (no RTL needed for French)
+    document.documentElement.dir = 'ltr';
     document.documentElement.lang = lang;
   };
 
   const t = (key: string, params?: Record<string, string>) => {
     let translation = translations[language][key as keyof typeof translations[typeof language]] || key;
-    
+
     // Replace parameters in translation
     if (params) {
       Object.entries(params).forEach(([param, value]) => {
         translation = translation.replace(`{${param}}`, value);
       });
     }
-    
+
     return translation;
   };
 
-  const isRTL = language === 'ar';
+  const isRTL = false; // French is LTR like English
 
   useEffect(() => {
-    // Set initial document direction and lang
-    document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
+    // Set initial document direction and lang (always LTR for English/French)
+    document.documentElement.dir = 'ltr';
     document.documentElement.lang = language;
-  }, [language, isRTL]);
+  }, [language]);
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t, isRTL }}>

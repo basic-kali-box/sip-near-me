@@ -53,13 +53,17 @@ The ItemCard component now features three key actions per product, designed with
 ### 3. See Location
 
 - **Icon**: MapPin icon with external link indicator
-- **Action**: Opens Google Maps with seller's address
-- **URL Format**: `https://www.google.com/maps/search/?api=1&query={encodedAddress}`
+- **Action**: Opens Google Maps with seller's precise location
+- **GPS Priority**: Uses exact GPS coordinates when available, falls back to address-based location
+- **URL Formats**:
+  - With GPS: `https://www.google.com/maps/search/?api=1&query={latitude},{longitude}`
+  - Fallback: `https://www.google.com/maps/search/?api=1&query={encodedAddress}`
 - **Target**: Opens in new tab/window
 
 **Smart States:**
 - Hidden when seller has no address
 - External link icon indicates it opens in new window
+- Prioritizes precise GPS coordinates for better accuracy
 
 ## Implementation Details
 
@@ -91,10 +95,16 @@ const handleWhatsAppOrder = (e: React.MouseEvent) => {
   }
 };
 
-// Google Maps integration
+// Google Maps integration with GPS priority
 const handleViewLocation = (e: React.MouseEvent) => {
   e.stopPropagation();
-  if (item.seller?.address) {
+  if (!item.seller) return;
+
+  // Use exact coordinates if available, otherwise fall back to address
+  if (item.seller.latitude && item.seller.longitude) {
+    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${item.seller.latitude},${item.seller.longitude}`;
+    window.open(mapsUrl, '_blank');
+  } else if (item.seller.address) {
     const encodedAddress = encodeURIComponent(item.seller.address);
     const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
     window.open(mapsUrl, '_blank');
@@ -115,7 +125,7 @@ Could you please confirm:
 • Estimated preparation time
 
 Thanks!
-_Sent via BrewNear_
+_Sent via Machroub_
 ```
 
 ## Styling

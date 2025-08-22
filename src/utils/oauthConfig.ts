@@ -1,6 +1,6 @@
 // OAuth Configuration and Verification Utilities
 
-export const GOOGLE_CLIENT_ID = '750298159534-05hfkft27aq028ggm02rebkivh4gogsf.apps.googleusercontent.com';
+export const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 export const OAUTH_CONFIG = {
   google: {

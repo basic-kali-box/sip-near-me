@@ -8,6 +8,8 @@ import { useUser } from '@/contexts/UserContext';
 import { useToast } from '@/hooks/use-toast';
 import { UserMenu } from '@/components/UserMenu';
 import { AddressInput } from '@/components/AddressInput';
+import { validateSellerProfile, getMissingFieldsSummary, type SellerProfileValidationResult } from '@/utils/sellerProfileValidation';
+import { validateAndNormalizeMoroccanPhone, formatMoroccanPhoneForDisplay } from '@/utils/moroccanPhoneValidation';
 
 
 const CompleteProfile: React.FC = () => {
@@ -25,6 +27,7 @@ const CompleteProfile: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isCheckingProfile, setIsCheckingProfile] = useState(true);
   const [shouldRedirectToDashboard, setShouldRedirectToDashboard] = useState(false);
+  const [sellerValidationResult, setSellerValidationResult] = useState<SellerProfileValidationResult | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -45,6 +48,20 @@ const CompleteProfile: React.FC = () => {
         return;
       }
 
+      // Load validation result from sessionStorage if available
+      const storedValidation = sessionStorage.getItem('sellerProfileValidation');
+      if (storedValidation) {
+        try {
+          const validationResult = JSON.parse(storedValidation) as SellerProfileValidationResult;
+          setSellerValidationResult(validationResult);
+          console.log('📋 Loaded seller validation result:', validationResult);
+          // Clear it from sessionStorage after loading
+          sessionStorage.removeItem('sellerProfileValidation');
+        } catch (error) {
+          console.warn('Failed to parse seller validation result:', error);
+        }
+      }
+
       // If user is already set from registration, use their type and pre-fill data
       if (user) {
         setUserType(user.userType);
@@ -60,24 +77,21 @@ const CompleteProfile: React.FC = () => {
         if (user.userType === 'seller') {
           try {
             const sellerProfile = await SellerService.getSellerById(user.id);
-            if (sellerProfile) {
-              // Check if seller profile is already complete
-              const isComplete = !!(
-                sellerProfile.business_name &&
-                sellerProfile.address &&
-                sellerProfile.hours &&
-                sellerProfile.phone
-              );
+            const validationResult = validateSellerProfile(sellerProfile);
 
-              if (isComplete) {
-                console.log('🔄 Profile already complete, will redirect to seller dashboard...');
-                toast({
-                  title: "Welcome back!",
-                  description: "Your seller profile is already set up. Redirecting to dashboard...",
-                });
-                setShouldRedirectToDashboard(true);
-              } else {
-                // Pre-populate form with existing seller data
+            // Update validation result state
+            setSellerValidationResult(validationResult);
+
+            if (validationResult.isComplete) {
+              console.log('🔄 Profile already complete, will redirect to seller dashboard...');
+              toast({
+                title: "Welcome back!",
+                description: "Your seller profile is already set up. Redirecting to dashboard...",
+              });
+              setShouldRedirectToDashboard(true);
+            } else {
+              // Pre-populate form with existing seller data
+              if (sellerProfile) {
                 setFormData(prev => ({
                   ...prev,
                   name: user.name || sellerProfile.name || '',
@@ -87,11 +101,14 @@ const CompleteProfile: React.FC = () => {
                   specialty: sellerProfile.specialty || prev.specialty,
                   description: sellerProfile.description || ''
                 }));
-                console.log('✅ Pre-populated form with existing seller data');
               }
+              console.log('✅ Pre-populated form with existing seller data');
+              console.log('📋 Missing fields:', getMissingFieldsSummary(validationResult));
             }
           } catch (error) {
-            console.log('ℹ️ No existing seller profile found, starting fresh');
+            console.log('ℹ️ Error loading seller profile:', error);
+            // Set validation result for new seller (all fields missing)
+            setSellerValidationResult(validateSellerProfile(null));
           }
         }
       }
@@ -140,10 +157,10 @@ const CompleteProfile: React.FC = () => {
       if (!formData.phone.trim()) {
         newErrors.phone = '📞 Phone number is mandatory for sellers - customers need to contact you!';
       } else {
-        // Validate phone number format (10-14 digits)
-        const cleanPhone = formData.phone.replace(/[\s\-\(\)\+]/g, '');
-        if (!/^\d{10,14}$/.test(cleanPhone)) {
-          newErrors.phone = '📱 Please enter a valid phone number (10-14 digits)';
+        // Validate Moroccan phone number format for WhatsApp
+        const phoneValidation = validateAndNormalizeMoroccanPhone(formData.phone);
+        if (!phoneValidation.isValid) {
+          newErrors.phone = `📱 ${phoneValidation.errorMessage || 'Please enter a valid Moroccan mobile number (06XXXXXXXX or 07XXXXXXXX)'}`;
         }
       }
 
@@ -255,7 +272,7 @@ const CompleteProfile: React.FC = () => {
       // Show success message
       toast({
         title: "Profile completed successfully!",
-        description: `Welcome to BrewNear${userType === 'seller' ? ' as a seller' : ''}! Your profile has been set up.`,
+        description: `Welcome to Machroub${userType === 'seller' ? ' as a seller' : ''}! Your profile has been set up.`,
       });
 
       // Small delay to show the toast before navigation
@@ -356,7 +373,7 @@ const CompleteProfile: React.FC = () => {
           <h1 className="text-4xl font-bold bg-gradient-to-r from-coffee-600 to-matcha-600 bg-clip-text text-transparent mb-2">
             Complete Your Profile
           </h1>
-          <p className="text-gray-600 text-lg">Just a few more details to get started on BrewNear</p>
+          <p className="text-gray-600 text-lg">Just a few more details to get started on Machroub</p>
         </div>
 
         {/* Main Form Card */}
@@ -393,35 +410,37 @@ const CompleteProfile: React.FC = () => {
           {/* User Type Selection - Only show if not already determined */}
           {!user && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
+              <label className="block text-sm sm:text-base font-medium text-gray-700 mb-4 sm:mb-6">
                 I want to:
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <button
                   type="button"
                   onClick={() => setUserType('buyer')}
-                  className={`p-4 rounded-xl border-2 transition-all ${
+                  className={`min-h-[64px] sm:min-h-[72px] p-5 sm:p-6 rounded-xl border-2 transition-all duration-300 touch-manipulation ${
                     userType === 'buyer'
-                      ? 'border-coffee-500 bg-coffee-50 text-coffee-700'
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-coffee-500 bg-coffee-50 text-coffee-700 shadow-md scale-[1.02] ring-2 ring-coffee-200'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 hover:scale-[1.01] active:scale-[0.99] focus:ring-2 focus:ring-coffee-200 focus:border-coffee-300'
                   }`}
+                  aria-label="Select buyer account type to find and order drinks"
                 >
-                  <div className="text-2xl mb-2">☕</div>
-                  <div className="font-medium">Find Drinks</div>
-                  <div className="text-sm text-gray-500">I'm a buyer</div>
+                  <div className="text-4xl sm:text-3xl mb-2 sm:mb-3">☕</div>
+                  <div className="font-semibold text-lg sm:text-base">Find Drinks</div>
+                  <div className="text-sm sm:text-xs text-gray-500 mt-1 sm:mt-2">I'm a buyer</div>
                 </button>
                 <button
                   type="button"
                   onClick={() => setUserType('seller')}
-                  className={`p-4 rounded-xl border-2 transition-all ${
+                  className={`min-h-[64px] sm:min-h-[72px] p-5 sm:p-6 rounded-xl border-2 transition-all duration-300 touch-manipulation ${
                     userType === 'seller'
-                      ? 'border-matcha-500 bg-matcha-50 text-matcha-700'
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-matcha-500 bg-matcha-50 text-matcha-700 shadow-md scale-[1.02] ring-2 ring-matcha-200'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 hover:scale-[1.01] active:scale-[0.99] focus:ring-2 focus:ring-matcha-200 focus:border-matcha-300'
                   }`}
+                  aria-label="Select seller account type to sell drinks and manage your business"
                 >
-                  <div className="text-2xl mb-2">🏪</div>
-                  <div className="font-medium">Sell Drinks</div>
-                  <div className="text-sm text-gray-500">I'm a seller</div>
+                  <div className="text-4xl sm:text-3xl mb-2 sm:mb-3">🏪</div>
+                  <div className="font-semibold text-lg sm:text-base">Sell Drinks</div>
+                  <div className="text-sm sm:text-xs text-gray-500 mt-1 sm:mt-2">I'm a seller</div>
                 </button>
               </div>
             </div>
@@ -433,6 +452,41 @@ const CompleteProfile: React.FC = () => {
               <p className="text-blue-700 text-sm">
                 Completing profile as: <strong>{userType === 'seller' ? 'Seller' : 'Buyer'}</strong>
               </p>
+            </div>
+          )}
+
+          {/* Show missing fields for sellers */}
+          {userType === 'seller' && sellerValidationResult && !sellerValidationResult.isComplete && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-white text-sm">!</span>
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-medium text-amber-800 mb-2">
+                    Complete Your Seller Profile
+                  </h3>
+                  <p className="text-amber-700 text-sm mb-3">
+                    {getMissingFieldsSummary(sellerValidationResult)}
+                  </p>
+                  {sellerValidationResult.missingFieldsDetails.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-amber-700 text-sm font-medium">Required fields:</p>
+                      <ul className="space-y-1">
+                        {sellerValidationResult.missingFieldsDetails.map((field) => (
+                          <li key={field.field} className="flex items-start gap-2 text-sm text-amber-700">
+                            <span className="w-1.5 h-1.5 bg-amber-500 rounded-full mt-2 flex-shrink-0"></span>
+                            <div>
+                              <span className="font-medium">{field.label}</span>
+                              <span className="text-amber-600 ml-1">- {field.description}</span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
@@ -477,8 +531,16 @@ const CompleteProfile: React.FC = () => {
                   ? 'border-red-400 focus:ring-red-500 bg-red-50'
                   : 'border-gray-300 focus:ring-coffee-500'
               }`}
-              placeholder={userType === 'seller' ? "+212 6XX XXX XXX (Required)" : "+1 (555) 123-4567"}
+              placeholder={userType === 'seller' ? "0606060606 or 212606060606" : "+1 (555) 123-4567"}
             />
+            {/* Show formatted phone number preview for valid input */}
+            {userType === 'seller' && formData.phone && !errors.phone && (
+              <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-green-700 text-sm">
+                  📱 WhatsApp format: <span className="font-mono font-semibold">{formatMoroccanPhoneForDisplay(validateAndNormalizeMoroccanPhone(formData.phone).cleanNumber)}</span>
+                </p>
+              </div>
+            )}
             {errors.phone && (
               <div className="flex items-center gap-2 mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
                 <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
@@ -487,12 +549,12 @@ const CompleteProfile: React.FC = () => {
                 <p className="text-red-700 text-sm font-medium">{errors.phone}</p>
               </div>
             )}
-            {userType === 'seller' && !errors.phone && (
+            {userType === 'seller' && !errors.phone && formData.phone && (
               <p className="text-green-600 text-xs mt-1 flex items-center gap-1">
                 <span className="w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
                   <span className="text-white text-xs">✓</span>
                 </span>
-                Customers will use this number to contact you
+                Customers will contact you via WhatsApp using this number
               </p>
             )}
           </div>

@@ -6,7 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "react-i18next";
 
 interface LanguageSwitcherProps {
   variant?: "default" | "ghost" | "outline";
@@ -19,26 +19,31 @@ export function LanguageSwitcher({
   size = "sm",
   showText = false
 }: LanguageSwitcherProps) {
-  const { language, setLanguage, t } = useLanguage();
+  const { i18n } = useTranslation();
 
-  const handleLanguageChange = (newLanguage: 'en' | 'ar') => {
-    setLanguage(newLanguage);
-    // Refresh the page to apply language changes
-    window.location.reload();
+  const handleLanguageChange = (newLanguage: 'en' | 'fr') => {
+    i18n.changeLanguage(newLanguage);
   };
 
   const languages = [
     { code: 'en' as const, name: 'English', nativeName: 'English' },
-    { code: 'ar' as const, name: 'Arabic', nativeName: 'العربية' }
+    { code: 'fr' as const, name: 'French', nativeName: 'Français' }
   ];
 
-  const currentLanguage = languages.find(lang => lang.code === language);
+  const currentLanguage = languages.find(lang => lang.code === i18n.language);
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant={variant} size={size} className="flex items-center gap-2">
-          <Globe className="w-4 h-4" />
+        <Button
+          variant={variant}
+          size={size}
+          className="flex items-center gap-2"
+          aria-label={`Current language: ${currentLanguage?.nativeName}. Click to change language`}
+          aria-haspopup="menu"
+          aria-expanded="false"
+        >
+          <Globe className="w-4 h-4" aria-hidden="true" />
           {showText && (
             <span className="hidden sm:inline">
               {currentLanguage?.nativeName}
@@ -46,18 +51,21 @@ export function LanguageSwitcher({
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-40">
+      <DropdownMenuContent align="end" className="w-40" role="menu" aria-label="Language selection">
         {languages.map((lang) => (
           <DropdownMenuItem
             key={lang.code}
             onClick={() => handleLanguageChange(lang.code)}
             className={`flex items-center justify-between cursor-pointer ${
-              language === lang.code ? 'bg-accent' : ''
+              i18n.language === lang.code ? 'bg-accent' : ''
             }`}
+            role="menuitem"
+            aria-label={`Switch to ${lang.nativeName}`}
+            aria-current={i18n.language === lang.code ? 'true' : 'false'}
           >
             <span>{lang.nativeName}</span>
-            {language === lang.code && (
-              <div className="w-2 h-2 bg-primary rounded-full" />
+            {i18n.language === lang.code && (
+              <div className="w-2 h-2 bg-primary rounded-full" aria-hidden="true" />
             )}
           </DropdownMenuItem>
         ))}

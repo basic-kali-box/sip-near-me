@@ -25,7 +25,7 @@ User-agent: Twitterbot
 Allow: /
 
 # Sitemap location
-Sitemap: https://brewnear.app/sitemap.xml
+Sitemap: https://machroub.ma/sitemap.xml
 
 # Host preference
-Host: https://brewnear.app
+Host: https://machroub.ma

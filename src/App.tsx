@@ -4,11 +4,19 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Link, useNavigate } from "react-router-dom";
 import { UserProvider, useUser } from "./contexts/UserContext";
-import { LanguageProvider } from "./contexts/LanguageContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { useEffect } from "react";
 import { initGA, trackPageView, initScrollTracking, trackWebVitals } from "@/utils/analytics";
 import { Analytics } from "@vercel/analytics/react";
+// Initialize i18n
+import "./i18n";
+// SECURITY FIX: Only import debug utilities in development
+if (import.meta.env.DEV) {
+  import("@/utils/authDebug");
+  import("@/utils/testSellerValidation");
+}
+import { checkDomainRedirect } from "@/utils/authDebug";
+import { checkAndHandleOAuthTokens } from "@/utils/oauthHandler";
 import {
   SidebarProvider,
   Sidebar,
@@ -40,10 +48,10 @@ import AddListing from "./pages/AddListing";
 import EditListing from "./pages/EditListing";
 import SellerDetails from "./pages/SellerDetails";
 import SellerDashboard from "./pages/SellerDashboard";
-import OrderFlow from "./pages/OrderFlow";
+
 import ItemDetail from "./pages/ItemDetail";
 import Profile from "./pages/Profile";
-import OrderHistory from "./pages/OrderHistory";
+
 import ProtectedRoute from "./components/ProtectedRoute";
 import SettingsPage from "./pages/Settings";
 import Help from "./pages/Help";
@@ -110,11 +118,21 @@ function SidebarNavContent() {
   return (
     <>
       <SidebarHeader>
-        <div className="flex items-center gap-2 px-2 py-1.5">
+        <div
+          className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md transition-colors duration-200"
+          onClick={() => {
+            if (isAuthenticated) {
+              navigate('/app');
+            } else {
+              navigate('/signin');
+            }
+            if (isMobile) setOpenMobile(false);
+          }}
+        >
           <div className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-primary">
             <Droplets className="w-3.5 h-3.5 text-primary-foreground" />
           </div>
-          <span className="text-sm font-semibold">BrewNear</span>
+          <span className="text-sm font-semibold">Machroub</span>
         </div>
       </SidebarHeader>
 
@@ -165,14 +183,7 @@ function SidebarNavContent() {
         <SidebarGroupLabel>Account</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild onClick={handleNavigate}>
-                <Link to="/orders">
-                  <ShoppingBag />
-                  <span>Orders</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+
             <SidebarMenuItem>
               <SidebarMenuButton asChild onClick={handleNavigate}>
                 <Link to="/profile">
@@ -256,9 +267,29 @@ function SidebarNavContent() {
 const App = () => {
   // Initialize analytics on app load
   useEffect(() => {
-    initGA();
-    trackWebVitals();
-    initScrollTracking();
+    // Check for domain redirect issues first
+    if (checkDomainRedirect()) {
+      return; // Redirect is happening, don't initialize other stuff
+    }
+
+    // Check for OAuth tokens in URL and handle them
+    checkAndHandleOAuthTokens().then((handled) => {
+      if (handled) {
+        console.log('🔄 OAuth tokens handled, redirect in progress...');
+        return; // OAuth redirect is happening
+      }
+
+      // Continue with normal initialization
+      initGA();
+      trackWebVitals();
+      initScrollTracking();
+    }).catch((error) => {
+      console.error('❌ Error handling OAuth tokens:', error);
+      // Continue with normal initialization even if OAuth handling fails
+      initGA();
+      trackWebVitals();
+      initScrollTracking();
+    });
 
     // Global error handlers for unhandled errors
     const handleUnhandledError = (event: ErrorEvent) => {
@@ -296,9 +327,8 @@ const App = () => {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <LanguageProvider>
-            <BrowserRouter>
-              <UserProvider>
+          <BrowserRouter>
+            <UserProvider>
                 <Toaster />
                 <Sonner />
                 <Analytics />
@@ -342,29 +372,27 @@ const App = () => {
                             <SellerDashboard />
                           </ProtectedRoute>
                         } />
-                        <Route path="/order/:sellerId" element={
-                          <ProtectedRoute requireAuth={true}>
-                            <OrderFlow />
-                          </ProtectedRoute>
-                        } />
+
                         <Route path="/profile" element={
                           <ProtectedRoute requireAuth={true}>
                             <Profile />
                           </ProtectedRoute>
                         } />
-                        <Route path="/orders" element={
-                          <ProtectedRoute requireAuth={true}>
-                            <OrderHistory />
-                          </ProtectedRoute>
-                        } />
+
                         <Route path="/settings" element={<SettingsPage />} />
                         <Route path="/help" element={<Help />} />
                         <Route path="/terms" element={<Terms />} />
                         <Route path="/privacy" element={<Privacy />} />
-                        <Route path="/location-demo" element={<LocationPickerDemo />} />
-                        <Route path="/itemcard-demo" element={<ItemCardDemo />} />
-                        <Route path="/image-debug" element={<ImageUploadDebug />} />
-                        <Route path="/debug-data" element={<DebugData />} />
+
+                        {/* SECURITY FIX: Only show debug routes in development */}
+                        {import.meta.env.DEV && (
+                          <>
+                            <Route path="/location-demo" element={<LocationPickerDemo />} />
+                            <Route path="/itemcard-demo" element={<ItemCardDemo />} />
+                            <Route path="/image-debug" element={<ImageUploadDebug />} />
+                            <Route path="/debug-data" element={<DebugData />} />
+                          </>
+                        )}
                         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                         <Route path="*" element={<NotFound />} />
                       </Routes>
@@ -373,7 +401,6 @@ const App = () => {
                 </ErrorBoundary>
               </UserProvider>
             </BrowserRouter>
-          </LanguageProvider>
         </TooltipProvider>
       </QueryClientProvider>
     </ErrorBoundary>

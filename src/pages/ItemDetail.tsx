@@ -7,10 +7,10 @@ import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { StarRating } from "@/components/StarRating";
 import { useToast } from "@/hooks/use-toast";
-import { sendWhatsAppMessage, createProductInterestMessage, trackContactAttempt, createWhatsAppOrder } from "@/utils/whatsapp";
+import { sendWhatsAppMessage, createProductInterestMessage, trackContactAttempt } from "@/utils/whatsapp";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/contexts/UserContext";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "react-i18next";
 
 interface ItemDetailData {
   id: string;
@@ -41,7 +41,7 @@ const ItemDetail = () => {
   const navigate = useNavigate();
   const { user } = useUser();
   const { toast } = useToast();
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const [item, setItem] = useState<ItemDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -104,27 +104,8 @@ const ItemDetail = () => {
     loadItem();
   }, [itemId]);
 
-  const handleWhatsAppOrder = async () => {
+  const handleWhatsAppOrder = () => {
     if (!item?.seller?.phone || !user) return;
-
-    // Create order record in database for single item
-    const orderItems = [{
-      name: item.name,
-      price: item.price,
-      quantity: 1,
-      notes: item.description
-    }];
-
-    const orderId = await createWhatsAppOrder(
-      user.id,
-      item.seller.id,
-      orderItems,
-      item.price,
-      {
-        name: user.name,
-        phone: user.phone
-      }
-    );
 
     const message = createProductInterestMessage(
       item.name,
@@ -137,15 +118,10 @@ const ItemDetail = () => {
 
     toast({
       title: t('message.openingWhatsApp'),
-      description: orderId
-        ? `Order #${orderId.slice(-6)} created. ${t('message.contactingSeller', {
-            sellerName: item.seller.business_name,
-            itemName: item.name
-          })}`
-        : t('message.contactingSeller', {
-            sellerName: item.seller.business_name,
-            itemName: item.name
-          }),
+      description: t('message.contactingSeller', {
+        sellerName: item.seller.business_name,
+        itemName: item.name
+      }),
     });
   };
 

@@ -11,6 +11,8 @@ import { UserService } from "@/services/userService";
 import { useUser } from "@/contexts/UserContext";
 import { ButtonLoading } from "@/components/LoadingSpinner";
 import { SEO, SEO_CONFIGS } from "@/components/SEO";
+import { useTranslation } from "react-i18next";
+import { isRateLimited, getRateLimitResetTime } from "@/utils/sanitize";
 
 
 const SignIn = () => {
@@ -18,6 +20,7 @@ const SignIn = () => {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { login, loginWithAutoDetect, loginWithGoogle } = useUser();
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -70,6 +73,18 @@ const SignIn = () => {
 
     if (!validateForm()) return;
 
+    // SECURITY FIX: Rate limiting for login attempts
+    const rateLimitKey = `login_${formData.email}`;
+    if (isRateLimited(rateLimitKey, 5, 15 * 60 * 1000)) { // 5 attempts per 15 minutes
+      const resetTime = getRateLimitResetTime(rateLimitKey);
+      toast({
+        title: "Too Many Attempts",
+        description: `Please wait ${Math.ceil(resetTime / 60)} minutes before trying again.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -86,8 +101,8 @@ const SignIn = () => {
       if (result.success && result.userType) {
         console.log('✅ SignIn: Login successful, navigating...');
         toast({
-          title: "Welcome back!",
-          description: `Signed in as ${result.userType}.`,
+          title: t('message.welcomeBack'),
+          description: t('message.signInSuccess', { userType: result.userType }),
         });
 
         // Navigate to returnTo URL if provided, otherwise redirect based on user type
@@ -104,8 +119,8 @@ const SignIn = () => {
       } else {
         console.log('❌ SignIn: Login failed');
         toast({
-          title: "Sign in failed",
-          description: "Invalid email or password. Please try again.",
+          title: t('errors.signInFailed'),
+          description: t('errors.invalidCredentials'),
           variant: "destructive",
         });
       }
@@ -209,12 +224,15 @@ const SignIn = () => {
               <ArrowLeft className="w-4 h-4" />
               Back
             </Button>
-            <div className="flex items-center gap-3">
+            <div
+              className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity duration-200"
+              onClick={() => navigate('/')}
+            >
               <div className="w-10 h-10 bg-gradient-matcha rounded-2xl flex items-center justify-center shadow-elegant">
                 <Coffee className="w-6 h-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-foreground">BrewNear</h1>
+                <h1 className="text-xl font-bold text-foreground">Machroub</h1>
                 <p className="text-xs text-muted-foreground">Premium Coffee & Matcha</p>
               </div>
             </div>
@@ -409,7 +427,7 @@ const SignIn = () => {
                     ) : (
                       <div className="flex items-center gap-2">
                         <Coffee className="w-4 h-4" />
-                        Sign In to BrewNear
+                        Sign In to Machroub
                       </div>
                     )}
                   </Button>
@@ -421,7 +439,7 @@ const SignIn = () => {
               {/* Enhanced Sign Up Link */}
               <div className="text-center pt-4 group">
                 <p className="text-sm text-muted-foreground group-hover:text-foreground transition-colors duration-200">
-                  New to BrewNear?{" "}
+                  New to Machroub?{" "}
                   <Link
                     to="/signup"
                     className="text-primary hover:text-primary/80 font-semibold transition-all duration-200 hover:underline underline-offset-2 hover:scale-105 inline-block"

@@ -95,7 +95,7 @@ export const generateLocationMeta = (location: LocationData, businessType: strin
   const locationString = `${location.city}${location.region ? `, ${location.region}` : ''}, ${location.country}`;
   
   return {
-    title: `Best ${businessType} in ${location.city} | BrewNear`,
+    title: `Best ${businessType} in ${location.city} | Machroub`,
     description: `Discover amazing ${businessType} sellers in ${locationString}. Find local artisan roasters, specialty cafes, and authentic makers near you.`,
     keywords: `${businessType} ${location.city}, coffee shops ${location.city}, matcha ${location.city}, local coffee roasters ${location.city}, specialty drinks ${location.city}`,
     geoRegion: location.region,
@@ -111,7 +111,7 @@ export const generateCityPageSchema = (city: string, region: string, country: st
     "@type": "CollectionPage",
     "name": `Coffee & Matcha in ${city}`,
     "description": `Find the best coffee and matcha sellers in ${city}, ${region}. Discover local artisan roasters and authentic matcha makers.`,
-    "url": `https://brewnear.app/city/${city.toLowerCase()}`,
+    "url": `https://machroub.ma/city/${city.toLowerCase()}`,
     "about": {
       "@type": "Place",
       "name": city,
@@ -181,7 +181,7 @@ export const generateLocalFAQSchema = (city: string) => {
         "name": `Where can I find the best coffee in ${city}?`,
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": `BrewNear helps you discover the best local coffee roasters and specialty coffee shops in ${city}. Browse verified sellers, read reviews, and order directly from local artisans.`
+          "text": `Machroub helps you discover the best local coffee roasters and specialty coffee shops in ${city}. Browse verified sellers, read reviews, and order directly from local artisans.`
         }
       },
       {
@@ -189,7 +189,7 @@ export const generateLocalFAQSchema = (city: string) => {
         "name": `How do I order matcha in ${city}?`,
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": `Use BrewNear to find authentic matcha makers in ${city}. View their menus, check availability, and place orders for pickup or delivery directly through our platform.`
+          "text": `Use Machroub to find authentic matcha makers in ${city}. View their menus, check availability, and place orders for pickup or delivery directly through our platform.`
         }
       },
       {
@@ -197,7 +197,7 @@ export const generateLocalFAQSchema = (city: string) => {
         "name": `Are there specialty coffee roasters in ${city}?`,
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": `Yes! ${city} has many talented local coffee roasters. BrewNear connects you with artisan roasters who offer fresh, high-quality coffee beans and specialty drinks.`
+          "text": `Yes! ${city} has many talented local coffee roasters. Machroub connects you with artisan roasters who offer fresh, high-quality coffee beans and specialty drinks.`
         }
       },
       {
@@ -205,7 +205,7 @@ export const generateLocalFAQSchema = (city: string) => {
         "name": `Can I get coffee delivered in ${city}?`,
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": `Many coffee and matcha sellers in ${city} offer delivery through BrewNear. Check individual seller profiles for delivery options and areas they serve.`
+          "text": `Many coffee and matcha sellers in ${city} offer delivery through Machroub. Check individual seller profiles for delivery options and areas they serve.`
         }
       }
     ]

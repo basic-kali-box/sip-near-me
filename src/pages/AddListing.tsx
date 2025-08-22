@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/contexts/UserContext";
 import { DrinkService } from "@/services/drinkService";
 import { SellerService } from "@/services/sellerService";
+import { VALID_CATEGORIES, formatCategoryDisplay } from "@/utils/categories";
 
 const AddListing = () => {
   const navigate = useNavigate();
@@ -77,17 +78,53 @@ const AddListing = () => {
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
-    if (!formData.name.trim()) newErrors.name = "A name is required for your delicious item.";
-    if (!formData.description.trim()) newErrors.description = "A description helps customers know what they're getting!";
+
+    // Name validation
+    if (!formData.name.trim()) {
+      newErrors.name = "A name is required for your delicious item.";
+    } else if (formData.name.trim().length < 2) {
+      newErrors.name = "Name must be at least 2 characters long.";
+    } else if (formData.name.trim().length > 100) {
+      newErrors.name = "Name must be less than 100 characters.";
+    }
+
+    // Description validation
+    if (!formData.description.trim()) {
+      newErrors.description = "A description helps customers know what they're getting!";
+    } else if (formData.description.trim().length < 10) {
+      newErrors.description = "Description must be at least 10 characters long.";
+    } else if (formData.description.trim().length > 500) {
+      newErrors.description = "Description must be less than 500 characters.";
+    }
+
+    // SECURITY FIX: Enhanced price validation
     if (!formData.price.trim()) {
       newErrors.price = "Price is required";
     } else {
       const price = parseFloat(formData.price);
-      if (isNaN(price) || price <= 0) {
-        newErrors.price = "Please enter a valid price (e.g., 50.00).";
+      if (isNaN(price)) {
+        newErrors.price = "Please enter a valid number for the price.";
+      } else if (price <= 0) {
+        newErrors.price = "Price must be greater than 0.";
+      } else if (price < 1) {
+        newErrors.price = "Minimum price is 1 MAD.";
+      } else if (price > 10000) {
+        newErrors.price = "Maximum price is 10,000 MAD.";
+      } else if (!/^\d+(\.\d{1,2})?$/.test(formData.price)) {
+        newErrors.price = "Price can have at most 2 decimal places.";
       }
     }
-    if (!formData.category.trim()) newErrors.category = "Please select a category.";
+
+    // Category validation
+    if (!formData.category.trim()) {
+      newErrors.category = "Please select a category.";
+    }
+
+    // Image validation - now required
+    if (!formData.image) {
+      newErrors.image = "A photo is required to showcase your delicious item!";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -98,34 +135,114 @@ const AddListing = () => {
   };
 
   const handleImageUpload = (file: File) => {
-    if (file.size > 5 * 1024 * 1024) {
+    // SECURITY FIX: Enhanced file validation
+
+    // Check file size (reduced to 2MB for better performance)
+    if (file.size > 2 * 1024 * 1024) {
       toast({
         title: "File Too Large",
-        description: "File size must be less than 5MB",
+        description: "File size must be less than 2MB",
         variant: "destructive",
       });
       return;
     }
 
-    if (!file.type.match('image.*')) {
+    // Check minimum file size (prevent empty files)
+    if (file.size < 1024) {
+      toast({
+        title: "File Too Small",
+        description: "File must be at least 1KB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Strict MIME type validation
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
       toast({
         title: "Invalid File Type",
-        description: "Please select an image file",
+        description: "Only JPEG, PNG, and WebP images are allowed",
         variant: "destructive",
       });
       return;
     }
 
-    setFormData(prev => ({ ...prev, image: file }));
+    // Check file extension matches MIME type
+    const extension = file.name.toLowerCase().split('.').pop();
+    const validExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+    if (!extension || !validExtensions.includes(extension)) {
+      toast({
+        title: "Invalid File Extension",
+        description: "File must have a valid image extension",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check for suspicious file names
+    const suspiciousPatterns = [
+      /\.php$/i, /\.js$/i, /\.html$/i, /\.exe$/i, /\.bat$/i, /\.sh$/i,
+      /script/i, /javascript/i, /vbscript/i, /onload/i, /onerror/i
+    ];
+
+    if (suspiciousPatterns.some(pattern => pattern.test(file.name))) {
+      toast({
+        title: "Suspicious File Name",
+        description: "File name contains potentially dangerous content",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Additional security: Check file header (magic bytes) for common image formats
     const reader = new FileReader();
-    reader.onload = (e) => setImagePreview(e.target?.result as string);
-    reader.readAsDataURL(file);
+    reader.onload = (e) => {
+      const arrayBuffer = e.target?.result as ArrayBuffer;
+      const bytes = new Uint8Array(arrayBuffer.slice(0, 4));
+
+      // Check magic bytes for common image formats
+      const isValidImage =
+        // JPEG: FF D8 FF
+        (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) ||
+        // PNG: 89 50 4E 47
+        (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) ||
+        // WebP: 52 49 46 46 (RIFF)
+        (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46);
+
+      if (!isValidImage) {
+        toast({
+          title: "Invalid Image File",
+          description: "File does not appear to be a valid image",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // File passed all security checks
+      setFormData(prev => ({ ...prev, image: file }));
+
+      // Clear image error if it exists
+      if (errors.image) {
+        setErrors(prev => ({ ...prev, image: "" }));
+      }
+
+      // Also create preview
+      const previewReader = new FileReader();
+      previewReader.onload = (e) => setImagePreview(e.target?.result as string);
+      previewReader.readAsDataURL(file);
+    };
+
+    reader.readAsArrayBuffer(file);
   };
 
   const removeImage = () => {
     setFormData(prev => ({ ...prev, image: null }));
     setImagePreview(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
+
+    // Show error since image is now required
+    setErrors(prev => ({ ...prev, image: "A photo is required to showcase your delicious item!" }));
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -196,14 +313,8 @@ const AddListing = () => {
   };
 
   const getCategoryOptions = () => {
-    const baseCategories = ['hot', 'iced', 'specialty', 'seasonal'];
-    if (user?.specialty === 'coffee') {
-      return [...baseCategories, 'espresso', 'latte', 'cappuccino', 'americano'];
-    } else if (user?.specialty === 'matcha') {
-      return [...baseCategories, 'traditional', 'latte', 'bubble tea', 'dessert'];
-    } else {
-      return [...baseCategories, 'coffee', 'matcha', 'espresso', 'latte', 'traditional'];
-    }
+    // Use categories that match backend validation
+    return VALID_CATEGORIES;
   };
 
   if (!user) {
@@ -230,7 +341,7 @@ const AddListing = () => {
         
         {/* Header Content */}
         <div className="relative z-10">
-          <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">BrewNear</h1>
+          <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Machroub</h1>
           <p className="text-white/90 text-lg mb-6 font-medium">Craft Your Menu Item</p>
           <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto animate-bounce-gentle">
             ☕
@@ -335,10 +446,8 @@ const AddListing = () => {
                     >
                       <option value="">Choose a category</option>
                       {getCategoryOptions().map(category => (
-                        <option key={category} value={category} className="capitalize">
-                          {category === 'coffee' && '☕'} {category === 'tea' && '🍵'} 
-                          {category === 'cold-drinks' && '🧊'} {category === 'smoothies' && '🥤'}
-                          {category === 'pastries' && '🥐'} {category === 'snacks' && '🍪'} {category}
+                        <option key={category.value} value={category.value} className="capitalize">
+                          {formatCategoryDisplay(category.value)}
                         </option>
                       ))}
                     </select>
@@ -423,14 +532,18 @@ const AddListing = () => {
 
                 {/* Photo Upload */}
                 <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-gray-700">Item Photo</Label>
+                  <Label className="text-sm font-semibold text-gray-700">
+                    Item Photo <span className="text-red-500">*</span>
+                  </Label>
                   
                   {imagePreview ? (
                     <div className="relative animate-fade-in">
                       <img
                         src={imagePreview}
                         alt="Preview"
-                        className="w-full h-48 object-cover rounded-xl border-2 border-gray-200"
+                        className={`w-full h-48 object-cover rounded-xl border-2 transition-all duration-300 ${
+                          errors.image ? 'border-red-400' : 'border-gray-200'
+                        }`}
                       />
                       <Button
                         type="button"
@@ -449,19 +562,29 @@ const AddListing = () => {
                       onDragLeave={handleDragLeave}
                       onDrop={handleDrop}
                       className={`w-full h-48 border-3 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 ${
-                        dragOver 
-                          ? 'border-coffee-500 bg-coffee-50' 
-                          : 'border-gray-300 bg-gray-50 hover:border-coffee-500 hover:bg-white hover:-translate-y-1'
+                        errors.image
+                          ? 'border-red-400 bg-red-50 hover:border-red-500 hover:bg-red-100'
+                          : dragOver
+                            ? 'border-coffee-500 bg-coffee-50'
+                            : 'border-gray-300 bg-gray-50 hover:border-coffee-500 hover:bg-white hover:-translate-y-1'
                       }`}
                     >
-                      <div className="w-12 h-12 bg-gradient-to-br from-coffee-500 to-matcha-600 rounded-full flex items-center justify-center mb-4">
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${
+                        errors.image
+                          ? 'bg-gradient-to-br from-red-500 to-red-600'
+                          : 'bg-gradient-to-br from-coffee-500 to-matcha-600'
+                      }`}>
                         <Upload className="w-6 h-6 text-white" />
                       </div>
-                      <div className="text-lg font-semibold text-gray-700 mb-2">
-                        Click or drag & drop to upload
+                      <div className={`text-lg font-semibold mb-2 ${
+                        errors.image ? 'text-red-700' : 'text-gray-700'
+                      }`}>
+                        {errors.image ? 'Photo Required!' : 'Click or drag & drop to upload'}
                       </div>
-                      <div className="text-sm text-gray-500">
-                        PNG, JPG, or JPEG (Max 5MB)
+                      <div className={`text-sm ${
+                        errors.image ? 'text-red-600' : 'text-gray-500'
+                      }`}>
+                        PNG, JPG, or JPEG (Max 2MB)
                       </div>
                     </div>
                   )}
@@ -476,6 +599,13 @@ const AddListing = () => {
                     }}
                     className="hidden"
                   />
+
+                  {errors.image && (
+                    <p className="text-xs text-red-600 flex items-center gap-1 animate-slide-in">
+                      <AlertCircle className="w-3 h-3" />
+                      {errors.image}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

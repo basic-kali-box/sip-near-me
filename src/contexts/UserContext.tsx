@@ -67,7 +67,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   // LocalStorage keys
-  const USER_ESSENTIALS_KEY = 'brewnear_user_essentials';
+  const USER_ESSENTIALS_KEY = 'machroub_user_essentials';
 
   // Helper: store only essential user data that doesn't change frequently
   const storeUserEssentials = (userData: any) => {
@@ -102,6 +102,9 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const clearStoredData = () => {
     try {
       localStorage.removeItem(USER_ESSENTIALS_KEY);
+      // Also clear any old domain-related storage
+      localStorage.removeItem('brewnear_user_essentials');
+      localStorage.removeItem('brewnear_contacts');
       console.log('🗑️ Stored data cleared');
     } catch (error) {
       console.warn('⚠️ Error clearing stored data:', error);
@@ -288,9 +291,12 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Only handle if user is not already set (avoid duplicate processing)
           if (!user || user.id !== session.user.id) {
             console.log('🔄 New sign-in detected');
+            console.log('🔍 Session user ID:', session.user.id);
+            console.log('🔍 Current user ID:', user?.id || 'none');
             // For OAuth flows, we need to ensure user data is loaded
             // Check if we have stored essentials for this user
             const storedEssentials = getStoredUserEssentials();
+            console.log('🔍 Stored essentials:', storedEssentials ? 'found' : 'not found');
             if (storedEssentials && storedEssentials.id === session.user.id) {
               console.log('📋 Loading user from stored essentials after OAuth sign-in');
               const appUser: User = {
@@ -629,7 +635,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const updatedUser = await UserService.updateUserProfile(user.id, userTableUpdates);
 
         // Clear stored essentials to force fresh data fetch
-        localStorage.removeItem('user_essentials');
+        localStorage.removeItem(USER_ESSENTIALS_KEY);
 
         const appUser = await getUserData(updatedUser);
         setUser(appUser);

@@ -1,4 +1,4 @@
-# Google OAuth Setup Guide for BrewNear
+# Google OAuth Setup Guide for Machroub
 
 ## 🔑 Your Google Client ID
 ```
@@ -21,7 +21,7 @@
    - Choose **External** (for public app)
    - Fill required fields:
      ```
-     App name: BrewNear
+     App name: Machroub
      User support email: your-email@domain.com
      Developer contact: your-email@domain.com
      ```

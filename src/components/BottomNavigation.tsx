@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@/contexts/UserContext";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 interface BottomNavigationProps {
   activeTab: "map" | "list";
@@ -14,38 +15,39 @@ export const BottomNavigation = ({ activeTab, onTabChange, className }: BottomNa
   const navigate = useNavigate();
   const { logout, user, isAuthenticated } = useUser();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const handleSignOut = async () => {
     try {
       await logout();
       toast({
-        title: "Signed out successfully",
-        description: "You have been logged out.",
+        title: t('errors.signOutSuccess'),
+        description: t('errors.signOutDescription'),
       });
       // Navigation is now handled by the logout function in UserContext
     } catch (error: any) {
       toast({
-        title: "Sign out failed",
-        description: error.message || "Please try again.",
+        title: t('errors.signOutFailed'),
+        description: error.message || t('errors.signOutFailed'),
         variant: "destructive",
       });
     }
   };
 
   const tabs = [
-    { id: "map" as const, label: "Map", icon: MapPin, isTab: true },
-    { id: "list" as const, label: "List", icon: List, isTab: true },
+    { id: "map" as const, label: t('navigation.map'), icon: MapPin, isTab: true },
+    { id: "list" as const, label: t('navigation.list'), icon: List, isTab: true },
     // Only show Add Listing for sellers
     ...(isAuthenticated && user?.userType === 'seller'
-      ? [{ id: "add" as const, label: "Add Listing", icon: Plus, isTab: false }]
+      ? [{ id: "add" as const, label: t('navigation.addListing'), icon: Plus, isTab: false }]
       : []
     ),
     // Show different options based on authentication state
     isAuthenticated
-      ? { id: "profile" as const, label: "Profile", icon: User, isTab: false }
-      : { id: "signin" as const, label: "Sign In", icon: LogIn, isTab: false },
+      ? { id: "profile" as const, label: t('userMenu.profile'), icon: User, isTab: false }
+      : { id: "signin" as const, label: t('nav.signIn'), icon: LogIn, isTab: false },
     // Add sign out option for authenticated users
-    ...(isAuthenticated ? [{ id: "signout" as const, label: "Sign Out", icon: LogOut, isTab: false }] : []),
+    ...(isAuthenticated ? [{ id: "signout" as const, label: t('navigation.signOut'), icon: LogOut, isTab: false }] : []),
   ];
 
   return (

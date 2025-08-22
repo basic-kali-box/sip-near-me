@@ -1,5 +1,6 @@
 import { supabase, handleSupabaseError } from '@/lib/supabase';
 import { Database } from '@/lib/database.types';
+import { getValidCategoryValues, isValidCategory } from '@/utils/categories';
 
 type Drink = Database['public']['Tables']['drinks']['Row'];
 type DrinkInsert = Database['public']['Tables']['drinks']['Insert'];
@@ -51,9 +52,75 @@ export class DrinkService {
   // Create new drink
   static async createDrink(drinkData: DrinkInsert): Promise<Drink> {
     try {
+      // SECURITY FIX: Server-side validation
+      if (!drinkData.name || typeof drinkData.name !== 'string') {
+        throw new Error('Invalid drink name');
+      }
+      if (!drinkData.description || typeof drinkData.description !== 'string') {
+        throw new Error('Invalid drink description');
+      }
+      if (!drinkData.price || typeof drinkData.price !== 'number') {
+        throw new Error('Invalid price');
+      }
+      if (!drinkData.category || typeof drinkData.category !== 'string') {
+        throw new Error('Invalid category');
+      }
+
+      // Validate name
+      const name = drinkData.name.trim();
+      if (name.length < 2 || name.length > 100) {
+        throw new Error('Drink name must be between 2 and 100 characters');
+      }
+
+      // Validate description
+      const description = drinkData.description.trim();
+      if (description.length < 10 || description.length > 500) {
+        throw new Error('Description must be between 10 and 500 characters');
+      }
+
+      // SECURITY FIX: Strict price validation
+      const price = drinkData.price;
+      if (isNaN(price) || price <= 0) {
+        throw new Error('Price must be a positive number');
+      }
+      if (price < 1) {
+        throw new Error('Minimum price is 1 MAD');
+      }
+      if (price > 10000) {
+        throw new Error('Maximum price is 10,000 MAD');
+      }
+      // Check for reasonable decimal places (max 2)
+      if (Math.round(price * 100) !== price * 100) {
+        throw new Error('Price can have at most 2 decimal places');
+      }
+
+      // Validate category
+      if (!isValidCategory(drinkData.category)) {
+        throw new Error(`Invalid category. Valid categories are: ${getValidCategoryValues().join(', ')}`);
+      }
+
+      // SECURITY FIX: Verify user authentication and authorization
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        throw new Error('Authentication required to create drink');
+      }
+
+      if (drinkData.seller_id !== user.id) {
+        throw new Error('You can only create drinks for yourself');
+      }
+
+      // Sanitize data before insertion
+      const sanitizedData = {
+        ...drinkData,
+        name: name,
+        description: description,
+        price: Math.round(price * 100) / 100, // Ensure 2 decimal places max
+        category: drinkData.category.trim()
+      };
+
       const { data, error } = await supabase
         .from('drinks')
-        .insert(drinkData)
+        .insert(sanitizedData)
         .select()
         .single();
 

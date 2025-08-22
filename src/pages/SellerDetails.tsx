@@ -4,7 +4,7 @@ import { ArrowLeft, Phone, MapPin, Clock, MessageCircle, ShoppingCart, Star, Sha
 import { ReviewSystem } from "@/components/ReviewSystem";
 import { sendWhatsAppMessage, createQuickContactMessage, trackContactAttempt } from "@/utils/whatsapp";
 import { useUser } from "@/contexts/UserContext";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -19,7 +19,7 @@ const SellerDetails = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useUser();
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const [seller, setSeller] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +69,7 @@ const SellerDetails = () => {
     if (navigator.share && seller) {
       navigator.share({
         title: seller.name,
-        text: `Check out ${seller.name} on BrewNear!`,
+        text: `Check out ${seller.name} on Machroub!`,
         url: window.location.href,
       });
     }
@@ -136,9 +136,9 @@ const SellerDetails = () => {
   // Generate SEO data for this seller
   const sellerSEO = SEO_CONFIGS.seller(seller.business_name, seller.address);
   const breadcrumbData = getBreadcrumbSchema([
-    { name: 'Home', url: 'https://brewnear.app/' },
-    { name: 'Sellers', url: 'https://brewnear.app/app' },
-    { name: seller.business_name, url: `https://brewnear.app/seller/${seller.id}` }
+    { name: 'Home', url: 'https://machroub.ma/' },
+    { name: 'Sellers', url: 'https://machroub.ma/app' },
+    { name: seller.business_name, url: `https://machroub.ma/seller/${seller.id}` }
   ]);
 
   return (

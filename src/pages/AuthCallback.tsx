@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { UserService } from '@/services/userService';
 import { SellerService } from '@/services/sellerService';
 import { useUser } from '@/contexts/UserContext';
+import { validateSellerProfile, getMissingFieldsSummary } from '@/utils/sellerProfileValidation';
 
 const AuthCallback: React.FC = () => {
   const navigate = useNavigate();
@@ -15,6 +16,10 @@ const AuthCallback: React.FC = () => {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
+        console.log('🔄 AuthCallback: Starting callback processing...');
+        console.log('📍 Current URL:', window.location.href);
+        console.log('🔗 Hash:', window.location.hash);
+
         // Get the session from the URL hash
         const { data, error } = await supabase.auth.getSession();
         
@@ -97,29 +102,25 @@ const AuthCallback: React.FC = () => {
             if (userProfile.user_type === 'seller') {
               try {
                 const sellerProfile = await SellerService.getSellerById(userProfile.id);
-                if (sellerProfile) {
-                  // Check if seller profile is complete
-                  const isComplete = !!(
-                    sellerProfile.business_name &&
-                    sellerProfile.address &&
-                    sellerProfile.hours &&
-                    sellerProfile.phone
-                  );
+                const validationResult = validateSellerProfile(sellerProfile);
 
-                  if (!isComplete || needsProfileCompletion) {
-                    console.log('🔄 Seller profile incomplete, redirecting to complete profile...');
-                    setLoading(false);
-                    navigate('/complete-profile');
-                    return;
-                  } else {
-                    console.log('✅ Seller profile is complete, will redirect to dashboard');
+                // If basic profile is incomplete OR seller profile is incomplete, redirect to complete profile
+                if (!validationResult.isComplete || needsProfileCompletion) {
+                  const missingFieldsSummary = getMissingFieldsSummary(validationResult);
+                  console.log('🔄 Seller profile incomplete, redirecting to complete profile...');
+                  console.log('📋 Missing fields:', missingFieldsSummary);
+
+                  // Store missing fields info in sessionStorage for the CompleteProfile component
+                  if (validationResult.missingFieldsDetails.length > 0) {
+                    sessionStorage.setItem('sellerProfileValidation', JSON.stringify(validationResult));
                   }
-                } else {
-                  // No seller profile exists, need to complete profile
-                  console.log('🔄 No seller profile found, redirecting to complete profile...');
+
                   setLoading(false);
                   navigate('/complete-profile');
                   return;
+                } else {
+                  console.log('✅ Seller profile is complete, will redirect to dashboard');
+                  console.log('🎉 Streamlined sign-in: Skipping profile completion for returning seller');
                 }
               } catch (error) {
                 console.log('ℹ️ Error checking seller profile, redirecting to complete profile:', error);

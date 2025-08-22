@@ -110,10 +110,33 @@ export class RatingService {
   // Delete rating
   static async deleteRating(ratingId: string): Promise<void> {
     try {
+      // SECURITY FIX: Get current authenticated user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        throw new Error('Authentication required to delete rating');
+      }
+
+      // SECURITY FIX: Check if user owns this rating
+      const { data: rating, error: ratingError } = await supabase
+        .from('ratings')
+        .select('buyer_id')
+        .eq('id', ratingId)
+        .single();
+
+      if (ratingError) throw ratingError;
+      if (!rating) throw new Error('Rating not found');
+
+      // Only allow the buyer who created the rating to delete it
+      if (rating.buyer_id !== user.id) {
+        throw new Error('Unauthorized: You can only delete your own ratings');
+      }
+
+      // Perform the deletion with additional security check
       const { error } = await supabase
         .from('ratings')
         .delete()
-        .eq('id', ratingId);
+        .eq('id', ratingId)
+        .eq('buyer_id', user.id); // Double-check ownership
 
       if (error) throw error;
     } catch (error) {

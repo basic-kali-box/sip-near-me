@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@/contexts/UserContext";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
 import { SellerService } from "@/services/sellerService";
 import { supabase } from "@/lib/supabase";
@@ -22,7 +22,7 @@ const SellerDashboard = () => {
   const navigate = useNavigate();
   const { user } = useUser();
   const { toast } = useToast();
-  const { t } = useLanguage();
+  const { t } = useTranslation();
 
   const [activeTab, setActiveTab] = useState('overview');
   const [searchTerm, setSearchTerm] = useState('');
@@ -32,14 +32,10 @@ const SellerDashboard = () => {
   const [hasSellerProfile, setHasSellerProfile] = useState(null);
 
   const [analytics, setAnalytics] = useState({
-    totalOrders: 0,
-    totalRevenue: 0,
     profileViews: 0,
     averageRating: 0,
-    whatsappOrders: 0,
     uniqueCustomers: 0
   });
-  const [recentOrders, setRecentOrders] = useState([]);
 
   // Load dashboard data
   useEffect(() => {
@@ -62,7 +58,7 @@ const SellerDashboard = () => {
             image: d.photo_url,
             category: d.category,
             isAvailable: d.is_available,
-            sales: 0 // Will be calculated from orders
+            sales: 0
           })) || []);
 
           // Load analytics data
@@ -80,27 +76,6 @@ const SellerDashboard = () => {
   // Load analytics data from database
   const loadAnalyticsData = async (sellerId: string) => {
     try {
-      // Get WhatsApp orders
-      const { data: whatsappOrdersData, error } = await supabase
-        .from('order_history')
-        .select(`
-          *,
-          buyer:users!buyer_id(name, phone, avatar_url)
-        `)
-        .eq('seller_id', sellerId)
-        .eq('contact_method', 'whatsapp')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      // Get all orders for total revenue
-      const { data: allOrders, error: allOrdersError } = await supabase
-        .from('order_history')
-        .select('total_amount')
-        .eq('seller_id', sellerId);
-
-      if (allOrdersError) throw allOrdersError;
-
       // Get profile views count
       const { data: profileViewsData, error: viewsError } = await supabase
         .from('seller_analytics')
@@ -123,25 +98,28 @@ const SellerDashboard = () => {
         console.error('Failed to load seller rating:', sellerError);
       }
 
+      // Get contact attempts for unique customers
+      const { data: contactData, error: contactError } = await supabase
+        .from('seller_analytics')
+        .select('viewer_id')
+        .eq('seller_id', sellerId)
+        .eq('event_type', 'contact_attempt')
+        .not('viewer_id', 'is', null);
+
+      if (contactError) {
+        console.error('Failed to load contact data:', contactError);
+      }
+
       // Calculate analytics
-      const totalOrders = allOrders?.length || 0;
-      const totalRevenue = allOrders?.reduce((sum, order) => sum + order.total_amount, 0) || 0;
-      const whatsappOrdersCount = whatsappOrdersData?.length || 0;
-      const uniqueCustomers = new Set(whatsappOrdersData?.map(order => order.buyer_id)).size;
       const profileViews = profileViewsData?.length || 0;
       const averageRating = sellerData?.rating_average || 0;
+      const uniqueCustomers = new Set(contactData?.map(contact => contact.viewer_id)).size;
 
       setAnalytics({
-        totalOrders,
-        totalRevenue,
         profileViews,
         averageRating,
-        whatsappOrders: whatsappOrdersCount,
         uniqueCustomers
       });
-
-      // Set recent orders for the orders tab
-      setRecentOrders(whatsappOrdersData?.slice(0, 10) || []);
     } catch (error) {
       console.error('Failed to load analytics data:', error);
     }
@@ -263,35 +241,7 @@ const SellerDashboard = () => {
     }
   };
 
-  const handleUpdateOrderStatus = async (orderId: string, newStatus: 'confirmed' | 'completed' | 'cancelled') => {
-    if (!user) return;
 
-    try {
-      const { error } = await supabase
-        .from('order_history')
-        .update({ status: newStatus })
-        .eq('id', orderId);
-
-      if (error) throw error;
-
-      // Update the local state
-      setRecentOrders(prev => prev.map((order: any) =>
-        order.id === orderId ? { ...order, status: newStatus } : order
-      ));
-
-      toast({
-        title: "Order Updated",
-        description: `Order status changed to ${newStatus}`,
-      });
-    } catch (error) {
-      console.error('Failed to update order status:', error);
-      toast({
-        title: "Update Failed",
-        description: "Failed to update order status. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const filteredItems = menuItems.filter(item =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -459,17 +409,17 @@ const SellerDashboard = () => {
                   {/* Switch User Type */}
                   <DropdownMenuItem
                     onClick={handleSwitchUserType}
-                    className="cursor-pointer p-3 group hover:bg-gradient-to-r hover:from-primary/10 hover:to-primary/5 transition-all duration-300"
+                    className="cursor-pointer p-4 min-h-[52px] group hover:bg-gradient-to-r hover:from-primary/10 hover:to-primary/5 transition-all duration-300 touch-manipulation focus:ring-2 focus:ring-primary/30"
                   >
                     <div className="flex items-center w-full">
-                      <div className="p-1.5 rounded-md mr-3 transition-all duration-300 bg-amber-100 text-amber-700 group-hover:bg-amber-200">
-                        <ShoppingBag className="w-4 h-4" />
+                      <div className="p-2 rounded-lg mr-4 transition-all duration-300 bg-amber-100 text-amber-700 group-hover:bg-amber-200">
+                        <ShoppingBag className="w-5 h-5" />
                       </div>
                       <div className="flex-1">
-                        <div className="font-medium">Switch to Buyer</div>
-                        <div className="text-xs text-muted-foreground">Browse and order drinks</div>
+                        <div className="font-semibold text-sm">Switch to Buyer</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">Browse and order drinks</div>
                       </div>
-                      <ArrowRightLeft className="w-4 h-4 text-primary group-hover:scale-110 transition-transform duration-300" />
+                      <ArrowRightLeft className="w-5 h-5 text-primary group-hover:scale-110 transition-transform duration-300" />
                     </div>
                   </DropdownMenuItem>
 
@@ -489,12 +439,12 @@ const SellerDashboard = () => {
               {/* Quick Stats */}
               <div className="hidden md:flex items-center gap-4 ml-4 pl-4 border-l border-amber-200/50">
                 <div className="text-center">
-                  <div className="text-lg font-bold text-gray-800">{analytics.whatsappOrders}</div>
-                  <div className="text-xs text-gray-500">Orders</div>
-                </div>
-                <div className="text-center">
                   <div className="text-lg font-bold text-gray-800">{analytics.profileViews}</div>
                   <div className="text-xs text-gray-500">Views</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-gray-800">{analytics.averageRating.toFixed(1)}</div>
+                  <div className="text-xs text-gray-500">Rating</div>
                 </div>
               </div>
             </div>
@@ -507,8 +457,7 @@ const SellerDashboard = () => {
         <div className="flex space-x-1 bg-white/70 p-1 rounded-xl">
           {[
             { id: 'overview', label: 'Overview', icon: BarChart3 },
-            { id: 'menu', label: 'Menu', icon: Coffee },
-            { id: 'orders', label: 'Orders', icon: Package }
+            { id: 'menu', label: 'Menu', icon: Coffee }
           ].map(tab => (
             <button
               key={tab.id}
@@ -541,18 +490,7 @@ const SellerDashboard = () => {
         {activeTab === 'overview' && (
           <div className="space-y-6">
             {/* Analytics Cards */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-5 border border-amber-100 shadow-lg hover:shadow-xl transition-shadow">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center">
-                    <Package className="w-5 h-5 text-white" />
-                  </div>
-                  <TrendingUp className="w-4 h-4 text-green-500" />
-                </div>
-                <div className="text-2xl font-bold text-gray-800 mb-1">{analytics.whatsappOrders}</div>
-                <div className="text-xs text-gray-500">WhatsApp Orders</div>
-              </div>
-
+            <div className="grid grid-cols-3 gap-4">
               <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-5 border border-amber-100 shadow-lg hover:shadow-xl transition-shadow">
                 <div className="flex items-center justify-between mb-3">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
@@ -633,7 +571,7 @@ const SellerDashboard = () => {
                         />
                         <div className="flex-1">
                           <div className="font-medium text-gray-800 text-sm">{item.name}</div>
-                          <div className="text-xs text-gray-500">{item.sales || 0} orders</div>
+                          <div className="text-xs text-gray-500">{item.category || 'Drink'}</div>
                         </div>
                         <div className="text-sm font-bold text-green-600">{item.price} Dh</div>
                       </div>
@@ -781,87 +719,7 @@ const SellerDashboard = () => {
           </div>
         )}
 
-        {activeTab === 'orders' && (
-          <div className="space-y-4">
-            <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-amber-100 shadow-lg">
-              <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <Package className="w-6 h-6 text-green-600" />
-                Recent Orders
-              </h3>
 
-              {recentOrders.length > 0 ? (
-                <div className="space-y-4">
-                  {recentOrders.map((order: any) => (
-                    <div key={order.id} className="bg-white/50 rounded-xl p-4 border border-amber-100">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center">
-                            <User className="w-5 h-5 text-white" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-800">{order.buyer?.name || 'Customer'}</p>
-                            <p className="text-sm text-gray-500">
-                              Order #{order.id.slice(-6)} • {new Date(order.created_at).toLocaleDateString()}
-                            </p>
-                            {order.buyer?.phone && (
-                              <p className="text-xs text-gray-400">📱 {order.buyer.phone}</p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-green-600">{order.total_amount.toFixed(2)} Dh</p>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                            order.status === 'confirmed' ? 'bg-blue-100 text-blue-700' :
-                            order.status === 'completed' ? 'bg-green-100 text-green-700' :
-                            'bg-gray-100 text-gray-700'
-                          }`}>
-                            {order.status}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Order Items */}
-                      <div className="space-y-1 mb-3">
-                        {order.items.map((item: any, index: number) => (
-                          <div key={index} className="flex justify-between text-sm text-gray-600">
-                            <span>{item.quantity}x {item.name}</span>
-                            <span>{(item.price * item.quantity).toFixed(2)} Dh</span>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Contact Method */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-xs text-green-600">
-                          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.785"/>
-                          </svg>
-                          WhatsApp Order
-                        </div>
-
-                        {order.status === 'pending' && (
-                          <button
-                            onClick={() => handleUpdateOrderStatus(order.id, 'confirmed')}
-                            className="px-3 py-1 bg-blue-500 text-white text-xs rounded-full hover:bg-blue-600 transition-colors"
-                          >
-                            Confirm Order
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h4 className="text-lg font-medium text-gray-600 mb-2">No Orders Yet</h4>
-                  <p className="text-gray-500">Your customer orders will appear here</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </main>
 
       {/* Enhanced Floating Add Button */}

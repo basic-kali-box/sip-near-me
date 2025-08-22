@@ -4,7 +4,7 @@ import { Star, MapPin, Clock, ShoppingCart, Coffee, Leaf, Store, ExternalLink } 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { sendWhatsAppMessage, createProductInterestMessage, trackContactAttempt, createWhatsAppOrder } from "@/utils/whatsapp";
+import { sendWhatsAppMessage, createProductInterestMessage, trackContactAttempt } from "@/utils/whatsapp";
 import { useUser } from "@/contexts/UserContext";
 
 export interface ItemCardItem {
@@ -26,6 +26,8 @@ export interface ItemCardItem {
     rating_average: number;
     rating_count: number;
     distance_km?: number;
+    latitude?: number;
+    longitude?: number;
   };
 }
 
@@ -77,28 +79,9 @@ export const ItemCard = ({ item, onAddToCart, onViewSeller, className }: ItemCar
     }
   };
 
-  const handleWhatsAppOrder = async (e: React.MouseEvent) => {
+  const handleWhatsAppOrder = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (item.seller?.phone && user) {
-      // Create order record in database for single item
-      const orderItems = [{
-        name: item.name,
-        price: item.price,
-        quantity: 1,
-        notes: item.description
-      }];
-
-      const orderId = await createWhatsAppOrder(
-        user.id,
-        item.seller.id,
-        orderItems,
-        item.price,
-        {
-          name: user.name,
-          phone: user.phone
-        }
-      );
-
       const message = createProductInterestMessage(
         item.name,
         item.price,
@@ -236,6 +219,13 @@ export const ItemCard = ({ item, onAddToCart, onViewSeller, className }: ItemCar
                   <Clock className="w-3 h-3" />
                   <span>15-25 min</span>
                 </div>
+                {/* Temporary GPS debug indicator */}
+                {item.seller.latitude && item.seller.longitude && (
+                  <div className="flex items-center gap-1 text-green-600">
+                    <MapPin className="w-3 h-3" />
+                    <span>GPS</span>
+                  </div>
+                )}
               </div>
             </div>
           )}

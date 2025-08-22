@@ -5,18 +5,22 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const toggleVariants = cva(
-  "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors hover:bg-muted hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground",
+  "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors hover:bg-muted hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground touch-manipulation",
   {
     variants: {
       variant: {
         default: "bg-transparent",
         outline:
           "border border-input bg-transparent hover:bg-accent hover:text-accent-foreground",
+        mobile: "bg-transparent border-2 border-input hover:border-primary/50 data-[state=on]:border-primary data-[state=on]:bg-primary/10",
+        "mobile-outline": "border-2 border-input bg-transparent hover:bg-accent hover:text-accent-foreground hover:border-primary/50 data-[state=on]:border-primary data-[state=on]:bg-primary/10",
       },
       size: {
         default: "h-10 px-3",
         sm: "h-9 px-2.5",
         lg: "h-11 px-5",
+        mobile: "min-h-[48px] h-auto px-4 py-3",
+        "mobile-lg": "min-h-[56px] h-auto px-5 py-4",
       },
     },
     defaultVariants: {

@@ -2,6 +2,7 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
+import i18n from '@/i18n';
 
 interface Props {
   children: ReactNode;
@@ -52,8 +53,8 @@ export class ErrorBoundary extends Component<Props, State> {
   private getLocalStorageInfo() {
     try {
       return {
-        userEssentials: localStorage.getItem('brewnear_user_essentials'),
-        hasUserData: !!localStorage.getItem('brewnear_user_essentials'),
+        userEssentials: localStorage.getItem('machroub_user_essentials'),
+        hasUserData: !!localStorage.getItem('machroub_user_essentials'),
       };
     } catch (e) {
       return { error: 'Could not access localStorage' };
@@ -89,9 +90,9 @@ export class ErrorBoundary extends Component<Props, State> {
               </div>
               
               <div className="space-y-2">
-                <h2 className="text-2xl font-bold text-foreground">Something went wrong</h2>
+                <h2 className="text-2xl font-bold text-foreground">{i18n.t('errors.somethingWentWrong')}</h2>
                 <p className="text-muted-foreground">
-                  We encountered an unexpected error. Please try again or return to the home page.
+                  {i18n.t('errors.unexpectedError')}
                 </p>
               </div>
 
@@ -109,7 +110,7 @@ export class ErrorBoundary extends Component<Props, State> {
                   className="flex-1 bg-gradient-matcha hover:shadow-glow transition-all duration-300"
                 >
                   <RefreshCw className="w-4 h-4 mr-2" />
-                  Try Again
+                  {i18n.t('errors.tryAgain')}
                 </Button>
                 <Button
                   variant="outline"
@@ -117,7 +118,7 @@ export class ErrorBoundary extends Component<Props, State> {
                   className="flex-1 hover:bg-primary/10 hover:border-primary/50 transition-all duration-300"
                 >
                   <Home className="w-4 h-4 mr-2" />
-                  Go Home
+                  {i18n.t('errors.goHome')}
                 </Button>
               </div>
             </div>

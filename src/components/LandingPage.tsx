@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/contexts/UserContext";
 import { createNavigationHelpers, trackNavigation } from "@/utils/navigationHelpers";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "react-i18next";
 import heroImage from "@/assets/hero-matcha-coffee.jpg";
 import matchaBarista from "@/assets/matcha-barista.jpg";
 import coffeeBrewing from "@/assets/coffee-brewing.jpg";
@@ -21,7 +21,7 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, isAuthenticated, isLoading } = useUser();
-  const { setLanguage } = useLanguage();
+  const { t } = useTranslation();
 
   // Debug logging to see what the component receives
   console.log('🏠 LandingPage render:', {
@@ -33,8 +33,8 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
   // Create navigation helpers with error handling
   const navigationHelpers = createNavigationHelpers(navigate, (error) => {
     toast({
-      title: "Navigation Error",
-      description: "Unable to navigate. Please try again.",
+      title: t('errors.navigationError'),
+      description: t('errors.unableToNavigate'),
       variant: "destructive",
     });
   });
@@ -57,31 +57,31 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
   const features = [
     {
       icon: Coffee,
-      title: "Premium Coffee",
-      description: "Discover artisan coffee roasters and specialty brews in your neighborhood"
+      title: t('landing.features.premiumCoffee.title'),
+      description: t('landing.features.premiumCoffee.description')
     },
     {
-      icon: Leaf, 
-      title: "Authentic Matcha",
-      description: "Find ceremonial grade matcha and traditional tea experiences"
+      icon: Leaf,
+      title: t('landing.features.authenticMatcha.title'),
+      description: t('landing.features.authenticMatcha.description')
     },
     {
       icon: Clock,
-      title: "Quick Delivery",
-      description: "Fresh drinks delivered in 15-30 minutes from local sellers"
+      title: t('landing.features.quickDelivery.title'),
+      description: t('landing.features.quickDelivery.description')
     },
     {
       icon: Star,
-      title: "Quality Verified",
-      description: "All sellers are verified and rated by the community"
+      title: t('landing.features.qualityVerified.title'),
+      description: t('landing.features.qualityVerified.description')
     }
   ];
 
   const stats = [
-    { number: "500+", label: "Local Sellers" },
-    { number: "50k+", label: "Happy Customers" },
-    { number: "4.9", label: "Average Rating" },
-    { number: "15min", label: "Avg Delivery" }
+    { number: "500+", label: t('landing.stats.localSellers') },
+    { number: "50k+", label: t('landing.stats.happyCustomers') },
+    { number: "4.9", label: t('landing.stats.averageRating') },
+    { number: "15min", label: t('landing.stats.avgDelivery') }
   ];
 
   return (
@@ -90,12 +90,21 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
       <header className="bg-background/80 backdrop-blur-md border-b border-border/50 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div
+              className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity duration-200"
+              onClick={() => {
+                if (isAuthenticated) {
+                  navigate('/app');
+                } else {
+                  navigate('/signin');
+                }
+              }}
+            >
               <div className="w-10 h-10 bg-gradient-matcha rounded-2xl flex items-center justify-center">
                 <Coffee className="w-6 h-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-foreground">BrewNear</h1>
+                <h1 className="text-xl font-bold text-foreground">Machroub</h1>
                 <p className="text-xs text-muted-foreground">Premium Coffee & Matcha</p>
               </div>
             </div>
@@ -110,14 +119,14 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
                 // Loading state - show placeholder
                 <div className="flex items-center gap-4">
                   <div className="text-sm text-gray-600">
-                    Loading...
+                    {t('common.loading')}
                   </div>
                 </div>
               ) : isAuthenticated && user ? (
                 // Authenticated user - show welcome message and user menu
                 <div className="flex items-center gap-4">
                   <div className="text-sm text-gray-600">
-                    Welcome back, <span className="font-semibold text-gray-800">{user.name || user.email?.split('@')[0] || 'User'}</span>!
+                    {t('landing.welcomeBackUser', { name: user.name || user.email?.split('@')[0] || 'User' })}
                   </div>
                   <UserMenu variant="desktop" />
                 </div>
@@ -129,17 +138,17 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
                     size="sm"
                     onClick={handleSignIn}
                     className="hover:text-primary transition-colors duration-200"
-                    aria-label="Sign in to your account"
+                    aria-label={t('landing.signInToAccount')}
                   >
-                    Sign In
+                    {t('auth.signIn')}
                   </Button>
                   <Button
                     size="sm"
                     className="bg-gradient-matcha hover:shadow-glow transition-all duration-300"
                     onClick={handleSignUp}
-                    aria-label="Create a new account"
+                    aria-label={t('landing.signUpForAccount')}
                   >
-                    Join Now
+                    {t('landing.getStarted')}
                   </Button>
                 </>
               )}
@@ -156,20 +165,19 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               <div className="space-y-4">
                 <div className="inline-flex items-center gap-2 bg-accent/50 text-accent-foreground px-4 py-2 rounded-full text-sm font-medium">
                   <Leaf className="w-4 h-4" />
-                  Premium Quality Guaranteed
+                  {t('landing.premiumQuality')}
                 </div>
                 <h1 className="text-4xl lg:text-6xl font-bold text-foreground leading-tight">
-                  Find Amazing
+                  {t('landing.findAmazing')}
                   <br />
                   <span className="text-primary font-bold">
-                    Coffee & Matcha
+                    {t('landing.coffeeMatcha')}
                   </span>
                   <br />
-                  Near You
+                  {t('landing.nearYou')}
                 </h1>
                 <p className="text-xl text-muted-foreground leading-relaxed">
-                  Discover local artisan coffee roasters and authentic matcha makers. 
-                  Order premium drinks from verified sellers and enjoy fast delivery.
+                  {t('landing.heroDescription')}
                 </p>
               </div>
 
@@ -177,11 +185,11 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
                 <Button
                   size="lg"
                   onClick={onGetStarted || (() => navigate('/app'))}
-                  className="bg-gradient-matcha hover:shadow-glow transition-all duration-300 text-lg px-8"
-                  aria-label="Explore nearby coffee and matcha sellers"
+                  className="bg-gradient-matcha hover:shadow-glow transition-all duration-300 text-base sm:text-lg px-6 sm:px-8 min-h-[48px] touch-manipulation"
+                  aria-label={t('landing.exploreNearby')}
                 >
-                  Explore Nearby
-                  <ArrowRight className="w-5 h-5 ml-2" />
+                  <span>{t('landing.exploreNearby')}</span>
+                  <ArrowRight className="w-5 h-5 ml-2 flex-shrink-0" />
                 </Button>
                 {isAuthenticated && user ? (
                   // Show relevant button based on user type
@@ -189,23 +197,23 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
                     <Button
                       variant="outline"
                       size="lg"
-                      className="text-lg px-8 hover:bg-primary/10 hover:border-primary/50 transition-all duration-300"
+                      className="text-base sm:text-lg px-6 sm:px-8 min-h-[48px] hover:bg-primary/10 hover:border-primary/50 transition-all duration-300 touch-manipulation"
                       onClick={() => navigate('/seller-dashboard')}
                       aria-label="Go to your seller dashboard"
                     >
-                      <ShoppingBag className="w-5 h-5 mr-2" />
-                      My Dashboard
+                      <ShoppingBag className="w-5 h-5 mr-2 flex-shrink-0" />
+                      <span>{t('landing.myDashboard')}</span>
                     </Button>
                   ) : (
                     <Button
                       variant="outline"
                       size="lg"
-                      className="text-lg px-8 hover:bg-primary/10 hover:border-primary/50 transition-all duration-300"
+                      className="text-base sm:text-lg px-6 sm:px-8 min-h-[48px] hover:bg-primary/10 hover:border-primary/50 transition-all duration-300 touch-manipulation"
                       onClick={handleBecomeASeller}
-                      aria-label="Sign up as a seller to start selling drinks"
+                      aria-label={t('nav.becomeSeller')}
                     >
-                      <ShoppingBag className="w-5 h-5 mr-2" />
-                      Become a Seller
+                      <ShoppingBag className="w-5 h-5 mr-2 flex-shrink-0" />
+                      <span>{t('nav.becomeSeller')}</span>
                     </Button>
                   )
                 ) : (
@@ -213,12 +221,12 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
                   <Button
                     variant="outline"
                     size="lg"
-                    className="text-lg px-8 hover:bg-primary/10 hover:border-primary/50 transition-all duration-300"
+                    className="text-base sm:text-lg px-6 sm:px-8 min-h-[48px] hover:bg-primary/10 hover:border-primary/50 transition-all duration-300 touch-manipulation"
                     onClick={handleBecomeASeller}
-                    aria-label="Sign up as a seller to start selling drinks"
+                    aria-label={t('nav.becomeSeller')}
                   >
-                    <ShoppingBag className="w-5 h-5 mr-2" />
-                    Become a Seller
+                    <ShoppingBag className="w-5 h-5 mr-2 flex-shrink-0" />
+                    <span>{t('nav.becomeSeller')}</span>
                   </Button>
                 )}
               </div>
@@ -230,11 +238,11 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
                     variant="ghost"
                     size="sm"
                     onClick={handleSignIn}
-                    className="text-muted-foreground hover:text-foreground transition-colors duration-200"
+                    className="text-muted-foreground hover:text-foreground transition-colors duration-200 min-h-[44px] px-4 py-2 touch-manipulation"
                     aria-label="Sign in to existing account"
                   >
-                    <LogIn className="w-4 h-4 mr-2" />
-                    Already have an account? Sign In
+                    <LogIn className="w-4 h-4 mr-2 flex-shrink-0" />
+                    <span className="text-sm">{t('auth.alreadyHaveAccount')} {t('auth.signIn')}</span>
                   </Button>
                 </div>
               )}
@@ -244,8 +252,8 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
                 <div className="pt-4">
                   <div className="bg-gradient-to-r from-coffee-50 to-matcha-50 border border-coffee-200 rounded-lg p-4">
                     <p className="text-coffee-800 text-center">
-                      🎉 Welcome back, <span className="font-semibold">{user.name || user.email?.split('@')[0]}</span>!
-                      Ready to {user.userType === 'seller' ? 'manage your business' : 'discover amazing drinks'}?
+                      🎉 {t('landing.welcomeBackUser', { name: user.name || user.email?.split('@')[0] })}
+                      {user.userType === 'seller' ? t('landing.readyToManage') : t('landing.readyToDiscover')}
                     </p>
                   </div>
                 </div>
@@ -306,10 +314,10 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
         <div className="container mx-auto px-4">
           <div className="text-center space-y-4 mb-16">
             <h2 className="text-3xl lg:text-4xl font-bold text-foreground">
-              Why Choose BrewNear?
+              {t('landing.whyChoose')}
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Connect with passionate local sellers who craft exceptional coffee and matcha experiences
+              {t('landing.whyChooseDescription')}
             </p>
           </div>
 
@@ -335,10 +343,10 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
         <div className="container mx-auto px-4">
           <div className="text-center space-y-4 mb-16">
             <h2 className="text-3xl lg:text-4xl font-bold text-foreground">
-              Discover Amazing Experiences
+              {t('landing.gallery.title')}
             </h2>
             <p className="text-xl text-muted-foreground">
-              From traditional matcha ceremonies to innovative coffee brewing
+              {t('landing.gallery.subtitle')}
             </p>
           </div>
 
@@ -414,7 +422,7 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
                 variant="outline"
                 className="text-lg px-8 border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-foreground transition-all duration-300"
                 onClick={handleBecomeASeller}
-                aria-label="Start selling your drinks on BrewNear"
+                aria-label="Start selling your drinks on Machroub"
               >
                 Start Selling
               </Button>
@@ -431,13 +439,13 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               <div className="w-8 h-8 bg-gradient-matcha rounded-lg flex items-center justify-center">
                 <Coffee className="w-5 h-5 text-primary-foreground" />
               </div>
-              <span className="text-xl font-bold">BrewNear</span>
+              <span className="text-xl font-bold">Machroub</span>
             </div>
             <p className="text-background/70 mb-6">
               Connecting coffee and matcha lovers with local artisans
             </p>
             <div className="text-sm text-background/50">
-              © 2024 BrewNear. All rights reserved.
+              © 2024 Machroub. All rights reserved.
             </div>
           </div>
         </div>

@@ -16,6 +16,8 @@ import { SellerService } from "@/services/sellerService";
 import { BuyerService } from "@/services/buyerService";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { supabase } from "@/lib/supabase";
+import { MoroccanPhoneInput } from "@/components/ui/moroccan-phone-input";
+import { validateAndNormalizeMoroccanPhone, normalizeMoroccanPhoneForWhatsApp } from "@/utils/moroccanPhoneValidation";
 
 import { type Coordinates } from "@/utils/geocoding";
 
@@ -93,6 +95,13 @@ const Profile = () => {
     businessHours: "",
     specialty: "coffee" as "coffee" | "matcha" | "both",
     description: ""
+  });
+
+  // Phone validation state
+  const [phoneValidation, setPhoneValidation] = useState({
+    isValid: false,
+    normalizedNumber: "",
+    errorMessage: ""
   });
 
   // Analytics Data
@@ -400,6 +409,21 @@ const Profile = () => {
   const handleSaveProfile = async () => {
     if (!user) return;
 
+    // Validate phone number before saving
+    if (formData.phone.trim()) {
+      const phoneValidationResult = validateAndNormalizeMoroccanPhone(formData.phone);
+      if (!phoneValidationResult.isValid) {
+        toast({
+          title: "Invalid Phone Number",
+          description: phoneValidationResult.errorMessage || "Please enter a valid Moroccan mobile number",
+          variant: "destructive",
+        });
+        return;
+      }
+      // Use normalized phone number for saving
+      formData.phone = phoneValidationResult.normalizedNumber;
+    }
+
     setIsSaving(true);
     try {
       if (user.userType === 'seller') {
@@ -659,7 +683,24 @@ const Profile = () => {
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-gray-600">Phone</Label>
-                  <p className="text-gray-900 mt-1">{profile.phone || 'Not set'}</p>
+                  <p className="text-gray-900 mt-1">
+                    {profile.phone ? (
+                      <span className="flex items-center gap-2">
+                        <span className="font-mono">{
+                          validateAndNormalizeMoroccanPhone(profile.phone).isValid
+                            ? validateAndNormalizeMoroccanPhone(profile.phone).displayNumber
+                            : profile.phone
+                        }</span>
+                        {validateAndNormalizeMoroccanPhone(profile.phone).isValid && (
+                          <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                            WhatsApp Ready
+                          </span>
+                        )}
+                      </span>
+                    ) : (
+                      'Not set'
+                    )}
+                  </p>
                 </div>
                 {user?.userType === 'seller' && (
                   <>
@@ -702,13 +743,23 @@ const Profile = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input
-                    id="phone"
+                  <MoroccanPhoneInput
                     value={formData.phone}
-                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                    placeholder="Your phone number"
+                    onChange={(value) => setFormData(prev => ({ ...prev, phone: value }))}
+                    onValidationChange={(isValid, normalizedNumber) => {
+                      setPhoneValidation({
+                        isValid,
+                        normalizedNumber,
+                        errorMessage: isValid ? "" : "Invalid phone number format"
+                      });
+                    }}
+                    label="Phone Number"
+                    placeholder="0606060606 or 212606060606"
+                    required={user?.userType === 'seller'}
                     disabled={isSaving}
+                    showValidationFeedback={true}
+                    showFormattedPreview={true}
+                    size="default"
                   />
                 </div>
                 {user?.userType === 'seller' && (

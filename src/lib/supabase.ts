@@ -3,15 +3,20 @@ import { Database } from './database.types';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '750298159534-05hfkft27aq028ggm02rebkivh4gogsf.apps.googleusercontent.com';
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-console.log('🔧 Supabase Config Check:');
-console.log('  URL:', supabaseUrl ? '✅ Set' : '❌ Missing');
-console.log('  Key:', supabaseAnonKey ? '✅ Set' : '❌ Missing');
-console.log('⚠️ Email Confirmation: Should be DISABLED in Supabase Dashboard → Authentication → Settings');
+// SECURITY FIX: Only log debug info in development
+if (import.meta.env.DEV) {
+  console.log('🔧 Supabase Config Check:');
+  console.log('  URL:', supabaseUrl ? '✅ Set' : '❌ Missing');
+  console.log('  Key:', supabaseAnonKey ? '✅ Set' : '❌ Missing');
+  console.log('⚠️ Email Confirmation: Should be DISABLED in Supabase Dashboard → Authentication → Settings');
+}
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('❌ Missing Supabase environment variables!');
+  if (import.meta.env.DEV) {
+    console.error('❌ Missing Supabase environment variables!');
+  }
   throw new Error('Missing Supabase environment variables');
 }
 
@@ -82,13 +87,18 @@ export const signIn = async (email: string, password: string) => {
 
 export const signInWithGoogle = async () => {
   console.log('🔄 Attempting Google OAuth sign-in...');
-  console.log('📍 Redirect URL:', `${window.location.origin}/auth/callback`);
+
+  // Force the redirect URL to use the correct domain without www
+  const redirectUrl = 'https://machroub.ma/auth/callback';
+
+  console.log('📍 Current origin:', window.location.origin);
+  console.log('📍 Forced redirect URL:', redirectUrl);
   console.log('🔑 Google Client ID:', googleClientId);
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${window.location.origin}/auth/callback`,
+      redirectTo: redirectUrl,
       queryParams: {
         access_type: 'offline',
         prompt: 'consent',

@@ -57,6 +57,25 @@ export class SellerService {
         throw sellerError;
       }
 
+      // Auto-populate business hours if missing or null
+      if (seller && (!seller.hours || seller.hours === 'null')) {
+        console.log('🔄 Auto-populating missing business hours for seller:', sellerId);
+        const defaultHours = 'Mon-Fri: 8:00 AM - 6:00 PM, Sat-Sun: 9:00 AM - 5:00 PM';
+
+        // Update the seller with default hours
+        const { error: updateError } = await supabase
+          .from('sellers')
+          .update({ hours: defaultHours, updated_at: new Date().toISOString() })
+          .eq('id', sellerId);
+
+        if (updateError) {
+          console.warn('⚠️ Failed to auto-populate business hours:', updateError);
+        } else {
+          console.log('✅ Auto-populated business hours successfully');
+          seller.hours = defaultHours;
+        }
+      }
+
       console.log('🔍 SellerService: Returning seller data:', seller);
       return seller;
     } catch (error) {
@@ -96,7 +115,7 @@ export class SellerService {
         address: sellerData.address,
         phone: sellerData.phone,
         specialty: sellerData.specialty || 'coffee',
-        hours: sellerData.hours || 'Mon-Fri: 9AM-5PM',
+        hours: sellerData.hours || 'Mon-Fri: 8:00 AM - 6:00 PM, Sat-Sun: 9:00 AM - 5:00 PM',
         description: sellerData.description || null,
         is_available: sellerData.is_available ?? true,
         rating_average: sellerData.rating_average ?? 0,
@@ -403,48 +422,7 @@ export class SellerService {
     }
   }
 
-  // Get seller orders
-  static async getSellerOrders(sellerId: string, status?: string): Promise<any[]> {
-    try {
-      let query = supabase
-        .from('order_history')
-        .select(`
-          *,
-          buyer:users!buyer_id(name, phone, avatar_url)
-        `)
-        .eq('seller_id', sellerId);
 
-      if (status) {
-        query = query.eq('status', status);
-      }
 
-      const { data, error } = await query
-        .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      throw new Error(handleSupabaseError(error));
-    }
-  }
-
-  // Update order status
-  static async updateOrderStatus(
-    orderId: string, 
-    status: 'pending' | 'confirmed' | 'completed' | 'cancelled'
-  ): Promise<void> {
-    try {
-      const { error } = await supabase
-        .from('order_history')
-        .update({ 
-          status,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', orderId);
-
-      if (error) throw error;
-    } catch (error) {
-      throw new Error(handleSupabaseError(error));
-    }
-  }
 }

@@ -34,9 +34,9 @@ export interface Seller {
 export const getWebApplicationSchema = () => ({
   "@context": "https://schema.org",
   "@type": "WebApplication",
-  "name": "BrewNear",
+  "name": "Machroub",
   "description": "Find amazing coffee and matcha sellers near you. Discover local artisan coffee roasters and authentic matcha makers in Morocco.",
-  "url": "https://brewnear.app",
+  "url": "https://machroub.ma",
   "applicationCategory": "Food & Drink",
   "operatingSystem": "Web Browser",
   "offers": {
@@ -46,7 +46,7 @@ export const getWebApplicationSchema = () => ({
   },
   "author": {
     "@type": "Organization",
-    "name": "BrewNear Team"
+    "name": "Machroub Team"
   },
   "aggregateRating": {
     "@type": "AggregateRating",
@@ -165,19 +165,19 @@ export const getFAQSchema = (faqs: Array<{question: string, answer: string}>) =>
 export const getOrganizationSchema = () => ({
   "@context": "https://schema.org",
   "@type": "Organization",
-  "name": "BrewNear",
+  "name": "Machroub",
   "description": "Connecting coffee and matcha lovers with local artisan sellers across Morocco.",
-  "url": "https://brewnear.app",
-  "logo": "https://brewnear.app/logo.png",
+  "url": "https://machroub.ma",
+  "logo": "https://machroub.ma/logo.png",
   "contactPoint": {
     "@type": "ContactPoint",
     "contactType": "customer service",
     "availableLanguage": ["English", "French", "Arabic"]
   },
   "sameAs": [
-    "https://twitter.com/brewnear_app",
-    "https://instagram.com/brewnear_app",
-    "https://facebook.com/brewnear.app"
+    "https://twitter.com/machroub_ma",
+    "https://instagram.com/machroub_ma",
+    "https://facebook.com/machroub.ma"
   ]
 });
 
@@ -199,13 +199,13 @@ const parseBusinessHours = (hoursString: string): string[] => {
 export const getSearchActionSchema = () => ({
   "@context": "https://schema.org",
   "@type": "WebSite",
-  "name": "BrewNear",
-  "url": "https://brewnear.app",
+  "name": "Machroub",
+  "url": "https://machroub.ma",
   "potentialAction": {
     "@type": "SearchAction",
     "target": {
       "@type": "EntryPoint",
-      "urlTemplate": "https://brewnear.app/search?q={search_term_string}"
+      "urlTemplate": "https://machroub.ma/search?q={search_term_string}"
     },
     "query-input": "required name=search_term_string"
   }

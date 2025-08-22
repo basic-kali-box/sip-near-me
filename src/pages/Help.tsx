@@ -21,9 +21,9 @@ const Help = () => {
   const faqData: FAQItem[] = [
     {
       id: "1",
-      question: "How do I place an order?",
-      answer: "To place an order, browse sellers in your area using the List or Map view, select a seller, choose your drinks from their menu, add them to your cart, and proceed to checkout. You'll receive updates on your order status.",
-      category: "Ordering"
+      question: "How do I contact sellers?",
+      answer: "You can contact sellers directly via WhatsApp by clicking the WhatsApp button on any item or seller page. This will open WhatsApp with a pre-filled message expressing your interest in their products.",
+      category: "Contact"
     },
     {
       id: "2",
